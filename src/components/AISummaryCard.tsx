@@ -11,13 +11,22 @@ function isBullet(line: string): boolean {
   return /^\s*[-*•]\s/.test(line) || /^\s*\d+[.)]\s/.test(line);
 }
 
+/** Detect heading level: 1 = main section, 2 = subsection, 0 = not a heading */
+function headingLevel(line: string): 0 | 1 | 2 {
+  const trimmed = line.trim();
+  if (/^#{1}\s/.test(trimmed)) return 1;
+  if (/^#{2}\s/.test(trimmed)) return 1;
+  if (/^#{3}\s/.test(trimmed)) return 2;
+  // **Bold Title** on its own line
+  if (/^\*\*[^*]+\*\*\s*:?\s*$/.test(trimmed)) return 1;
+  // ALL CAPS or Title Case line under 60 chars
+  if (/^[A-Z][\w\s&,/-]{2,50}:?\s*$/.test(trimmed) && trimmed.length < 60) return 1;
+  return 0;
+}
+
 /** Detect if a line looks like a section heading */
 function isHeading(line: string): boolean {
-  return (
-    /^#{1,3}\s/.test(line) ||
-    (/^[A-Z][\w\s&,/-]{2,50}:?\s*$/.test(line.trim()) && line.trim().length < 60) ||
-    /^\*\*[^*]+\*\*\s*:?\s*$/.test(line.trim())
-  );
+  return headingLevel(line) > 0;
 }
 
 /** Strip markdown heading markers and bold wrappers */
@@ -65,6 +74,7 @@ interface ParsedBlock {
   type: "paragraph" | "heading" | "bullets";
   content: string;
   items?: string[];
+  level?: 1 | 2;
 }
 
 function parseBlocks(text: string): ParsedBlock[] {
@@ -99,7 +109,7 @@ function parseBlocks(text: string): ParsedBlock[] {
     if (isHeading(trimmed)) {
       flushParagraph();
       flushBullets();
-      blocks.push({ type: "heading", content: cleanHeading(trimmed) });
+      blocks.push({ type: "heading", content: cleanHeading(trimmed), level: headingLevel(trimmed) as 1 | 2 });
       continue;
     }
 
@@ -124,8 +134,8 @@ export default function AISummaryCard({ summary }: Props) {
   const [expanded, setExpanded] = useState(false);
   const blocks = parseBlocks(summary);
 
-  // Show first 3 blocks as preview, rest behind expand
-  const previewCount = 3;
+  // Show first 6 blocks as preview, rest behind expand
+  const previewCount = 6;
   const hasMore = blocks.length > previewCount;
   const visibleBlocks = expanded ? blocks : blocks.slice(0, previewCount);
 
@@ -161,24 +171,38 @@ export default function AISummaryCard({ summary }: Props) {
         <div className="mx-6 sm:mx-8 h-px bg-gradient-to-r from-transparent via-indigo-200 to-transparent" />
 
         {/* Body */}
-        <div className="px-6 sm:px-8 py-6 space-y-4">
+        <div className="px-6 sm:px-8 py-6 space-y-5">
           {visibleBlocks.map((block, i) => {
             const delayClass = i < 5 ? `ai-fade-in ai-fade-in-delay-${Math.min(i, 4)}` : "ai-fade-in";
 
             if (block.type === "heading") {
+              if (block.level === 2) {
+                // Subsection heading (h3)
+                return (
+                  <div key={i} className={`flex items-center gap-2 pt-1 ${delayClass}`}>
+                    <div className="w-0.5 h-4 rounded-full bg-indigo-300" />
+                    <h4 className="text-sm font-semibold text-gray-700">
+                      {block.content}
+                    </h4>
+                  </div>
+                );
+              }
+              // Main section heading (h2)
               return (
-                <div key={i} className={`flex items-center gap-2 pt-2 ${delayClass}`}>
-                  <div className="w-1 h-5 rounded-full bg-gradient-to-b from-indigo-500 to-purple-500" />
-                  <h4 className="text-sm font-bold text-gray-900 uppercase tracking-wide">
-                    {block.content}
-                  </h4>
+                <div key={i} className={`pt-4 pb-1 ${i > 0 ? "border-t border-gray-100 mt-2" : ""} ${delayClass}`}>
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-1 h-6 rounded-full bg-gradient-to-b from-indigo-500 to-purple-500" />
+                    <h3 className="text-base font-bold text-gray-900">
+                      {block.content}
+                    </h3>
+                  </div>
                 </div>
               );
             }
 
             if (block.type === "bullets") {
               return (
-                <ul key={i} className={`space-y-2.5 ${delayClass}`}>
+                <ul key={i} className={`space-y-2.5 pl-1 ${delayClass}`}>
                   {block.items?.map((item, j) => (
                     <li key={j} className="flex items-start gap-3 group">
                       <span className="mt-1.5 flex-shrink-0 w-1.5 h-1.5 rounded-full bg-indigo-400 group-hover:bg-indigo-600 transition-colors" />
