@@ -19,6 +19,7 @@ export default function AffordabilityForm({ onSubmit, isLoading }: Props) {
     creditScore: "",
     monthlyExpenses: "3000",
     targetLocations: [] as string[],
+    includeRadius: false,
     preferredLoanTerm: "30",
     militaryVeteran: false,
     firstTimeBuyer: false,
@@ -35,7 +36,9 @@ export default function AffordabilityForm({ onSubmit, isLoading }: Props) {
       additionalSavings: Number(form.additionalSavings) || undefined,
       creditScore: Number(form.creditScore),
       monthlyExpenses: Number(form.monthlyExpenses),
-      targetLocation: form.targetLocations.length > 0 ? form.targetLocations.join(", ") : undefined,
+      targetLocation: form.targetLocations.length > 0
+        ? form.targetLocations.join(", ") + (form.includeRadius ? " (and surrounding areas within 25 miles)" : "")
+        : undefined,
       preferredLoanTerm: isArm ? 30 : (Number(form.preferredLoanTerm) as 15 | 20 | 30),
       loanType: isArm ? (form.preferredLoanTerm as "5/1_arm" | "7/1_arm") : "fixed",
       militaryVeteran: form.militaryVeteran,
@@ -217,6 +220,15 @@ export default function AffordabilityForm({ onSubmit, isLoading }: Props) {
                 setForm((prev) => ({ ...prev, targetLocations: locations }))
               }
             />
+            <label className="flex items-center gap-2 cursor-pointer mt-2">
+              <input
+                type="checkbox"
+                checked={form.includeRadius}
+                onChange={(e) => update("includeRadius", e.target.checked)}
+                className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+              />
+              <span className="text-sm text-gray-600">Also include homes within 25 mile radius</span>
+            </label>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
