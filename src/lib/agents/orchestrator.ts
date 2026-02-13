@@ -59,7 +59,7 @@ export class OrchestratorAgent {
     try {
       state.marketData = await this.withTimeout(
         this.marketAgent.run({ location: userProfile.targetLocation }),
-        60000,
+        20000,
         "Market data"
       );
       console.log(
@@ -88,7 +88,7 @@ export class OrchestratorAgent {
     try {
       state.affordability = await this.withTimeout(
         this.affordabilityAgent.run({ userProfile, marketData: state.marketData }),
-        60000,
+        20000,
         "Affordability calculation"
       );
       console.log(
@@ -115,7 +115,7 @@ export class OrchestratorAgent {
           marketData: state.marketData,
           affordability: state.affordability,
         }),
-        60000,
+        20000,
         "Risk assessment"
       ),
       this.withTimeout(
@@ -124,7 +124,7 @@ export class OrchestratorAgent {
           marketData: state.marketData,
           affordability: state.affordability,
         }),
-        60000,
+        20000,
         "Recommendations"
       ),
     ]);
@@ -176,26 +176,26 @@ export class OrchestratorAgent {
     let summary = "Report generation failed.";
 
     for (let attempt = 0; attempt < 2; attempt++) {
-      // First attempt uses summaryModel (Sonnet), fallback uses Haiku
-      const model = attempt === 0 ? config.summaryModel : config.fallbackModel;
+      // Use Haiku for speed — synthesis should complete in ~3-5s
+      const model = config.model;
       try {
         const response = await this.client.messages.create(
           {
             model,
-            max_tokens: 2048,
+            max_tokens: 1500,
             system: PROMPTS.orchestrator,
             messages: [
               {
                 role: "user",
                 content: `Synthesize this data into a clear, actionable narrative report for the home buyer.
 Focus on the key takeaways, what they can afford, major risks, and top recommendations.
-Be specific with numbers and direct with advice.
+Be specific with numbers and direct with advice. Keep it concise.
 
 ${JSON.stringify(state, null, 2)}`,
               },
             ],
           },
-          { timeout: 30000 }
+          { timeout: 15000 }
         );
 
         const textBlock = response.content.find(

@@ -48,7 +48,7 @@ export default function LoadingState() {
 
   // Step progression
   useEffect(() => {
-    const timings = [0, 6000, 14000, 20000, 30000];
+    const timings = [0, 4000, 10000, 16000, 24000];
     const timers = timings.map((delay, i) =>
       setTimeout(() => setCurrentStep(i), delay)
     );
@@ -61,7 +61,7 @@ export default function LoadingState() {
       setProgress((prev) => {
         if (prev >= 95) return 95; // never quite reaches 100 until done
         // Slow down as it progresses
-        const increment = prev < 30 ? 1.2 : prev < 60 ? 0.8 : prev < 80 ? 0.4 : 0.15;
+        const increment = prev < 40 ? 1.8 : prev < 70 ? 1.0 : prev < 85 ? 0.5 : 0.2;
         return Math.min(prev + increment, 95);
       });
     }, 300);
