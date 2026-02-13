@@ -1,228 +1,70 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { MarketDataAgent } from "./market-data";
-import { AffordabilityAgent } from "./affordability";
-import { RiskAssessmentAgent } from "./risk-assessment";
-import { RecommendationsAgent } from "./recommendations";
 import { config } from "../config";
 import { PROMPTS } from "../utils/prompts";
+import { FredApiClient } from "../services/fred-api";
+import { BlsApiClient } from "../services/bls-api";
+import { HousingApiClient } from "../services/housing-api";
+import { CacheService } from "../services/cache";
+import {
+  calculateMaxHomePrice,
+  calculateMonthlyPayment,
+  calculateDTI,
+  generateAmortizationSummary,
+  stressTestRateHike,
+  stressTestIncomeLoss,
+  evaluateEmergencyFund,
+  calculateRentVsBuy,
+} from "../utils/financial-math";
+import { handleRecommendationToolCall } from "../tools/recommendation-tools";
 import type {
   UserProfile,
-  OrchestratorState,
   FinalReport,
   MarketDataResult,
+  AffordabilityResult,
+  RiskReport,
+  RecommendationsResult,
+  StressTestResult,
+  RiskFlag,
 } from "../types/index";
+
+const cache = new CacheService();
 
 export class OrchestratorAgent {
   private client: Anthropic;
-  private marketAgent: MarketDataAgent;
-  private affordabilityAgent: AffordabilityAgent;
-  private riskAgent: RiskAssessmentAgent;
-  private recsAgent: RecommendationsAgent;
 
   constructor() {
     this.client = new Anthropic();
-    this.marketAgent = new MarketDataAgent(this.client);
-    this.affordabilityAgent = new AffordabilityAgent(this.client);
-    this.riskAgent = new RiskAssessmentAgent(this.client);
-    this.recsAgent = new RecommendationsAgent(this.client);
-  }
-
-  private async withTimeout<T>(
-    promise: Promise<T>,
-    ms: number,
-    label: string
-  ): Promise<T> {
-    let timer: ReturnType<typeof setTimeout>;
-    const timeout = new Promise<never>((_, reject) => {
-      timer = setTimeout(
-        () => reject(new Error(`${label} timed out after ${ms / 1000}s`)),
-        ms
-      );
-    });
-    try {
-      return await Promise.race([promise, timeout]);
-    } finally {
-      clearTimeout(timer!);
-    }
   }
 
   async run(userProfile: UserProfile): Promise<FinalReport> {
-    const state: OrchestratorState = {
-      userProfile,
-      errors: [],
-      executionLog: [],
-    };
+    const t0 = Date.now();
 
-    // Phase 1: Market Data (independent) - 30s timeout
-    console.log("\n[1/4] Fetching current market data...");
-    const t1 = Date.now();
-    try {
-      state.marketData = await this.withTimeout(
-        this.marketAgent.run({ location: userProfile.targetLocation }),
-        30000,
-        "Market data"
-      );
-      console.log(
-        `      Done (${((Date.now() - t1) / 1000).toFixed(1)}s) - 30yr rate: ${state.marketData.mortgageRates.thirtyYearFixed}%`
-      );
-    } catch (err) {
-      console.log(`      Warning: Market data fetch failed, using fallback data`);
-      state.errors.push({
-        agent: "MarketDataAgent",
-        error: String(err),
-        timestamp: new Date().toISOString(),
-        recoverable: true,
-      });
-      state.marketData = this.getFallbackMarketData();
-    }
-    state.executionLog.push({
-      agent: "MarketDataAgent",
-      action: "fetch_all_market_data",
-      durationMs: Date.now() - t1,
-      timestamp: new Date().toISOString(),
-    });
+    // ── Phase 1: Fetch market data directly (parallel APIs, ~2-5s) ──
+    console.log("\n[1/3] Fetching market data...");
+    const marketData = await this.fetchMarketData(userProfile.targetLocation);
+    console.log(`      Done (${((Date.now() - t0) / 1000).toFixed(1)}s)`);
 
-    // Phase 2: Affordability (depends on market data) - 30s timeout
-    console.log("[2/4] Calculating affordability...");
+    // ── Phase 2: Compute everything directly (instant — pure JS math) ──
+    console.log("[2/3] Computing analysis...");
     const t2 = Date.now();
-    try {
-      state.affordability = await this.withTimeout(
-        this.affordabilityAgent.run({ userProfile, marketData: state.marketData }),
-        30000,
-        "Affordability calculation"
-      );
-      console.log(
-        `      Done (${((Date.now() - t2) / 1000).toFixed(1)}s) - Max price: $${state.affordability.maxHomePrice.toLocaleString()}`
-      );
-    } catch (err) {
-      console.error("      Affordability calculation failed:", err);
-      throw new Error(`Affordability agent failed: ${err}`);
-    }
-    state.executionLog.push({
-      agent: "AffordabilityAgent",
-      action: "calculate_affordability",
-      durationMs: Date.now() - t2,
-      timestamp: new Date().toISOString(),
-    });
+    const affordability = this.computeAffordability(userProfile, marketData);
+    const riskReport = this.computeRiskAssessment(userProfile, marketData, affordability);
+    const recommendations = await this.computeRecommendations(userProfile, marketData, affordability);
+    console.log(`      Done (${((Date.now() - t2) / 1000).toFixed(1)}s)`);
 
-    // Phase 3: Risk + Recommendations (parallel) - 30s timeout each
-    console.log("[3/4] Assessing risk and generating recommendations...");
+    // ── Phase 3: Single Claude call for narrative summary (~3-5s) ──
+    console.log("[3/3] Generating AI summary...");
     const t3 = Date.now();
-    const [riskReport, recommendations] = await Promise.allSettled([
-      this.withTimeout(
-        this.riskAgent.run({
-          userProfile,
-          marketData: state.marketData,
-          affordability: state.affordability,
-        }),
-        30000,
-        "Risk assessment"
-      ),
-      this.withTimeout(
-        this.recsAgent.run({
-          userProfile,
-          marketData: state.marketData,
-          affordability: state.affordability,
-        }),
-        30000,
-        "Recommendations"
-      ),
-    ]);
-
-    if (riskReport.status === "fulfilled") {
-      state.riskReport = riskReport.value;
-    } else {
-      console.log("      Warning: Risk assessment failed, using defaults");
-      state.errors.push({
-        agent: "RiskAssessmentAgent",
-        error: String(riskReport.reason),
-        timestamp: new Date().toISOString(),
-        recoverable: true,
-      });
-      state.riskReport = this.getDefaultRiskReport();
-    }
-
-    if (recommendations.status === "fulfilled") {
-      state.recommendations = recommendations.value;
-    } else {
-      console.log("      Warning: Recommendations failed, using defaults");
-      state.errors.push({
-        agent: "RecommendationsAgent",
-        error: String(recommendations.reason),
-        timestamp: new Date().toISOString(),
-        recoverable: true,
-      });
-      state.recommendations = this.getDefaultRecommendations();
-    }
-
+    const summary = await this.synthesize(userProfile, marketData, affordability, riskReport, recommendations);
     console.log(`      Done (${((Date.now() - t3) / 1000).toFixed(1)}s)`);
-    state.executionLog.push({
-      agent: "RiskAgent+RecsAgent",
-      action: "parallel_analysis",
-      durationMs: Date.now() - t3,
-      timestamp: new Date().toISOString(),
-    });
-
-    // Phase 4: Synthesize final report
-    console.log("[4/4] Synthesizing final report...");
-    const t4 = Date.now();
-    const finalReport = await this.synthesize(state);
-    console.log(`      Done (${((Date.now() - t4) / 1000).toFixed(1)}s)`);
-
-    return finalReport;
-  }
-
-  private async synthesize(state: OrchestratorState): Promise<FinalReport> {
-    let summary = "Report generation failed.";
-
-    for (let attempt = 0; attempt < 2; attempt++) {
-      // Use Haiku for speed — synthesis should complete in ~3-5s
-      const model = config.model;
-      try {
-        const response = await this.client.messages.create(
-          {
-            model,
-            max_tokens: 1500,
-            system: PROMPTS.orchestrator,
-            messages: [
-              {
-                role: "user",
-                content: `Synthesize this data into a clear, actionable narrative report for the home buyer.
-Focus on the key takeaways, what they can afford, major risks, and top recommendations.
-Be specific with numbers and direct with advice. Keep it concise.
-
-${JSON.stringify(state, null, 2)}`,
-              },
-            ],
-          },
-          { timeout: 15000 }
-        );
-
-        const textBlock = response.content.find(
-          (b): b is Anthropic.TextBlock => b.type === "text"
-        );
-        summary = textBlock?.text ?? summary;
-        break;
-      } catch (err) {
-        console.log(`      Synthesize attempt ${attempt + 1} failed:`, err);
-        if (attempt === 1) {
-          // Generate a basic summary from the data instead of failing
-          const a = state.affordability;
-          const m = state.marketData;
-          if (a && m) {
-            summary = `Based on your financial profile, you can afford a home up to $${Math.round(a.maxHomePrice).toLocaleString()} (recommended: $${Math.round(a.recommendedHomePrice).toLocaleString()}). With current 30-year fixed rates at ${m.mortgageRates.thirtyYearFixed}%, your estimated monthly payment would be around $${Math.round(a.monthlyPayment.totalMonthly).toLocaleString()}. Your debt-to-income ratio is ${a.dtiAnalysis.backEndRatio}% (${a.dtiAnalysis.backEndStatus}). Please consult a mortgage professional for personalized advice.`;
-          }
-        }
-        // No delay between retries — we're on a tight budget
-      }
-    }
+    console.log(`\nTotal: ${((Date.now() - t0) / 1000).toFixed(1)}s`);
 
     return {
       summary,
-      affordability: state.affordability!,
-      marketSnapshot: state.marketData!,
-      riskAssessment: state.riskReport!,
-      recommendations: state.recommendations!,
+      affordability,
+      marketSnapshot: marketData,
+      riskAssessment: riskReport,
+      recommendations,
       disclaimers: [
         "This analysis is for informational purposes only and does not constitute financial advice.",
         "Consult a licensed mortgage professional before making any home purchase decisions.",
@@ -230,6 +72,564 @@ ${JSON.stringify(state, null, 2)}`,
       ],
       generatedAt: new Date().toISOString(),
     };
+  }
+
+  // ─────────────────────────────────────────────
+  // Phase 1: Direct market data fetching
+  // ─────────────────────────────────────────────
+
+  private async fetchMarketData(location?: string): Promise<MarketDataResult> {
+    const fredClient = new FredApiClient(config.fredApiKey, cache);
+    const blsClient = new BlsApiClient(config.blsApiKey);
+    const housingClient = config.rapidApiKey
+      ? new HousingApiClient(config.rapidApiKey, cache)
+      : null;
+
+    // Fire all API calls in parallel
+    const [ratesResult, pricesResult, inflationResult, regionalResult] =
+      await Promise.allSettled([
+        // Mortgage rates
+        Promise.all([
+          fredClient.getMortgage30YRate(),
+          fredClient.getMortgage15YRate(),
+          fredClient.getFedFundsRate(),
+        ]),
+        // Home prices
+        Promise.all([
+          fredClient.getMedianHomePrice(),
+          fredClient.getMedianNewHomePrice(),
+          fredClient.getCaseShillerIndex(),
+        ]),
+        // Inflation
+        Promise.all([
+          blsClient.getShelterInflation(),
+          blsClient.getGeneralInflation(),
+        ]),
+        // Regional (optional)
+        location && housingClient
+          ? housingClient.getRegionalData(location)
+          : Promise.resolve(null),
+      ]);
+
+    // Assemble with fallbacks
+    const fallback = this.getFallbackMarketData();
+
+    let mortgageRates = fallback.mortgageRates;
+    if (ratesResult.status === "fulfilled") {
+      const [r30, r15, ff] = ratesResult.value;
+      mortgageRates = {
+        thirtyYearFixed: r30.value,
+        fifteenYearFixed: r15.value,
+        federalFundsRate: ff.value,
+        dataDate: r30.date,
+        source: "FRED (Federal Reserve Economic Data)",
+      };
+    } else {
+      console.log("      Warning: Rates fetch failed, using fallback");
+    }
+
+    let medianHomePrices = fallback.medianHomePrices;
+    if (pricesResult.status === "fulfilled") {
+      const [med, medNew, cs] = pricesResult.value;
+      medianHomePrices = {
+        national: med.value * 1000,
+        nationalNew: medNew.value * 1000,
+        caseShillerIndex: cs.value,
+        dataDate: med.date,
+      };
+    } else {
+      console.log("      Warning: Prices fetch failed, using fallback");
+    }
+
+    let inflationData = fallback.inflationData;
+    if (inflationResult.status === "fulfilled") {
+      const [shelter, general] = inflationResult.value;
+      inflationData = {
+        shelterCpiCurrent: shelter.current,
+        shelterCpiYearAgo: shelter.yearAgo,
+        shelterInflationRate: shelter.rate,
+        generalInflationRate: general,
+      };
+    } else {
+      console.log("      Warning: Inflation fetch failed, using fallback");
+    }
+
+    // Regional is optional — not a failure if missing
+    const regional =
+      regionalResult.status === "fulfilled" && regionalResult.value
+        ? [regionalResult.value]
+        : undefined;
+    if (regional) {
+      medianHomePrices.regional = regional;
+    }
+
+    return {
+      mortgageRates,
+      medianHomePrices,
+      marketTrends: [],
+      inflationData,
+      fetchedAt: new Date().toISOString(),
+    };
+  }
+
+  // ─────────────────────────────────────────────
+  // Phase 2a: Direct affordability computation
+  // ─────────────────────────────────────────────
+
+  private computeAffordability(
+    profile: UserProfile,
+    market: MarketDataResult
+  ): AffordabilityResult {
+    const totalIncome = profile.annualGrossIncome + (profile.additionalIncome ?? 0);
+    const loanTerm = profile.preferredLoanTerm ?? 30;
+    const rate = market.mortgageRates.thirtyYearFixed / 100;
+    const downPayment = profile.downPaymentSavings;
+    const propertyTaxRate = 0.011;
+    const insuranceAnnual = 1500;
+    const pmiRate = 0.005;
+
+    // Max home price
+    const { maxHomePrice, limitingFactor } = calculateMaxHomePrice({
+      annualGrossIncome: totalIncome,
+      monthlyDebtPayments: profile.monthlyDebtPayments,
+      downPaymentAmount: downPayment,
+      interestRate: rate,
+      loanTermYears: loanTerm,
+      propertyTaxRate,
+      insuranceAnnual,
+      maxFrontEndDTI: 0.28,
+      maxBackEndDTI: 0.36,
+    });
+
+    // Recommended = 85% of max
+    const recommendedHomePrice = Math.round(maxHomePrice * 0.85);
+    const downPaymentPercent =
+      recommendedHomePrice > 0
+        ? Math.round((downPayment / recommendedHomePrice) * 100)
+        : 0;
+    const loanAmount = Math.max(0, recommendedHomePrice - downPayment);
+
+    // Monthly payment at recommended price
+    const monthlyPayment = calculateMonthlyPayment({
+      homePrice: recommendedHomePrice,
+      downPaymentAmount: downPayment,
+      interestRate: rate,
+      loanTermYears: loanTerm,
+      propertyTaxRate,
+      insuranceAnnual,
+      pmiRate,
+    });
+
+    // DTI
+    const dtiAnalysis = calculateDTI({
+      grossMonthlyIncome: totalIncome / 12,
+      proposedHousingPayment: monthlyPayment.totalMonthly,
+      existingMonthlyDebts: profile.monthlyDebtPayments,
+    });
+
+    // Amortization
+    const amortizationSummary = generateAmortizationSummary({
+      loanAmount,
+      interestRate: rate,
+      loanTermYears: loanTerm,
+    });
+
+    return {
+      maxHomePrice,
+      recommendedHomePrice,
+      downPaymentAmount: downPayment,
+      downPaymentPercent,
+      loanAmount,
+      monthlyPayment,
+      dtiAnalysis,
+      amortizationSummary,
+    };
+  }
+
+  // ─────────────────────────────────────────────
+  // Phase 2b: Direct risk assessment
+  // ─────────────────────────────────────────────
+
+  private computeRiskAssessment(
+    profile: UserProfile,
+    market: MarketDataResult,
+    afford: AffordabilityResult
+  ): RiskReport {
+    const totalIncome = profile.annualGrossIncome + (profile.additionalIncome ?? 0);
+    const grossMonthly = totalIncome / 12;
+    const rate = market.mortgageRates.thirtyYearFixed / 100;
+    const totalSavings = profile.downPaymentSavings + (profile.additionalSavings ?? 0);
+    const monthlyExpenses = profile.monthlyExpenses ?? 3000;
+    const estimatedClosingCosts = afford.recommendedHomePrice * 0.03;
+    const postPurchaseSavings = totalSavings - afford.downPaymentAmount - estimatedClosingCosts;
+
+    // Stress tests: rate hikes
+    const stressTests: StressTestResult[] = [];
+    for (const hike of [1, 2, 3]) {
+      const result = stressTestRateHike({
+        loanAmount: afford.loanAmount,
+        baseRate: rate,
+        rateIncrease: hike / 100,
+        loanTermYears: profile.preferredLoanTerm ?? 30,
+        grossMonthlyIncome: grossMonthly,
+        existingMonthlyDebts: profile.monthlyDebtPayments,
+        propertyTaxMonthly: afford.monthlyPayment.propertyTax,
+        insuranceMonthly: afford.monthlyPayment.homeInsurance,
+      });
+      stressTests.push({
+        scenario: `Rate +${hike}%`,
+        description: `If rates rise from ${(rate * 100).toFixed(1)}% to ${(result.newRate * 100).toFixed(1)}%`,
+        newMonthlyPayment: result.newMonthlyPayment,
+        newDTI: result.newDTI,
+        canAfford: result.canAfford,
+        severity: result.severity,
+      });
+    }
+
+    // Stress tests: income loss
+    for (const loss of [20, 50]) {
+      const result = stressTestIncomeLoss({
+        grossMonthlyIncome: grossMonthly,
+        incomeReductionPercent: loss,
+        monthlyHousingPayment: afford.monthlyPayment.totalMonthly,
+        existingMonthlyDebts: profile.monthlyDebtPayments,
+        remainingSavings: Math.max(0, postPurchaseSavings),
+        monthlyExpenses,
+      });
+      stressTests.push({
+        scenario: `Income -${loss}%`,
+        description: `If income drops by ${loss}%`,
+        newDTI: result.newDTI,
+        canAfford: result.canAfford,
+        monthsOfRunway: result.monthsOfRunway,
+        severity: result.severity,
+      });
+    }
+
+    // Emergency fund
+    const emergencyResult = evaluateEmergencyFund({
+      totalSavings,
+      downPaymentAmount: afford.downPaymentAmount,
+      estimatedClosingCosts,
+      monthlyExpenses,
+      monthlyHousingPayment: afford.monthlyPayment.totalMonthly,
+    });
+
+    const emergencyFundAnalysis = {
+      currentEmergencyFund: totalSavings,
+      postPurchaseEmergencyFund: emergencyResult.postPurchaseSavings,
+      monthlyExpenses: emergencyResult.monthlyNeed,
+      monthsCovered: emergencyResult.monthsCovered,
+      adequate: emergencyResult.adequate,
+      recommendation: emergencyResult.recommendation,
+    };
+
+    // Rent vs Buy (estimate monthly rent from expenses or use a proxy)
+    const estimatedRent = monthlyExpenses * 0.4; // rough proxy
+    const fiveYear = calculateRentVsBuy({
+      homePrice: afford.recommendedHomePrice,
+      downPaymentAmount: afford.downPaymentAmount,
+      interestRate: rate,
+      loanTermYears: profile.preferredLoanTerm ?? 30,
+      propertyTaxRate: 0.011,
+      insuranceAnnual: 1500,
+      maintenanceRate: 0.01,
+      monthlyRent: estimatedRent,
+      rentGrowthRate: 0.03,
+      homeAppreciationRate: 0.035,
+      years: 5,
+    });
+
+    const tenYear = calculateRentVsBuy({
+      homePrice: afford.recommendedHomePrice,
+      downPaymentAmount: afford.downPaymentAmount,
+      interestRate: rate,
+      loanTermYears: profile.preferredLoanTerm ?? 30,
+      propertyTaxRate: 0.011,
+      insuranceAnnual: 1500,
+      maintenanceRate: 0.01,
+      monthlyRent: estimatedRent,
+      rentGrowthRate: 0.03,
+      homeAppreciationRate: 0.035,
+      years: 10,
+    });
+
+    // Risk flags
+    const riskFlags: RiskFlag[] = [];
+
+    if (afford.dtiAnalysis.backEndRatio > 43) {
+      riskFlags.push({
+        category: "debt",
+        severity: "critical",
+        message: `Back-end DTI of ${afford.dtiAnalysis.backEndRatio}% exceeds 43% threshold`,
+        recommendation: "Pay down debts or increase income before buying",
+      });
+    } else if (afford.dtiAnalysis.backEndRatio > 36) {
+      riskFlags.push({
+        category: "debt",
+        severity: "warning",
+        message: `Back-end DTI of ${afford.dtiAnalysis.backEndRatio}% is above ideal 36%`,
+        recommendation: "Consider a lower-priced home or pay down some debts",
+      });
+    }
+
+    if (profile.creditScore < 620) {
+      riskFlags.push({
+        category: "credit",
+        severity: "critical",
+        message: `Credit score of ${profile.creditScore} limits loan options`,
+        recommendation: "Focus on improving credit score before applying. Consider FHA (min 580 for 3.5% down)",
+      });
+    } else if (profile.creditScore < 700) {
+      riskFlags.push({
+        category: "credit",
+        severity: "warning",
+        message: `Credit score of ${profile.creditScore} may result in higher rates`,
+        recommendation: "A score above 740 gets the best rates. Consider credit improvement strategies",
+      });
+    }
+
+    if (!emergencyResult.adequate) {
+      riskFlags.push({
+        category: "savings",
+        severity: emergencyResult.monthsCovered < 3 ? "critical" : "warning",
+        message: `Only ${emergencyResult.monthsCovered} months of reserves after purchase`,
+        recommendation:
+          emergencyResult.monthsCovered < 3
+            ? "This is risky. Save more or target a lower-priced home"
+            : "Try to build up to 6 months of reserves",
+      });
+    }
+
+    if (afford.downPaymentPercent < 20) {
+      riskFlags.push({
+        category: "savings",
+        severity: "info",
+        message: `Down payment of ${afford.downPaymentPercent}% requires PMI ($${Math.round(afford.monthlyPayment.pmi)}/mo)`,
+        recommendation: "PMI adds to monthly costs. It drops off at 20% equity",
+      });
+    }
+
+    // Overall risk score (0-100, lower is better)
+    let score = 30; // base
+    if (afford.dtiAnalysis.backEndRatio > 43) score += 25;
+    else if (afford.dtiAnalysis.backEndRatio > 36) score += 10;
+    if (profile.creditScore < 620) score += 20;
+    else if (profile.creditScore < 700) score += 10;
+    if (emergencyResult.monthsCovered < 3) score += 20;
+    else if (emergencyResult.monthsCovered < 6) score += 10;
+    if (stressTests.some((t) => t.severity === "unsustainable")) score += 10;
+
+    const overallRiskLevel: RiskReport["overallRiskLevel"] =
+      score <= 30 ? "low" : score <= 50 ? "moderate" : score <= 70 ? "high" : "very_high";
+
+    return {
+      overallRiskLevel,
+      overallScore: Math.min(score, 100),
+      stressTests,
+      riskFlags,
+      emergencyFundAnalysis,
+      rentVsBuy: {
+        fiveYear,
+        tenYear,
+        breakEvenYears: fiveYear.buyEquity > 0 ? 5 : 10,
+      },
+    };
+  }
+
+  // ─────────────────────────────────────────────
+  // Phase 2c: Direct recommendations
+  // ─────────────────────────────────────────────
+
+  private async computeRecommendations(
+    profile: UserProfile,
+    market: MarketDataResult,
+    afford: AffordabilityResult
+  ): Promise<RecommendationsResult> {
+    const totalIncome = profile.annualGrossIncome + (profile.additionalIncome ?? 0);
+    const rate = market.mortgageRates.thirtyYearFixed / 100;
+
+    // Loan programs
+    const programsJson = await handleRecommendationToolCall("lookup_loan_programs", {
+      creditScore: profile.creditScore,
+      downPaymentPercent: afford.downPaymentPercent,
+      firstTimeBuyer: profile.firstTimeBuyer ?? false,
+      militaryVeteran: profile.militaryVeteran ?? false,
+      annualIncome: totalIncome,
+      homePrice: afford.recommendedHomePrice,
+      location: profile.targetLocation,
+    });
+    const rawPrograms = JSON.parse(programsJson) as Array<{
+      type: string;
+      eligible: boolean;
+      eligibilityReason: string;
+      minDownPaymentPercent: number;
+      pmiRequired: boolean;
+      pros: string[];
+      cons: string[];
+    }>;
+
+    // Enrich loan options with payment calculations
+    const loanOptions = rawPrograms.map((prog) => {
+      const dpPercent = Math.max(prog.minDownPaymentPercent, afford.downPaymentPercent);
+      const dpAmount = Math.round(afford.recommendedHomePrice * (dpPercent / 100));
+      const pmiRate = prog.pmiRequired ? 0.005 : 0;
+      const payment = calculateMonthlyPayment({
+        homePrice: afford.recommendedHomePrice,
+        downPaymentAmount: dpAmount,
+        interestRate: rate,
+        loanTermYears: profile.preferredLoanTerm ?? 30,
+        propertyTaxRate: 0.011,
+        insuranceAnnual: 1500,
+        pmiRate,
+      });
+      return {
+        type: prog.type as "conventional" | "fha" | "va" | "usda",
+        eligible: prog.eligible,
+        eligibilityReason: prog.eligibilityReason,
+        minDownPaymentPercent: prog.minDownPaymentPercent,
+        estimatedRate: market.mortgageRates.thirtyYearFixed,
+        monthlyPayment: payment.totalMonthly,
+        pmiRequired: prog.pmiRequired,
+        pmiMonthlyEstimate: payment.pmi,
+        totalCostOver30Years: Math.round(payment.totalMonthly * 360),
+        pros: prog.pros,
+        cons: prog.cons,
+      };
+    });
+
+    // Closing costs
+    const closingJson = await handleRecommendationToolCall("estimate_closing_costs", {
+      homePrice: afford.recommendedHomePrice,
+      loanAmount: afford.loanAmount,
+    });
+    const closingCostEstimate = JSON.parse(closingJson);
+
+    // Savings strategies
+    const idealDownPayment = Math.round(afford.recommendedHomePrice * 0.2);
+    const strategiesJson = await handleRecommendationToolCall("suggest_savings_strategies", {
+      currentSavings: profile.downPaymentSavings + (profile.additionalSavings ?? 0),
+      targetDownPayment: idealDownPayment,
+      monthlyIncome: totalIncome / 12,
+      monthlyExpenses: profile.monthlyExpenses ?? 3000,
+      monthlyDebt: profile.monthlyDebtPayments,
+    });
+    const savingsStrategies = JSON.parse(strategiesJson);
+
+    return {
+      loanOptions,
+      savingsStrategies,
+      closingCostEstimate,
+      generalAdvice: [
+        "Get pre-approved before shopping to strengthen your offers.",
+        "Budget for closing costs (2-5% of home price) on top of down payment.",
+        "Consider a home inspection contingency to protect your investment.",
+      ],
+    };
+  }
+
+  // ─────────────────────────────────────────────
+  // Phase 3: Single Claude call for narrative
+  // ─────────────────────────────────────────────
+
+  private async synthesize(
+    profile: UserProfile,
+    market: MarketDataResult,
+    afford: AffordabilityResult,
+    risk: RiskReport,
+    recs: RecommendationsResult
+  ): Promise<string> {
+    // Build a compact data summary for Claude (not the full state object)
+    const data = {
+      income: profile.annualGrossIncome + (profile.additionalIncome ?? 0),
+      debts: profile.monthlyDebtPayments,
+      creditScore: profile.creditScore,
+      location: profile.targetLocation,
+      maxPrice: afford.maxHomePrice,
+      recommendedPrice: afford.recommendedHomePrice,
+      downPayment: afford.downPaymentAmount,
+      downPaymentPercent: afford.downPaymentPercent,
+      monthlyPayment: afford.monthlyPayment.totalMonthly,
+      paymentBreakdown: afford.monthlyPayment,
+      dti: afford.dtiAnalysis,
+      rate30yr: market.mortgageRates.thirtyYearFixed,
+      rate15yr: market.mortgageRates.fifteenYearFixed,
+      medianPrice: market.medianHomePrices.national,
+      riskLevel: risk.overallRiskLevel,
+      riskScore: risk.overallScore,
+      riskFlags: risk.riskFlags.map((f) => f.message),
+      emergencyMonths: risk.emergencyFundAnalysis.monthsCovered,
+      emergencyAdequate: risk.emergencyFundAnalysis.adequate,
+      eligibleLoans: recs.loanOptions.filter((l) => l.eligible).map((l) => l.type),
+      closingCosts: recs.closingCostEstimate,
+    };
+
+    try {
+      const response = await this.client.messages.create(
+        {
+          model: config.model,
+          max_tokens: 1500,
+          system: PROMPTS.orchestrator,
+          messages: [
+            {
+              role: "user",
+              content: `Synthesize this data into a clear, actionable narrative report for the home buyer.
+Focus on the key takeaways, what they can afford, major risks, and top recommendations.
+Be specific with numbers and direct with advice. Keep it concise.
+
+${JSON.stringify(data)}`,
+            },
+          ],
+        },
+        { timeout: 15000 }
+      );
+
+      const textBlock = response.content.find(
+        (b): b is Anthropic.TextBlock => b.type === "text"
+      );
+      if (textBlock?.text) return textBlock.text;
+    } catch (err) {
+      console.log("      Warning: AI synthesis failed, using template summary:", err);
+    }
+
+    // Fallback: template summary (guaranteed to work)
+    return this.buildTemplateSummary(afford, market, risk, recs);
+  }
+
+  private buildTemplateSummary(
+    a: AffordabilityResult,
+    m: MarketDataResult,
+    r: RiskReport,
+    recs: RecommendationsResult
+  ): string {
+    const fmt = (n: number) => "$" + Math.round(n).toLocaleString("en-US");
+    const eligible = recs.loanOptions.filter((l) => l.eligible).map((l) => l.type);
+
+    return `## Summary
+Based on your financial profile, you can afford a home up to ${fmt(a.maxHomePrice)}. We recommend targeting ${fmt(a.recommendedHomePrice)} for a comfortable financial cushion. Your overall risk level is **${r.overallRiskLevel}**.
+
+## What You Can Afford
+- **Maximum home price**: ${fmt(a.maxHomePrice)}
+- **Recommended price**: ${fmt(a.recommendedHomePrice)} (85% of max)
+- **Down payment**: ${fmt(a.downPaymentAmount)} (${a.downPaymentPercent}%)
+- **Monthly payment**: ${fmt(a.monthlyPayment.totalMonthly)}/mo (P&I: ${fmt(a.monthlyPayment.principal + a.monthlyPayment.interest)}, Tax: ${fmt(a.monthlyPayment.propertyTax)}, Insurance: ${fmt(a.monthlyPayment.homeInsurance)}${a.monthlyPayment.pmi > 0 ? `, PMI: ${fmt(a.monthlyPayment.pmi)}` : ""})
+- **DTI**: Front-end ${a.dtiAnalysis.frontEndRatio}% (${a.dtiAnalysis.frontEndStatus}), Back-end ${a.dtiAnalysis.backEndRatio}% (${a.dtiAnalysis.backEndStatus})
+
+## Current Market Conditions
+- **30-year fixed rate**: ${m.mortgageRates.thirtyYearFixed}%
+- **15-year fixed rate**: ${m.mortgageRates.fifteenYearFixed}%
+- **National median home price**: ${fmt(m.medianHomePrices.national)}
+
+## Risk Factors
+${r.riskFlags.map((f) => `- **${f.severity.toUpperCase()}**: ${f.message} — ${f.recommendation}`).join("\n")}
+- Emergency fund: ${r.emergencyFundAnalysis.monthsCovered} months of reserves (${r.emergencyFundAnalysis.adequate ? "adequate" : "needs improvement"})
+
+## Recommendations
+- **Eligible loan programs**: ${eligible.length > 0 ? eligible.join(", ").toUpperCase() : "Consult a lender for options"}
+- **Estimated closing costs**: ${fmt(recs.closingCostEstimate.lowEstimate)} - ${fmt(recs.closingCostEstimate.highEstimate)}
+- Get pre-approved before shopping to strengthen your offers
+- Budget for closing costs on top of your down payment
+- Consider a home inspection contingency to protect your investment`;
   }
 
   private getFallbackMarketData(): MarketDataResult {
@@ -255,46 +655,6 @@ ${JSON.stringify(state, null, 2)}`,
         generalInflationRate: 2.9,
       },
       fetchedAt: new Date().toISOString(),
-    };
-  }
-
-  private getDefaultRiskReport() {
-    return {
-      overallRiskLevel: "moderate" as const,
-      overallScore: 50,
-      stressTests: [],
-      riskFlags: [
-        {
-          category: "market" as const,
-          severity: "info" as const,
-          message: "Risk assessment could not be completed fully",
-          recommendation: "Consult a financial advisor for detailed risk analysis",
-        },
-      ],
-      emergencyFundAnalysis: {
-        currentEmergencyFund: 0,
-        postPurchaseEmergencyFund: 0,
-        monthlyExpenses: 0,
-        monthsCovered: 0,
-        adequate: false,
-        recommendation: "Unable to assess - please consult a financial advisor",
-      },
-      rentVsBuy: {
-        fiveYear: { buyTotalCost: 0, rentTotalCost: 0, buyEquity: 0, verdict: "Unable to assess" },
-        tenYear: { buyTotalCost: 0, rentTotalCost: 0, buyEquity: 0, verdict: "Unable to assess" },
-        breakEvenYears: 0,
-      },
-    };
-  }
-
-  private getDefaultRecommendations() {
-    return {
-      loanOptions: [],
-      savingsStrategies: [],
-      closingCostEstimate: { lowEstimate: 0, highEstimate: 0, breakdown: [] },
-      generalAdvice: [
-        "Consult a mortgage professional for personalized loan recommendations.",
-      ],
     };
   }
 }
