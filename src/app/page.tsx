@@ -93,6 +93,19 @@ export default function Home() {
           </div>
         )}
       </main>
+
+      {/* Footer */}
+      <footer className="border-t border-gray-200 bg-white mt-12">
+        <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between text-xs text-gray-400">
+          <span>&copy; {new Date().getFullYear()} AI Calculator</span>
+          <a
+            href="mailto:pareshv23@gmail.com"
+            className="text-gray-500 hover:text-blue-600 transition-colors"
+          >
+            Contact Me
+          </a>
+        </div>
+      </footer>
     </div>
   );
 }
