@@ -2,72 +2,138 @@
 
 import { useState, useEffect } from "react";
 
+const FACTS = [
+  { icon: "🏠", text: "The average American spends 6 months searching for a home before making an offer." },
+  { icon: "📊", text: "A 1% difference in mortgage rate on a $400K home changes your payment by ~$240/month." },
+  { icon: "💰", text: "First-time buyers make up roughly 32% of all home purchases in the US." },
+  { icon: "🔑", text: "The 28/36 rule says housing costs shouldn't exceed 28% of gross income." },
+  { icon: "📈", text: "US home values have appreciated an average of 3-5% annually over the past 30 years." },
+  { icon: "🏦", text: "FHA loans allow down payments as low as 3.5% with a credit score of 580+." },
+  { icon: "⚡", text: "VA loans offer 0% down payment and no PMI for eligible military veterans." },
+  { icon: "🗓️", text: "Closing costs typically run 2-5% of the home's purchase price." },
+  { icon: "🛡️", text: "Financial experts recommend keeping 3-6 months of expenses as an emergency fund after buying." },
+  { icon: "📉", text: "Paying just one extra mortgage payment per year can shave 4-5 years off a 30-year loan." },
+  { icon: "🏘️", text: "Property taxes vary wildly — from 0.3% in Hawaii to 2.2% in New Jersey." },
+  { icon: "💡", text: "A higher credit score can save you tens of thousands in interest over the life of a loan." },
+  { icon: "🔍", text: "PMI typically costs 0.5-1% of the loan amount annually and drops off at 20% equity." },
+  { icon: "🌎", text: "Median US home price has increased over 40% in the last 5 years." },
+  { icon: "⏰", text: "The best time to lock in a mortgage rate is typically 30-45 days before closing." },
+];
+
 const STEPS = [
-  { label: "Fetching market data", detail: "Mortgage rates, home prices, inflation..." },
-  { label: "Calculating affordability", detail: "Max price, monthly payments, DTI ratios..." },
-  { label: "Assessing risk", detail: "Stress tests, emergency fund, rent vs buy..." },
-  { label: "Generating recommendations", detail: "Loan options, savings strategies..." },
-  { label: "Synthesizing report", detail: "AI is writing your personalized analysis..." },
+  "Fetching live market data",
+  "Crunching affordability numbers",
+  "Running risk stress tests",
+  "Finding best loan options",
+  "Writing your personalized report",
 ];
 
 export default function LoadingState() {
+  const [factIndex, setFactIndex] = useState(() => Math.floor(Math.random() * FACTS.length));
+  const [fadeIn, setFadeIn] = useState(true);
   const [currentStep, setCurrentStep] = useState(0);
+  const [progress, setProgress] = useState(0);
 
+  // Rotate facts every 5 seconds with fade transition
   useEffect(() => {
-    const timings = [0, 8000, 18000, 22000, 35000];
+    const interval = setInterval(() => {
+      setFadeIn(false);
+      setTimeout(() => {
+        setFactIndex((prev) => (prev + 1) % FACTS.length);
+        setFadeIn(true);
+      }, 400);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Step progression
+  useEffect(() => {
+    const timings = [0, 6000, 14000, 20000, 30000];
     const timers = timings.map((delay, i) =>
       setTimeout(() => setCurrentStep(i), delay)
     );
     return () => timers.forEach(clearTimeout);
   }, []);
 
+  // Smooth progress bar
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setProgress((prev) => {
+        if (prev >= 95) return 95; // never quite reaches 100 until done
+        // Slow down as it progresses
+        const increment = prev < 30 ? 1.2 : prev < 60 ? 0.8 : prev < 80 ? 0.4 : 0.15;
+        return Math.min(prev + increment, 95);
+      });
+    }, 300);
+    return () => clearInterval(interval);
+  }, []);
+
+  const fact = FACTS[factIndex];
+
   return (
-    <div className="max-w-lg mx-auto py-16">
-      <div className="text-center mb-8">
-        <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-blue-200 border-t-blue-600 mb-4" />
-        <h2 className="text-xl font-semibold text-gray-900">
-          4 AI agents are analyzing your profile...
-        </h2>
-        <p className="text-sm text-gray-500 mt-1">This typically takes 30-60 seconds</p>
+    <div className="max-w-md mx-auto py-16 px-4">
+      {/* Animated orb */}
+      <div className="flex justify-center mb-8">
+        <div className="relative w-20 h-20">
+          {/* Outer glow ring */}
+          <div className="absolute inset-0 rounded-full bg-gradient-to-br from-blue-400 via-indigo-500 to-purple-600 opacity-20 animate-ping" style={{ animationDuration: "2s" }} />
+          {/* Middle ring */}
+          <div className="absolute inset-1 rounded-full bg-gradient-to-br from-blue-400 via-indigo-500 to-purple-600 opacity-30" style={{ animation: "spin 3s linear infinite" }} />
+          {/* Inner orb */}
+          <div className="absolute inset-2 rounded-full bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-300/50">
+            <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z" />
+            </svg>
+          </div>
+          {/* Orbiting dot */}
+          <div className="absolute inset-0" style={{ animation: "spin 2s linear infinite" }}>
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-indigo-400 shadow-sm shadow-indigo-400" />
+          </div>
+        </div>
       </div>
 
-      <div className="space-y-3">
-        {STEPS.map((step, i) => {
-          const isDone = i < currentStep;
-          const isCurrent = i === currentStep;
-          return (
+      {/* Current step */}
+      <div className="text-center mb-6">
+        <p className="text-sm font-semibold text-indigo-600 mb-1">
+          {STEPS[currentStep]}...
+        </p>
+        {/* Progress bar */}
+        <div className="max-w-xs mx-auto h-1 bg-gray-200 rounded-full overflow-hidden">
+          <div
+            className="h-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 rounded-full transition-all duration-300 ease-out"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+        {/* Step dots */}
+        <div className="flex justify-center gap-1.5 mt-3">
+          {STEPS.map((_, i) => (
             <div
-              key={step.label}
-              className={`flex items-start gap-3 p-3 rounded-lg transition-all ${
-                isCurrent
-                  ? "bg-blue-50 border border-blue-200"
-                  : isDone
-                    ? "bg-green-50 border border-green-200"
-                    : "bg-gray-50 border border-gray-100"
+              key={i}
+              className={`h-1.5 rounded-full transition-all duration-500 ${
+                i < currentStep
+                  ? "w-1.5 bg-indigo-500"
+                  : i === currentStep
+                    ? "w-6 bg-indigo-500"
+                    : "w-1.5 bg-gray-300"
               }`}
-            >
-              <div className="mt-0.5">
-                {isDone ? (
-                  <svg className="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                ) : isCurrent ? (
-                  <div className="w-5 h-5 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
-                ) : (
-                  <div className="w-5 h-5 rounded-full border-2 border-gray-300" />
-                )}
-              </div>
-              <div>
-                <p className={`text-sm font-medium ${isCurrent ? "text-blue-900" : isDone ? "text-green-900" : "text-gray-500"}`}>
-                  {step.label}
-                </p>
-                {isCurrent && (
-                  <p className="text-xs text-blue-600 mt-0.5">{step.detail}</p>
-                )}
-              </div>
-            </div>
-          );
-        })}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* Fact card */}
+      <div
+        className={`bg-white rounded-xl border border-gray-100 shadow-sm p-5 transition-all duration-400 ${
+          fadeIn ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"
+        }`}
+      >
+        <div className="flex items-start gap-3">
+          <span className="text-2xl flex-shrink-0 mt-0.5">{fact.icon}</span>
+          <div>
+            <p className="text-xs font-semibold text-indigo-500 uppercase tracking-wider mb-1">Did you know?</p>
+            <p className="text-sm text-gray-600 leading-relaxed">{fact.text}</p>
+          </div>
+        </div>
       </div>
     </div>
   );
