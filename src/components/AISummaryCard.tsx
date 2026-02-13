@@ -4,6 +4,7 @@ import { useState } from "react";
 
 interface Props {
   summary: string;
+  title?: string;
 }
 
 /** Detect if a line looks like a bullet point */
@@ -130,7 +131,7 @@ function parseBlocks(text: string): ParsedBlock[] {
   return blocks;
 }
 
-export default function AISummaryCard({ summary }: Props) {
+export default function AISummaryCard({ summary, title = "AI Analysis" }: Props) {
   const [expanded, setExpanded] = useState(false);
   const blocks = parseBlocks(summary);
 
@@ -161,7 +162,7 @@ export default function AISummaryCard({ summary }: Props) {
               <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-green-400 border-2 border-white" style={{ animation: "pulse-glow 2s ease-in-out infinite" }} />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-gray-900 tracking-tight">AI Analysis</h3>
+              <h3 className="text-lg font-bold text-gray-900 tracking-tight">{title}</h3>
               <p className="text-xs text-gray-400 font-medium">Personalized insights from your data</p>
             </div>
           </div>

@@ -120,8 +120,6 @@ function ExpandableSection({
 }
 
 export default function ResultsDashboard({ report, onReset }: Props) {
-  const [showDetails, setShowDetails] = useState(false);
-
   return (
     <div className="max-w-5xl mx-auto space-y-6">
       {/* Header */}
@@ -146,47 +144,21 @@ export default function ResultsDashboard({ report, onReset }: Props) {
       {/* Summary Hero */}
       <SummaryHero report={report} />
 
-      {/* AI Analysis */}
-      <AISummaryCard summary={report.summary} />
-
-      {/* Expand Details Toggle */}
-      <div className="flex justify-center">
-        <button
-          onClick={() => setShowDetails(!showDetails)}
-          className="group flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-full hover:border-blue-300 hover:text-blue-600 shadow-sm transition-all"
-        >
-          {showDetails ? "Hide Detailed Breakdown" : "View Detailed Breakdown"}
-          <svg
-            className={`w-4 h-4 transition-transform duration-200 group-hover:text-blue-500 ${showDetails ? "rotate-180" : ""}`}
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2}
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-          </svg>
-        </button>
-      </div>
-
-      {/* Detailed Sections (expandable) */}
-      <div
-        className={`space-y-4 transition-all duration-500 ease-in-out ${
-          showDetails ? "max-h-[20000px] opacity-100" : "max-h-0 opacity-0 overflow-hidden"
-        }`}
-      >
+      {/* Data Cards */}
+      <div className="space-y-4">
         <ExpandableSection title="Affordability Details" defaultOpen>
           <AffordabilityCard data={report.affordability} />
         </ExpandableSection>
 
-        <ExpandableSection title="Market Snapshot">
+        <ExpandableSection title="Market Snapshot" defaultOpen>
           <MarketSnapshotCard data={report.marketSnapshot} />
         </ExpandableSection>
 
-        <ExpandableSection title="Risk Assessment">
+        <ExpandableSection title="Risk Assessment" defaultOpen>
           <RiskAssessmentCard data={report.riskAssessment} />
         </ExpandableSection>
 
-        <ExpandableSection title="Recommendations">
+        <ExpandableSection title="Recommendations" defaultOpen>
           <RecommendationsCard data={report.recommendations} />
         </ExpandableSection>
 
@@ -194,6 +166,9 @@ export default function ResultsDashboard({ report, onReset }: Props) {
           <AmortizationTable data={report.affordability.amortizationSummary} />
         </ExpandableSection>
       </div>
+
+      {/* AI Detailed Analysis */}
+      <AISummaryCard summary={report.summary} title="AI Detailed Analysis" />
 
       {/* Chat Follow-up */}
       <ChatInterface report={report} />
