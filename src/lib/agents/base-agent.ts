@@ -20,6 +20,36 @@ export abstract class BaseAgent<TInput, TOutput> {
     input: Record<string, unknown>
   ): Promise<string>;
 
+  private async callWithRetry(
+    params: Anthropic.Messages.MessageCreateParamsNonStreaming,
+    maxRetries = 3
+  ): Promise<Anthropic.Messages.Message> {
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        return await this.client.messages.create(params);
+      } catch (err: unknown) {
+        const isRetryable =
+          err instanceof Error &&
+          (err.message.includes("overloaded") ||
+            err.message.includes("529") ||
+            err.message.includes("rate_limit") ||
+            err.message.includes("500") ||
+            err.message.includes("503"));
+
+        if (!isRetryable || attempt === maxRetries) {
+          throw err;
+        }
+
+        const delay = Math.min(1000 * Math.pow(2, attempt), 10000);
+        console.log(
+          `API call failed (attempt ${attempt + 1}/${maxRetries + 1}), retrying in ${delay}ms...`
+        );
+        await new Promise((r) => setTimeout(r, delay));
+      }
+    }
+    throw new Error("Unreachable");
+  }
+
   async run(input: TInput): Promise<TOutput> {
     const userMessage = this.buildUserMessage(input);
     const messages: Anthropic.Messages.MessageParam[] = [
@@ -33,7 +63,7 @@ export abstract class BaseAgent<TInput, TOutput> {
     while (iterations < maxIterations) {
       iterations++;
 
-      const response = await this.client.messages.create({
+      const response = await this.callWithRetry({
         model: this.model,
         max_tokens: 4096,
         system: this.systemPrompt,

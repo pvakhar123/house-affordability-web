@@ -26,12 +26,18 @@ export async function POST(request: Request) {
     return NextResponse.json(report);
   } catch (error) {
     console.error("Analysis error:", error);
-    return NextResponse.json(
-      {
-        error:
-          error instanceof Error ? error.message : "Analysis failed. Please try again.",
-      },
-      { status: 500 }
-    );
+
+    const msg = error instanceof Error ? error.message : String(error);
+    let userMessage = "Analysis failed. Please try again.";
+
+    if (msg.includes("overloaded") || msg.includes("529")) {
+      userMessage = "Our AI service is temporarily busy. Please wait a moment and try again.";
+    } else if (msg.includes("rate_limit") || msg.includes("429")) {
+      userMessage = "Too many requests. Please wait a minute and try again.";
+    } else if (msg.includes("authentication") || msg.includes("401")) {
+      userMessage = "Service configuration error. Please contact support.";
+    }
+
+    return NextResponse.json({ error: userMessage }, { status: 500 });
   }
 }
