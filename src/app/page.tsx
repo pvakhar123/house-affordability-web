@@ -18,11 +18,16 @@ export default function Home() {
     setError("");
 
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 240000); // 4 minute client timeout
+
       const res = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(profile),
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
 
       if (!res.ok) {
         const data = await res.json();
@@ -33,7 +38,11 @@ export default function Home() {
       setReport(data);
       setState("results");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
+      if (err instanceof DOMException && err.name === "AbortError") {
+        setError("The analysis took too long. Please try again — it usually works on the second attempt.");
+      } else {
+        setError(err instanceof Error ? err.message : "Something went wrong");
+      }
       setState("form");
     }
   };
@@ -54,6 +63,7 @@ export default function Home() {
               House Affordability Calculator
             </h1>
             <p className="text-xs text-gray-500">Powered by 4 AI Agents</p>
+            <p className="text-sm text-gray-600 mt-1">Enter your information to simulate your home affordability scenario</p>
           </div>
           {state !== "form" && (
             <button
@@ -104,14 +114,19 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="border-t border-gray-200 bg-white mt-12">
-        <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between text-xs text-gray-400">
-          <span>&copy; {new Date().getFullYear()} AI Calculator</span>
-          <a
-            href="mailto:pareshv23@gmail.com"
-            className="text-gray-500 hover:text-blue-600 transition-colors"
-          >
-            Contact Me
-          </a>
+        <div className="max-w-5xl mx-auto px-4 py-4 space-y-2">
+          <p className="text-xs text-gray-400 text-center">
+            We do not store any personal data or information. This is not financial advice. Use at your own risk.
+          </p>
+          <div className="flex items-center justify-between text-xs text-gray-400">
+            <span>&copy; {new Date().getFullYear()} AI Calculator</span>
+            <a
+              href="mailto:pareshv23@gmail.com"
+              className="text-gray-500 hover:text-blue-600 transition-colors"
+            >
+              Contact Me
+            </a>
+          </div>
         </div>
       </footer>
     </div>

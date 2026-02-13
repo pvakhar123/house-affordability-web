@@ -36,6 +36,10 @@ export async function POST(request: Request) {
       userMessage = "Too many requests. Please wait a minute and try again.";
     } else if (msg.includes("authentication") || msg.includes("401")) {
       userMessage = "Service configuration error. Please contact support.";
+    } else if (msg.includes("timed out") || msg.includes("timeout") || msg.includes("ETIMEDOUT")) {
+      userMessage = "The analysis took too long. Please try again — it usually works on the second attempt.";
+    } else if (msg.includes("ECONNRESET") || msg.includes("network")) {
+      userMessage = "A network error occurred. Please check your connection and try again.";
     }
 
     return NextResponse.json({ error: userMessage }, { status: 500 });

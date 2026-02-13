@@ -27,6 +27,25 @@ export class OrchestratorAgent {
     this.recsAgent = new RecommendationsAgent(this.client);
   }
 
+  private async withTimeout<T>(
+    promise: Promise<T>,
+    ms: number,
+    label: string
+  ): Promise<T> {
+    let timer: ReturnType<typeof setTimeout>;
+    const timeout = new Promise<never>((_, reject) => {
+      timer = setTimeout(
+        () => reject(new Error(`${label} timed out after ${ms / 1000}s`)),
+        ms
+      );
+    });
+    try {
+      return await Promise.race([promise, timeout]);
+    } finally {
+      clearTimeout(timer!);
+    }
+  }
+
   async run(userProfile: UserProfile): Promise<FinalReport> {
     const state: OrchestratorState = {
       userProfile,
@@ -34,13 +53,15 @@ export class OrchestratorAgent {
       executionLog: [],
     };
 
-    // Phase 1: Market Data (independent)
+    // Phase 1: Market Data (independent) - 60s timeout
     console.log("\n[1/4] Fetching current market data...");
     const t1 = Date.now();
     try {
-      state.marketData = await this.marketAgent.run({
-        location: userProfile.targetLocation,
-      });
+      state.marketData = await this.withTimeout(
+        this.marketAgent.run({ location: userProfile.targetLocation }),
+        60000,
+        "Market data"
+      );
       console.log(
         `      Done (${((Date.now() - t1) / 1000).toFixed(1)}s) - 30yr rate: ${state.marketData.mortgageRates.thirtyYearFixed}%`
       );
@@ -61,14 +82,15 @@ export class OrchestratorAgent {
       timestamp: new Date().toISOString(),
     });
 
-    // Phase 2: Affordability (depends on market data)
+    // Phase 2: Affordability (depends on market data) - 60s timeout
     console.log("[2/4] Calculating affordability...");
     const t2 = Date.now();
     try {
-      state.affordability = await this.affordabilityAgent.run({
-        userProfile,
-        marketData: state.marketData,
-      });
+      state.affordability = await this.withTimeout(
+        this.affordabilityAgent.run({ userProfile, marketData: state.marketData }),
+        60000,
+        "Affordability calculation"
+      );
       console.log(
         `      Done (${((Date.now() - t2) / 1000).toFixed(1)}s) - Max price: $${state.affordability.maxHomePrice.toLocaleString()}`
       );
@@ -83,20 +105,28 @@ export class OrchestratorAgent {
       timestamp: new Date().toISOString(),
     });
 
-    // Phase 3: Risk + Recommendations (parallel)
+    // Phase 3: Risk + Recommendations (parallel) - 60s timeout each
     console.log("[3/4] Assessing risk and generating recommendations...");
     const t3 = Date.now();
     const [riskReport, recommendations] = await Promise.allSettled([
-      this.riskAgent.run({
-        userProfile,
-        marketData: state.marketData,
-        affordability: state.affordability,
-      }),
-      this.recsAgent.run({
-        userProfile,
-        marketData: state.marketData,
-        affordability: state.affordability,
-      }),
+      this.withTimeout(
+        this.riskAgent.run({
+          userProfile,
+          marketData: state.marketData,
+          affordability: state.affordability,
+        }),
+        60000,
+        "Risk assessment"
+      ),
+      this.withTimeout(
+        this.recsAgent.run({
+          userProfile,
+          marketData: state.marketData,
+          affordability: state.affordability,
+        }),
+        60000,
+        "Recommendations"
+      ),
     ]);
 
     if (riskReport.status === "fulfilled") {
@@ -143,28 +173,50 @@ export class OrchestratorAgent {
   }
 
   private async synthesize(state: OrchestratorState): Promise<FinalReport> {
-    const response = await this.client.messages.create({
-      model: config.model,
-      max_tokens: 4096,
-      system: PROMPTS.orchestrator,
-      messages: [
-        {
-          role: "user",
-          content: `Synthesize this data into a clear, actionable narrative report for the home buyer.
+    let summary = "Report generation failed.";
+
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const response = await this.client.messages.create(
+          {
+            model: config.model,
+            max_tokens: 2048,
+            system: PROMPTS.orchestrator,
+            messages: [
+              {
+                role: "user",
+                content: `Synthesize this data into a clear, actionable narrative report for the home buyer.
 Focus on the key takeaways, what they can afford, major risks, and top recommendations.
 Be specific with numbers and direct with advice.
 
 ${JSON.stringify(state, null, 2)}`,
-        },
-      ],
-    });
+              },
+            ],
+          },
+          { timeout: 30000 }
+        );
 
-    const textBlock = response.content.find(
-      (b): b is Anthropic.TextBlock => b.type === "text"
-    );
+        const textBlock = response.content.find(
+          (b): b is Anthropic.TextBlock => b.type === "text"
+        );
+        summary = textBlock?.text ?? summary;
+        break;
+      } catch (err) {
+        console.log(`      Synthesize attempt ${attempt + 1} failed:`, err);
+        if (attempt === 1) {
+          // Generate a basic summary from the data instead of failing
+          const a = state.affordability;
+          const m = state.marketData;
+          if (a && m) {
+            summary = `Based on your financial profile, you can afford a home up to $${Math.round(a.maxHomePrice).toLocaleString()} (recommended: $${Math.round(a.recommendedHomePrice).toLocaleString()}). With current 30-year fixed rates at ${m.mortgageRates.thirtyYearFixed}%, your estimated monthly payment would be around $${Math.round(a.monthlyPayment.totalMonthly).toLocaleString()}. Your debt-to-income ratio is ${a.dtiAnalysis.backEndRatio}% (${a.dtiAnalysis.backEndStatus}). Please consult a mortgage professional for personalized advice.`;
+          }
+        }
+        await new Promise((r) => setTimeout(r, 2000));
+      }
+    }
 
     return {
-      summary: textBlock?.text ?? "Report generation failed.",
+      summary,
       affordability: state.affordability!,
       marketSnapshot: state.marketData!,
       riskAssessment: state.riskReport!,

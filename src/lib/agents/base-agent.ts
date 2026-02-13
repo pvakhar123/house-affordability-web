@@ -22,25 +22,30 @@ export abstract class BaseAgent<TInput, TOutput> {
 
   private async callWithRetry(
     params: Anthropic.Messages.MessageCreateParamsNonStreaming,
-    maxRetries = 3
+    maxRetries = 2
   ): Promise<Anthropic.Messages.Message> {
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
-        return await this.client.messages.create(params);
+        return await this.client.messages.create(params, {
+          timeout: 30000, // 30s per API call
+        });
       } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
         const isRetryable =
-          err instanceof Error &&
-          (err.message.includes("overloaded") ||
-            err.message.includes("529") ||
-            err.message.includes("rate_limit") ||
-            err.message.includes("500") ||
-            err.message.includes("503"));
+          msg.includes("overloaded") ||
+          msg.includes("529") ||
+          msg.includes("rate_limit") ||
+          msg.includes("500") ||
+          msg.includes("503") ||
+          msg.includes("timeout") ||
+          msg.includes("ETIMEDOUT") ||
+          msg.includes("ECONNRESET");
 
         if (!isRetryable || attempt === maxRetries) {
           throw err;
         }
 
-        const delay = Math.min(1000 * Math.pow(2, attempt), 10000);
+        const delay = Math.min(1000 * Math.pow(2, attempt), 5000);
         console.log(
           `API call failed (attempt ${attempt + 1}/${maxRetries + 1}), retrying in ${delay}ms...`
         );
