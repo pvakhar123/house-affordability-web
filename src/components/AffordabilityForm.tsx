@@ -26,6 +26,7 @@ export default function AffordabilityForm({ onSubmit, isLoading }: Props) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const isArm = form.preferredLoanTerm === "5/1_arm" || form.preferredLoanTerm === "7/1_arm";
     const profile: UserProfile = {
       annualGrossIncome: Number(form.annualGrossIncome),
       additionalIncome: Number(form.additionalIncome) || undefined,
@@ -35,7 +36,8 @@ export default function AffordabilityForm({ onSubmit, isLoading }: Props) {
       creditScore: Number(form.creditScore),
       monthlyExpenses: Number(form.monthlyExpenses),
       targetLocation: form.targetLocations.length > 0 ? form.targetLocations.join(", ") : undefined,
-      preferredLoanTerm: Number(form.preferredLoanTerm) as 15 | 20 | 30,
+      preferredLoanTerm: isArm ? 30 : (Number(form.preferredLoanTerm) as 15 | 20 | 30),
+      loanType: isArm ? (form.preferredLoanTerm as "5/1_arm" | "7/1_arm") : "fixed",
       militaryVeteran: form.militaryVeteran,
       firstTimeBuyer: form.firstTimeBuyer,
     };
@@ -218,17 +220,28 @@ export default function AffordabilityForm({ onSubmit, isLoading }: Props) {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Preferred Loan Term
+              Preferred Loan Type
             </label>
             <select
               value={form.preferredLoanTerm}
               onChange={(e) => update("preferredLoanTerm", e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
-              <option value="30">30-year fixed</option>
-              <option value="15">15-year fixed</option>
-              <option value="20">20-year fixed</option>
+              <optgroup label="Fixed Rate">
+                <option value="30">30-year fixed</option>
+                <option value="15">15-year fixed</option>
+                <option value="20">20-year fixed</option>
+              </optgroup>
+              <optgroup label="Adjustable Rate (ARM)">
+                <option value="5/1_arm">5/1 ARM (fixed 5 yrs, then adjusts)</option>
+                <option value="7/1_arm">7/1 ARM (fixed 7 yrs, then adjusts)</option>
+              </optgroup>
             </select>
+            {(form.preferredLoanTerm === "5/1_arm" || form.preferredLoanTerm === "7/1_arm") && (
+              <p className="mt-1 text-xs text-amber-600">
+                ARM loans have a lower initial rate but can adjust annually after the fixed period.
+              </p>
+            )}
           </div>
           <div className="flex gap-6">
             <label className="flex items-center gap-2 cursor-pointer">

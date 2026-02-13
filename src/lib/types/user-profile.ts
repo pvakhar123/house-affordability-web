@@ -8,6 +8,7 @@ export interface UserProfile {
   creditScore: number;
   targetLocation?: string;
   preferredLoanTerm?: 15 | 20 | 30;
+  loanType?: "fixed" | "5/1_arm" | "7/1_arm";
   militaryVeteran?: boolean;
   firstTimeBuyer?: boolean;
   householdSize?: number;

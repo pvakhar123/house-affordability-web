@@ -48,11 +48,12 @@ Buyer Profile:
 - Down Payment Savings: $${u.downPaymentSavings.toLocaleString()}
 - Credit Score: ${u.creditScore}
 - Preferred Loan Term: ${u.preferredLoanTerm ?? 30} years
+- Loan Type: ${u.loanType === "5/1_arm" ? "5/1 ARM (fixed for 5 years, then adjusts annually)" : u.loanType === "7/1_arm" ? "7/1 ARM (fixed for 7 years, then adjusts annually)" : "Fixed Rate"}
 - First-Time Buyer: ${u.firstTimeBuyer ? "Yes" : "No"}
 - Military Veteran: ${u.militaryVeteran ? "Yes" : "No"}
 
 Steps:
-1. Use calculate_max_home_price with the ${u.preferredLoanTerm ?? 30}-year rate (as decimal, e.g., ${m.mortgageRates.thirtyYearFixed}% = ${m.mortgageRates.thirtyYearFixed / 100})
+1. Use calculate_max_home_price with the ${u.preferredLoanTerm ?? 30}-year rate (as decimal, e.g., ${m.mortgageRates.thirtyYearFixed}% = ${m.mortgageRates.thirtyYearFixed / 100})${u.loanType?.includes("arm") ? ". Note: For ARM loans, use a rate ~0.5-1% lower than the 30-year fixed rate for the initial period." : ""}
 2. Use calculate_monthly_payment for the max home price
 3. Use calculate_dti_ratio with the calculated payment
 4. Use generate_amortization_summary for the loan

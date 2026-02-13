@@ -48,6 +48,7 @@ Buyer Profile:
 - First-Time Buyer: ${u.firstTimeBuyer ? "Yes" : "No"}
 - Military Veteran: ${u.militaryVeteran ? "Yes" : "No"}
 - Target Location: ${u.targetLocation ?? "Not specified"}
+- Loan Type Preference: ${u.loanType === "5/1_arm" ? "5/1 ARM" : u.loanType === "7/1_arm" ? "7/1 ARM" : "Fixed Rate"}
 - Monthly Expenses: $${(u.monthlyExpenses ?? 3000).toLocaleString()}
 
 Affordability Results:
