@@ -176,10 +176,12 @@ export class OrchestratorAgent {
     let summary = "Report generation failed.";
 
     for (let attempt = 0; attempt < 2; attempt++) {
+      // First attempt uses summaryModel (Sonnet), fallback uses Haiku
+      const model = attempt === 0 ? config.summaryModel : config.fallbackModel;
       try {
         const response = await this.client.messages.create(
           {
-            model: config.model,
+            model,
             max_tokens: 2048,
             system: PROMPTS.orchestrator,
             messages: [

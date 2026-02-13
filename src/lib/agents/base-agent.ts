@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { config } from "../config";
 
 export type ToolDefinition = Anthropic.Messages.Tool;
 
@@ -6,7 +7,7 @@ export abstract class BaseAgent<TInput, TOutput> {
   protected client: Anthropic;
   protected model: string;
 
-  constructor(client: Anthropic, model: string = "claude-sonnet-4-20250514") {
+  constructor(client: Anthropic, model: string = config.model) {
     this.client = client;
     this.model = model;
   }
@@ -20,6 +21,11 @@ export abstract class BaseAgent<TInput, TOutput> {
     input: Record<string, unknown>
   ): Promise<string>;
 
+  private isOverloaded(err: unknown): boolean {
+    const msg = err instanceof Error ? err.message : String(err);
+    return msg.includes("overloaded") || msg.includes("529");
+  }
+
   private async callWithRetry(
     params: Anthropic.Messages.MessageCreateParamsNonStreaming,
     maxRetries = 2
@@ -27,7 +33,7 @@ export abstract class BaseAgent<TInput, TOutput> {
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
         return await this.client.messages.create(params, {
-          timeout: 30000, // 30s per API call
+          timeout: 30000,
         });
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
@@ -42,6 +48,18 @@ export abstract class BaseAgent<TInput, TOutput> {
           msg.includes("ECONNRESET");
 
         if (!isRetryable || attempt === maxRetries) {
+          // Last resort: try fallback model if overloaded
+          if (this.isOverloaded(err) && params.model !== config.fallbackModel) {
+            console.log(`Model ${params.model} overloaded, trying fallback ${config.fallbackModel}...`);
+            try {
+              return await this.client.messages.create(
+                { ...params, model: config.fallbackModel },
+                { timeout: 30000 }
+              );
+            } catch {
+              // fallback also failed, throw original error
+            }
+          }
           throw err;
         }
 
