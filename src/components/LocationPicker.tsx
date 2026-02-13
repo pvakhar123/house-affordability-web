@@ -1,29 +1,62 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useMemo } from "react";
 
 interface Props {
   value: string[];
   onChange: (locations: string[]) => void;
 }
 
-const SUGGESTIONS = [
-  { label: "New York, NY", icon: "city" },
-  { label: "Los Angeles, CA", icon: "city" },
-  { label: "Chicago, IL", icon: "city" },
-  { label: "Houston, TX", icon: "city" },
-  { label: "Miami, FL", icon: "city" },
-  { label: "Seattle, WA", icon: "city" },
-  { label: "Denver, CO", icon: "city" },
-  { label: "Austin, TX", icon: "city" },
-  { label: "San Francisco, CA", icon: "city" },
-  { label: "Phoenix, AZ", icon: "city" },
-  { label: "Atlanta, GA", icon: "city" },
-  { label: "Boston, MA", icon: "city" },
-  { label: "Nashville, TN", icon: "city" },
-  { label: "Charlotte, NC", icon: "city" },
-  { label: "Portland, OR", icon: "city" },
-  { label: "Raleigh, NC", icon: "city" },
+// Comprehensive US cities list for autocomplete
+const US_CITIES = [
+  // Top 50 metros
+  "New York, NY", "Los Angeles, CA", "Chicago, IL", "Houston, TX",
+  "Phoenix, AZ", "Philadelphia, PA", "San Antonio, TX", "San Diego, CA",
+  "Dallas, TX", "Austin, TX", "San Jose, CA", "Jacksonville, FL",
+  "Fort Worth, TX", "Columbus, OH", "Charlotte, NC", "Indianapolis, IN",
+  "San Francisco, CA", "Seattle, WA", "Denver, CO", "Nashville, TN",
+  "Oklahoma City, OK", "Washington, DC", "El Paso, TX", "Las Vegas, NV",
+  "Boston, MA", "Portland, OR", "Memphis, TN", "Louisville, KY",
+  "Baltimore, MD", "Milwaukee, WI", "Albuquerque, NM", "Tucson, AZ",
+  "Fresno, CA", "Mesa, AZ", "Sacramento, CA", "Atlanta, GA",
+  "Kansas City, MO", "Omaha, NE", "Colorado Springs, CO", "Raleigh, NC",
+  "Long Beach, CA", "Virginia Beach, VA", "Miami, FL", "Oakland, CA",
+  "Minneapolis, MN", "Tampa, FL", "Tulsa, OK", "Arlington, TX",
+  "New Orleans, LA", "Cleveland, OH",
+  // Additional popular cities
+  "Pittsburgh, PA", "Cincinnati, OH", "St. Louis, MO", "Orlando, FL",
+  "Honolulu, HI", "Salt Lake City, UT", "Boise, ID", "Richmond, VA",
+  "Spokane, WA", "Des Moines, IA", "Madison, WI", "Lexington, KY",
+  "Anchorage, AK", "Durham, NC", "Chattanooga, TN", "Savannah, GA",
+  "Charleston, SC", "Greenville, SC", "Asheville, NC", "Knoxville, TN",
+  "Scottsdale, AZ", "Gilbert, AZ", "Chandler, AZ", "Tempe, AZ",
+  "Plano, TX", "Frisco, TX", "McKinney, TX", "Irving, TX",
+  "Irvine, CA", "Pasadena, CA", "Santa Monica, CA", "Burbank, CA",
+  "Glendale, CA", "Huntington Beach, CA", "Anaheim, CA", "Santa Ana, CA",
+  "Riverside, CA", "San Bernardino, CA", "Ontario, CA", "Rancho Cucamonga, CA",
+  "Bakersfield, CA", "Stockton, CA", "Modesto, CA", "Santa Clara, CA",
+  "Sunnyvale, CA", "Fremont, CA", "Hayward, CA", "Concord, CA",
+  "Bellevue, WA", "Tacoma, WA", "Everett, WA", "Redmond, WA",
+  "Brooklyn, NY", "Manhattan, NY", "Queens, NY", "Bronx, NY",
+  "Staten Island, NY", "Jersey City, NJ", "Newark, NJ", "Hoboken, NJ",
+  "Stamford, CT", "New Haven, CT", "Hartford, CT", "Providence, RI",
+  "Cambridge, MA", "Somerville, MA", "Worcester, MA", "Springfield, MA",
+  "Ann Arbor, MI", "Detroit, MI", "Grand Rapids, MI", "Lansing, MI",
+  "Naperville, IL", "Evanston, IL", "Aurora, IL", "Schaumburg, IL",
+  "St. Paul, MN", "Bloomington, MN", "Plymouth, MN", "Duluth, MN",
+  "Overland Park, KS", "Wichita, KS", "Topeka, KS",
+  "Fort Collins, CO", "Boulder, CO", "Aurora, CO", "Lakewood, CO",
+  "Provo, UT", "Ogden, UT", "Sandy, UT", "Layton, UT",
+  "Henderson, NV", "Reno, NV", "North Las Vegas, NV",
+  "Fort Lauderdale, FL", "West Palm Beach, FL", "St. Petersburg, FL",
+  "Clearwater, FL", "Sarasota, FL", "Naples, FL", "Cape Coral, FL",
+  "Tallahassee, FL", "Gainesville, FL", "Pensacola, FL",
+  "Wilmington, NC", "Fayetteville, NC", "Winston-Salem, NC", "Greensboro, NC",
+  "Columbia, SC", "Myrtle Beach, SC",
+  "Alexandria, VA", "Arlington, VA", "Norfolk, VA", "Chesapeake, VA",
+  "Bethesda, MD", "Silver Spring, MD", "Rockville, MD", "Annapolis, MD",
+  "Birmingham, AL", "Huntsville, AL", "Montgomery, AL", "Mobile, AL",
+  "Jackson, MS", "Little Rock, AR", "Fayetteville, AR", "Bentonville, AR",
 ];
 
 function isZipCode(s: string): boolean {
@@ -36,17 +69,19 @@ function getTagType(s: string): "zip" | "city" {
 
 export default function LocationPicker({ value, onChange }: Props) {
   const [input, setInput] = useState("");
-  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [highlightIndex, setHighlightIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const addLocation = useCallback(
     (loc: string) => {
       const trimmed = loc.trim();
       if (!trimmed) return;
-      // Avoid duplicates (case-insensitive)
       if (value.some((v) => v.toLowerCase() === trimmed.toLowerCase())) return;
       onChange([...value, trimmed]);
       setInput("");
+      setHighlightIndex(-1);
     },
     [value, onChange]
   );
@@ -58,24 +93,55 @@ export default function LocationPicker({ value, onChange }: Props) {
     [value, onChange]
   );
 
+  // Filter cities based on input — only show when user has typed something
+  const matches = useMemo(() => {
+    if (input.length < 1) return [];
+    const q = input.toLowerCase();
+    return US_CITIES.filter(
+      (city) =>
+        city.toLowerCase().includes(q) &&
+        !value.some((v) => v.toLowerCase() === city.toLowerCase())
+    ).slice(0, 8);
+  }, [input, value]);
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" || e.key === ",") {
+    if (e.key === "ArrowDown") {
       e.preventDefault();
-      addLocation(input);
-    }
-    if (e.key === "Backspace" && input === "" && value.length > 0) {
+      setHighlightIndex((prev) => Math.min(prev + 1, matches.length - 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setHighlightIndex((prev) => Math.max(prev - 1, -1));
+    } else if (e.key === "Enter" || e.key === ",") {
+      e.preventDefault();
+      if (highlightIndex >= 0 && highlightIndex < matches.length) {
+        addLocation(matches[highlightIndex]);
+      } else {
+        addLocation(input);
+      }
+    } else if (e.key === "Escape") {
+      setShowDropdown(false);
+      setHighlightIndex(-1);
+    } else if (e.key === "Backspace" && input === "" && value.length > 0) {
       removeLocation(value.length - 1);
     }
   };
 
-  const filtered = SUGGESTIONS.filter(
-    (s) =>
-      !value.some((v) => v.toLowerCase() === s.label.toLowerCase()) &&
-      (input === "" || s.label.toLowerCase().includes(input.toLowerCase()))
-  );
+  // Highlight matching text in suggestion
+  function highlightMatch(text: string, query: string) {
+    if (!query) return text;
+    const idx = text.toLowerCase().indexOf(query.toLowerCase());
+    if (idx === -1) return text;
+    return (
+      <>
+        {text.slice(0, idx)}
+        <strong className="text-blue-700 font-semibold">{text.slice(idx, idx + query.length)}</strong>
+        {text.slice(idx + query.length)}
+      </>
+    );
+  }
 
   return (
-    <div className="space-y-2">
+    <div className="relative space-y-2">
       {/* Input area with tags */}
       <div
         className="flex flex-wrap items-center gap-1.5 min-h-[42px] px-3 py-2 border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 bg-white cursor-text"
@@ -124,12 +190,15 @@ export default function LocationPicker({ value, onChange }: Props) {
           value={input}
           onChange={(e) => {
             setInput(e.target.value);
-            setShowSuggestions(true);
+            setShowDropdown(true);
+            setHighlightIndex(-1);
           }}
-          onFocus={() => setShowSuggestions(true)}
+          onFocus={() => setShowDropdown(true)}
           onBlur={() => {
-            // Delay to allow click on suggestion
-            setTimeout(() => setShowSuggestions(false), 200);
+            setTimeout(() => {
+              setShowDropdown(false);
+              setHighlightIndex(-1);
+            }, 200);
           }}
           onKeyDown={handleKeyDown}
           className="flex-1 min-w-[140px] outline-none text-sm bg-transparent placeholder:text-gray-400"
@@ -143,34 +212,80 @@ export default function LocationPicker({ value, onChange }: Props) {
 
       {/* Helper text */}
       <p className="text-xs text-gray-400">
-        Press Enter or comma to add. Try zip codes (e.g. 90210), cities, or neighborhoods.
+        Type to search cities, or enter zip codes. Press Enter to add.
       </p>
 
-      {/* Quick-pick suggestions */}
-      {showSuggestions && filtered.length > 0 && (
-        <div className="border border-gray-200 rounded-lg bg-white shadow-md overflow-hidden">
-          <p className="px-3 py-2 text-xs font-medium text-gray-400 uppercase tracking-wide bg-gray-50 border-b border-gray-100">
-            Popular cities
-          </p>
-          <div className="p-2 flex flex-wrap gap-1.5 max-h-40 overflow-y-auto">
-            {filtered.slice(0, 12).map((s) => (
-              <button
-                key={s.label}
-                type="button"
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => {
-                  addLocation(s.label);
-                  inputRef.current?.focus();
-                }}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-50 border border-gray-200 rounded-full hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200 transition-colors"
+      {/* Autocomplete dropdown */}
+      {showDropdown && matches.length > 0 && (
+        <div
+          ref={dropdownRef}
+          className="absolute z-50 left-0 right-0 mt-1 border border-gray-200 rounded-lg bg-white shadow-lg overflow-hidden"
+        >
+          {matches.map((city, i) => (
+            <button
+              key={city}
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => {
+                addLocation(city);
+                inputRef.current?.focus();
+              }}
+              onMouseEnter={() => setHighlightIndex(i)}
+              className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left transition-colors ${
+                i === highlightIndex
+                  ? "bg-blue-50 text-blue-900"
+                  : "text-gray-700 hover:bg-gray-50"
+              }`}
+            >
+              <svg
+                className={`w-4 h-4 flex-shrink-0 ${i === highlightIndex ? "text-blue-500" : "text-gray-400"}`}
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={1.5}
               >
-                <svg className="w-3 h-3 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 0h.008v.008h-.008V7.5z" />
-                </svg>
-                {s.label}
-              </button>
-            ))}
-          </div>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+              </svg>
+              <span>{highlightMatch(city, input)}</span>
+            </button>
+          ))}
+          {input.trim() && !matches.some((m) => m.toLowerCase() === input.trim().toLowerCase()) && (
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => {
+                addLocation(input.trim());
+                inputRef.current?.focus();
+              }}
+              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left text-gray-500 hover:bg-gray-50 border-t border-gray-100"
+            >
+              <svg className="w-4 h-4 flex-shrink-0 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+              </svg>
+              <span>Add &quot;{input.trim()}&quot; as custom location</span>
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Show "add custom" when typing with no matches */}
+      {showDropdown && input.trim().length > 0 && matches.length === 0 && (
+        <div className="absolute z-50 left-0 right-0 mt-1 border border-gray-200 rounded-lg bg-white shadow-lg overflow-hidden">
+          <button
+            type="button"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => {
+              addLocation(input.trim());
+              inputRef.current?.focus();
+            }}
+            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left text-gray-600 hover:bg-blue-50 hover:text-blue-700"
+          >
+            <svg className="w-4 h-4 flex-shrink-0 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+            <span>Add &quot;{input.trim()}&quot;</span>
+          </button>
         </div>
       )}
     </div>
