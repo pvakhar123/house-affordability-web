@@ -6,7 +6,7 @@ import LoadingState from "@/components/LoadingState";
 import ResultsDashboard from "@/components/ResultsDashboard";
 import type { UserProfile, FinalReport } from "@/lib/types";
 
-type AppState = "form" | "loading" | "results" | "error";
+type AppState = "form" | "loading" | "results";
 
 export default function Home() {
   const [state, setState] = useState<AppState>("form");
@@ -34,7 +34,7 @@ export default function Home() {
       setState("results");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
-      setState("error");
+      setState("form");
     }
   };
 
@@ -68,29 +68,37 @@ export default function Home() {
 
       {/* Main Content */}
       <main className="max-w-5xl mx-auto px-4 py-8">
-        {state === "form" && (
+        {/* Form - stays mounted during form & loading states to preserve data */}
+        <div className={state === "form" ? "" : "hidden"}>
+          {/* Error banner */}
+          {error && (
+            <div className="max-w-2xl mx-auto mb-6">
+              <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
+                <svg className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                </svg>
+                <div className="flex-1">
+                  <p className="text-red-800 font-semibold text-sm">Analysis Failed</p>
+                  <p className="text-red-600 text-sm mt-0.5">{error}</p>
+                </div>
+                <button
+                  onClick={() => setError("")}
+                  className="text-red-400 hover:text-red-600"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          )}
           <AffordabilityForm onSubmit={handleSubmit} isLoading={false} />
-        )}
+        </div>
 
         {state === "loading" && <LoadingState />}
 
         {state === "results" && report && (
           <ResultsDashboard report={report} onReset={handleReset} />
-        )}
-
-        {state === "error" && (
-          <div className="max-w-lg mx-auto py-16 text-center">
-            <div className="bg-red-50 border border-red-200 rounded-xl p-6">
-              <p className="text-red-800 font-semibold mb-2">Analysis Failed</p>
-              <p className="text-red-600 text-sm mb-4">{error}</p>
-              <button
-                onClick={handleReset}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm"
-              >
-                Try Again
-              </button>
-            </div>
-          </div>
         )}
       </main>
 
