@@ -38,11 +38,19 @@ export class BlsApiClient {
       body.registrationkey = this.apiKey;
     }
 
-    const response = await fetch(BLS_BASE, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 8000);
+    let response: Response;
+    try {
+      response = await fetch(BLS_BASE, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timer);
+    }
 
     const data = (await response.json()) as BlsResponse;
     const result = new Map<string, BlsSeriesData[]>();

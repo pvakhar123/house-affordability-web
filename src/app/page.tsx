@@ -19,7 +19,7 @@ export default function Home() {
 
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s client timeout
+      const timeoutId = setTimeout(() => controller.abort(), 90000); // 90s client timeout
 
       const res = await fetch("/api/analyze", {
         method: "POST",

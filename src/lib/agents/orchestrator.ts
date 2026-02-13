@@ -59,7 +59,7 @@ export class OrchestratorAgent {
     try {
       state.marketData = await this.withTimeout(
         this.marketAgent.run({ location: userProfile.targetLocation }),
-        20000,
+        30000,
         "Market data"
       );
       console.log(
@@ -88,7 +88,7 @@ export class OrchestratorAgent {
     try {
       state.affordability = await this.withTimeout(
         this.affordabilityAgent.run({ userProfile, marketData: state.marketData }),
-        20000,
+        30000,
         "Affordability calculation"
       );
       console.log(
@@ -115,7 +115,7 @@ export class OrchestratorAgent {
           marketData: state.marketData,
           affordability: state.affordability,
         }),
-        20000,
+        30000,
         "Risk assessment"
       ),
       this.withTimeout(
@@ -124,7 +124,7 @@ export class OrchestratorAgent {
           marketData: state.marketData,
           affordability: state.affordability,
         }),
-        20000,
+        30000,
         "Recommendations"
       ),
     ]);

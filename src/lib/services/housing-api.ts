@@ -19,12 +19,20 @@ export class HousingApiClient {
 
     try {
       const url = `https://${RAPIDAPI_HOST}/housing?zip=${encodeURIComponent(zipOrCounty)}`;
-      const response = await fetch(url, {
-        headers: {
-          "x-rapidapi-key": this.apiKey,
-          "x-rapidapi-host": RAPIDAPI_HOST,
-        },
-      });
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 8000);
+      let response: Response;
+      try {
+        response = await fetch(url, {
+          headers: {
+            "x-rapidapi-key": this.apiKey,
+            "x-rapidapi-host": RAPIDAPI_HOST,
+          },
+          signal: controller.signal,
+        });
+      } finally {
+        clearTimeout(timer);
+      }
 
       if (!response.ok) return null;
 

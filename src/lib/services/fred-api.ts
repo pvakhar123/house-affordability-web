@@ -34,7 +34,14 @@ export class FredApiClient {
     url.searchParams.set("sort_order", "desc");
     url.searchParams.set("limit", "5");
 
-    const response = await fetch(url.toString());
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 8000);
+    let response: Response;
+    try {
+      response = await fetch(url.toString(), { signal: controller.signal });
+    } finally {
+      clearTimeout(timer);
+    }
     if (!response.ok) {
       throw new Error(
         `FRED API error: ${response.status} ${response.statusText}`
