@@ -35,7 +35,7 @@ export class FredApiClient {
     url.searchParams.set("limit", "5");
 
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 8000);
+    const timer = setTimeout(() => controller.abort(), 5000);
     let response: Response;
     try {
       response = await fetch(url.toString(), { signal: controller.signal });

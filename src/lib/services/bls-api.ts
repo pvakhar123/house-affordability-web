@@ -39,7 +39,7 @@ export class BlsApiClient {
     }
 
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 8000);
+    const timer = setTimeout(() => controller.abort(), 5000);
     let response: Response;
     try {
       response = await fetch(BLS_BASE, {

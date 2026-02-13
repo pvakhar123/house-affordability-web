@@ -53,13 +53,13 @@ export class OrchestratorAgent {
       executionLog: [],
     };
 
-    // Phase 1: Market Data (independent) - 60s timeout
+    // Phase 1: Market Data (independent) - 15s timeout
     console.log("\n[1/4] Fetching current market data...");
     const t1 = Date.now();
     try {
       state.marketData = await this.withTimeout(
         this.marketAgent.run({ location: userProfile.targetLocation }),
-        30000,
+        15000,
         "Market data"
       );
       console.log(
@@ -82,13 +82,13 @@ export class OrchestratorAgent {
       timestamp: new Date().toISOString(),
     });
 
-    // Phase 2: Affordability (depends on market data) - 60s timeout
+    // Phase 2: Affordability (depends on market data) - 15s timeout
     console.log("[2/4] Calculating affordability...");
     const t2 = Date.now();
     try {
       state.affordability = await this.withTimeout(
         this.affordabilityAgent.run({ userProfile, marketData: state.marketData }),
-        30000,
+        15000,
         "Affordability calculation"
       );
       console.log(
@@ -105,7 +105,7 @@ export class OrchestratorAgent {
       timestamp: new Date().toISOString(),
     });
 
-    // Phase 3: Risk + Recommendations (parallel) - 60s timeout each
+    // Phase 3: Risk + Recommendations (parallel) - 15s timeout each
     console.log("[3/4] Assessing risk and generating recommendations...");
     const t3 = Date.now();
     const [riskReport, recommendations] = await Promise.allSettled([
@@ -115,7 +115,7 @@ export class OrchestratorAgent {
           marketData: state.marketData,
           affordability: state.affordability,
         }),
-        30000,
+        15000,
         "Risk assessment"
       ),
       this.withTimeout(
@@ -124,7 +124,7 @@ export class OrchestratorAgent {
           marketData: state.marketData,
           affordability: state.affordability,
         }),
-        30000,
+        15000,
         "Recommendations"
       ),
     ]);
@@ -195,7 +195,7 @@ ${JSON.stringify(state, null, 2)}`,
               },
             ],
           },
-          { timeout: 15000 }
+          { timeout: 10000 }
         );
 
         const textBlock = response.content.find(
@@ -213,7 +213,7 @@ ${JSON.stringify(state, null, 2)}`,
             summary = `Based on your financial profile, you can afford a home up to $${Math.round(a.maxHomePrice).toLocaleString()} (recommended: $${Math.round(a.recommendedHomePrice).toLocaleString()}). With current 30-year fixed rates at ${m.mortgageRates.thirtyYearFixed}%, your estimated monthly payment would be around $${Math.round(a.monthlyPayment.totalMonthly).toLocaleString()}. Your debt-to-income ratio is ${a.dtiAnalysis.backEndRatio}% (${a.dtiAnalysis.backEndStatus}). Please consult a mortgage professional for personalized advice.`;
           }
         }
-        await new Promise((r) => setTimeout(r, 2000));
+        // No delay between retries — we're on a tight budget
       }
     }
 

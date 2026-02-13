@@ -33,7 +33,7 @@ export abstract class BaseAgent<TInput, TOutput> {
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
         return await this.client.messages.create(params, {
-          timeout: 20000, // 20s per call — Haiku responds in 2-5s
+          timeout: 10000, // 10s per call — Haiku responds in 2-5s
         });
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
@@ -54,7 +54,7 @@ export abstract class BaseAgent<TInput, TOutput> {
             try {
               return await this.client.messages.create(
                 { ...params, model: config.fallbackModel },
-                { timeout: 20000 }
+                { timeout: 10000 }
               );
             } catch {
               // fallback also failed, throw original error
@@ -63,7 +63,7 @@ export abstract class BaseAgent<TInput, TOutput> {
           throw err;
         }
 
-        const delay = Math.min(1000 * Math.pow(2, attempt), 3000);
+        const delay = Math.min(1000 * Math.pow(2, attempt), 1000);
         console.log(
           `API call failed (attempt ${attempt + 1}/${maxRetries + 1}), retrying in ${delay}ms...`
         );
@@ -81,7 +81,7 @@ export abstract class BaseAgent<TInput, TOutput> {
 
     // Tool-use loop: keep calling tools until the model stops
     let iterations = 0;
-    const maxIterations = 5;
+    const maxIterations = 3;
 
     while (iterations < maxIterations) {
       iterations++;
