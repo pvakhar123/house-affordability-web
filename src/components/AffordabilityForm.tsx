@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { UserProfile } from "@/lib/types";
+import LocationPicker from "./LocationPicker";
 
 interface Props {
   onSubmit: (profile: UserProfile) => void;
@@ -17,7 +18,7 @@ export default function AffordabilityForm({ onSubmit, isLoading }: Props) {
     additionalSavings: "",
     creditScore: "",
     monthlyExpenses: "3000",
-    targetLocation: "",
+    targetLocations: [] as string[],
     preferredLoanTerm: "30",
     militaryVeteran: false,
     firstTimeBuyer: false,
@@ -33,7 +34,7 @@ export default function AffordabilityForm({ onSubmit, isLoading }: Props) {
       additionalSavings: Number(form.additionalSavings) || undefined,
       creditScore: Number(form.creditScore),
       monthlyExpenses: Number(form.monthlyExpenses),
-      targetLocation: form.targetLocation || undefined,
+      targetLocation: form.targetLocations.length > 0 ? form.targetLocations.join(", ") : undefined,
       preferredLoanTerm: Number(form.preferredLoanTerm) as 15 | 20 | 30,
       militaryVeteran: form.militaryVeteran,
       firstTimeBuyer: form.firstTimeBuyer,
@@ -206,14 +207,13 @@ export default function AffordabilityForm({ onSubmit, isLoading }: Props) {
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Target Location
+              Target Locations
             </label>
-            <input
-              type="text"
-              value={form.targetLocation}
-              onChange={(e) => update("targetLocation", e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="City, State or ZIP code (optional)"
+            <LocationPicker
+              value={form.targetLocations}
+              onChange={(locations) =>
+                setForm((prev) => ({ ...prev, targetLocations: locations }))
+              }
             />
           </div>
           <div>
