@@ -11,18 +11,18 @@ interface Props {
 
 export default function AffordabilityForm({ onSubmit, isLoading }: Props) {
   const [form, setForm] = useState({
-    annualGrossIncome: "",
+    annualGrossIncome: "120000",
     additionalIncome: "",
-    monthlyDebtPayments: "",
-    downPaymentSavings: "",
-    additionalSavings: "",
-    creditScore: "",
+    monthlyDebtPayments: "500",
+    downPaymentSavings: "60000",
+    additionalSavings: "20000",
+    creditScore: "740",
     monthlyExpenses: "3000",
     targetLocations: [] as string[],
     includeRadius: false,
     preferredLoanTerm: "30",
     militaryVeteran: false,
-    firstTimeBuyer: false,
+    firstTimeBuyer: true,
   });
 
   const handleSubmit = (e: React.FormEvent) => {
