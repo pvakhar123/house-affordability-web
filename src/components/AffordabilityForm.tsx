@@ -37,7 +37,7 @@ export default function AffordabilityForm({ onSubmit, isLoading }: Props) {
       creditScore: Number(form.creditScore),
       monthlyExpenses: Number(form.monthlyExpenses),
       targetLocation: form.targetLocations.length > 0
-        ? form.targetLocations.join(", ") + (form.includeRadius ? " (and surrounding areas within 25 miles)" : "")
+        ? form.targetLocations.join(", ") + (form.includeRadius ? " (and surrounding areas within 5 miles)" : "")
         : undefined,
       preferredLoanTerm: isArm ? 30 : (Number(form.preferredLoanTerm) as 15 | 20 | 30),
       loanType: isArm ? (form.preferredLoanTerm as "5/1_arm" | "7/1_arm") : "fixed",
@@ -227,7 +227,7 @@ export default function AffordabilityForm({ onSubmit, isLoading }: Props) {
                 onChange={(e) => update("includeRadius", e.target.checked)}
                 className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
               />
-              <span className="text-sm text-gray-600">Also include homes within 25 mile radius</span>
+              <span className="text-sm text-gray-600">Also include homes within 5 mile radius</span>
             </label>
           </div>
           <div>
