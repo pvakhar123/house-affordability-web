@@ -19,7 +19,7 @@ export default function Home() {
 
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 65000); // 65s client timeout (Vercel Hobby = 60s max)
+      const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 min client timeout
 
       const res = await fetch("/api/analyze", {
         method: "POST",

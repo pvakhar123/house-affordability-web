@@ -33,7 +33,7 @@ export abstract class BaseAgent<TInput, TOutput> {
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
         return await this.client.messages.create(params, {
-          timeout: 10000, // 10s per call — Haiku responds in 2-5s
+          timeout: 15000, // 15s per call — Haiku responds in 2-5s
         });
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
@@ -54,7 +54,7 @@ export abstract class BaseAgent<TInput, TOutput> {
             try {
               return await this.client.messages.create(
                 { ...params, model: config.fallbackModel },
-                { timeout: 10000 }
+                { timeout: 15000 }
               );
             } catch {
               // fallback also failed, throw original error

@@ -53,13 +53,13 @@ export class OrchestratorAgent {
       executionLog: [],
     };
 
-    // Phase 1: Market Data (independent) - 15s timeout
+    // Phase 1: Market Data (independent) - 30s timeout
     console.log("\n[1/4] Fetching current market data...");
     const t1 = Date.now();
     try {
       state.marketData = await this.withTimeout(
         this.marketAgent.run({ location: userProfile.targetLocation }),
-        15000,
+        30000,
         "Market data"
       );
       console.log(
@@ -82,13 +82,13 @@ export class OrchestratorAgent {
       timestamp: new Date().toISOString(),
     });
 
-    // Phase 2: Affordability (depends on market data) - 15s timeout
+    // Phase 2: Affordability (depends on market data) - 30s timeout
     console.log("[2/4] Calculating affordability...");
     const t2 = Date.now();
     try {
       state.affordability = await this.withTimeout(
         this.affordabilityAgent.run({ userProfile, marketData: state.marketData }),
-        15000,
+        30000,
         "Affordability calculation"
       );
       console.log(
@@ -105,7 +105,7 @@ export class OrchestratorAgent {
       timestamp: new Date().toISOString(),
     });
 
-    // Phase 3: Risk + Recommendations (parallel) - 15s timeout each
+    // Phase 3: Risk + Recommendations (parallel) - 30s timeout each
     console.log("[3/4] Assessing risk and generating recommendations...");
     const t3 = Date.now();
     const [riskReport, recommendations] = await Promise.allSettled([
@@ -115,7 +115,7 @@ export class OrchestratorAgent {
           marketData: state.marketData,
           affordability: state.affordability,
         }),
-        15000,
+        30000,
         "Risk assessment"
       ),
       this.withTimeout(
@@ -124,7 +124,7 @@ export class OrchestratorAgent {
           marketData: state.marketData,
           affordability: state.affordability,
         }),
-        15000,
+        30000,
         "Recommendations"
       ),
     ]);
@@ -195,7 +195,7 @@ ${JSON.stringify(state, null, 2)}`,
               },
             ],
           },
-          { timeout: 10000 }
+          { timeout: 15000 }
         );
 
         const textBlock = response.content.find(
