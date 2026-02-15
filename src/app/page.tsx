@@ -77,7 +77,7 @@ export default function Home() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-5xl mx-auto px-4 py-8">
+      <main className={`${state === "results" ? "px-6" : "max-w-5xl px-4"} mx-auto py-8`}>
         {/* Form - stays mounted during form & loading states to preserve data */}
         <div className={state === "form" ? "" : "hidden"}>
           {/* Error banner */}

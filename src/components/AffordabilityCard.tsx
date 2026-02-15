@@ -31,8 +31,8 @@ export default function AffordabilityCard({ data }: { data: AffordabilityResult 
           <p className="text-2xl font-bold text-blue-900">{fmt(data.maxHomePrice)}</p>
         </div>
         <div className="bg-green-50 rounded-lg p-4">
-          <p className="text-sm text-green-600 font-medium">Recommended Price</p>
-          <p className="text-2xl font-bold text-green-900">{fmt(data.recommendedHomePrice)}</p>
+          <p className="text-sm text-green-600 font-medium">Max Loan Amount</p>
+          <p className="text-2xl font-bold text-green-900">{fmt(data.loanAmount)}</p>
         </div>
       </div>
 
