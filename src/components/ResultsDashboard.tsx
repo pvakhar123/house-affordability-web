@@ -15,6 +15,7 @@ import PropertyAffordabilityCard from "./PropertyAffordabilityCard";
 interface Props {
   report: FinalReport;
   onReset: () => void;
+  summaryLoading?: boolean;
 }
 
 function fmt(n: number): string {
@@ -120,91 +121,172 @@ function ExpandableSection({
   );
 }
 
-export default function ResultsDashboard({ report, onReset }: Props) {
+function StreamFadeIn({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
+  return (
+    <div
+      className="animate-[streamFadeIn_0.6s_ease-out_both]"
+      style={{ animationDelay: `${delay}ms` }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function SummaryLoadingSkeleton() {
+  return (
+    <div className="border border-gray-200 rounded-xl bg-white shadow-sm overflow-hidden">
+      <button className="w-full flex items-center justify-between px-6 py-4">
+        <h3 className="text-base font-semibold text-gray-900">AI Detailed Analysis</h3>
+        <div className="flex items-center gap-2 text-sm text-indigo-500">
+          <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          </svg>
+          Writing your personalized report...
+        </div>
+      </button>
+      <div className="px-6 pb-6 space-y-3">
+        <div className="h-4 bg-gray-100 rounded-full animate-pulse w-full" />
+        <div className="h-4 bg-gray-100 rounded-full animate-pulse w-5/6" />
+        <div className="h-4 bg-gray-100 rounded-full animate-pulse w-4/6" />
+        <div className="h-4 bg-gray-100 rounded-full animate-pulse w-full" />
+        <div className="h-4 bg-gray-100 rounded-full animate-pulse w-3/4" />
+      </div>
+    </div>
+  );
+}
+
+export default function ResultsDashboard({ report, onReset, summaryLoading }: Props) {
+  const hasCore = report.affordability && report.riskAssessment && report.recommendations;
+  const hasSummary = !!report.summary && !summaryLoading;
+
   return (
     <>
       {/* Main content - adds right margin on xl to make room for fixed chat */}
       <div className="space-y-6 xl:mr-[400px]">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">Your Affordability Report</h2>
-            <p className="text-sm text-gray-500">
-              Generated {new Date(report.generatedAt).toLocaleString()}
-            </p>
+        <StreamFadeIn>
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900">Your Affordability Report</h2>
+              {report.generatedAt && (
+                <p className="text-sm text-gray-500">
+                  Generated {new Date(report.generatedAt).toLocaleString()}
+                </p>
+              )}
+            </div>
+            <button
+              onClick={onReset}
+              className="px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+            >
+              New Analysis
+            </button>
           </div>
-          <button
-            onClick={onReset}
-            className="px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
-          >
-            New Analysis
-          </button>
-        </div>
+        </StreamFadeIn>
 
         {/* Download / Email Actions */}
-        <ReportActions report={report} />
+        {!summaryLoading && report.generatedAt && (
+          <StreamFadeIn delay={100}>
+            <ReportActions report={report} />
+          </StreamFadeIn>
+        )}
 
         {/* Summary Hero */}
-        <SummaryHero report={report} />
+        {hasCore && (
+          <StreamFadeIn delay={100}>
+            <SummaryHero report={report} />
+          </StreamFadeIn>
+        )}
 
         {/* Property Analysis (when a specific property was analyzed) */}
-        {report.propertyAnalysis && (
-          <PropertyAffordabilityCard
-            data={report.propertyAnalysis}
-            affordability={report.affordability}
-          />
+        {report.propertyAnalysis && hasCore && (
+          <StreamFadeIn delay={200}>
+            <PropertyAffordabilityCard
+              data={report.propertyAnalysis}
+              affordability={report.affordability}
+            />
+          </StreamFadeIn>
         )}
 
         {/* Data Cards */}
-        <div className="space-y-4">
-          <ExpandableSection title="Affordability Details" defaultOpen>
-            <AffordabilityCard data={report.affordability} />
-          </ExpandableSection>
+        {hasCore && (
+          <div className="space-y-4">
+            <StreamFadeIn delay={200}>
+              <ExpandableSection title="Affordability Details" defaultOpen>
+                <AffordabilityCard data={report.affordability} />
+              </ExpandableSection>
+            </StreamFadeIn>
 
-          <ExpandableSection title="Market Snapshot">
-            <MarketSnapshotCard data={report.marketSnapshot} />
-          </ExpandableSection>
+            <StreamFadeIn delay={300}>
+              <ExpandableSection title="Market Snapshot">
+                <MarketSnapshotCard data={report.marketSnapshot} />
+              </ExpandableSection>
+            </StreamFadeIn>
 
-          <ExpandableSection title="Risk Assessment">
-            <RiskAssessmentCard data={report.riskAssessment} />
-          </ExpandableSection>
+            <StreamFadeIn delay={400}>
+              <ExpandableSection title="Risk Assessment">
+                <RiskAssessmentCard data={report.riskAssessment} />
+              </ExpandableSection>
+            </StreamFadeIn>
 
-          <ExpandableSection title="Recommendations" defaultOpen>
-            <RecommendationsCard data={report.recommendations} />
-          </ExpandableSection>
+            <StreamFadeIn delay={500}>
+              <ExpandableSection title="Recommendations" defaultOpen>
+                <RecommendationsCard data={report.recommendations} />
+              </ExpandableSection>
+            </StreamFadeIn>
 
-          <ExpandableSection title="5-Year Equity Buildup">
-            <AmortizationTable data={report.affordability.amortizationSummary} />
-          </ExpandableSection>
-        </div>
+            <StreamFadeIn delay={600}>
+              <ExpandableSection title="5-Year Equity Buildup">
+                <AmortizationTable data={report.affordability.amortizationSummary} />
+              </ExpandableSection>
+            </StreamFadeIn>
+          </div>
+        )}
 
-        {/* AI Detailed Analysis */}
-        <ExpandableSection title="AI Detailed Analysis">
-          <AISummaryCard summary={report.summary} />
-        </ExpandableSection>
+        {/* AI Detailed Analysis - shows skeleton while loading, then fades in */}
+        {summaryLoading && (
+          <StreamFadeIn delay={700}>
+            <SummaryLoadingSkeleton />
+          </StreamFadeIn>
+        )}
+        {hasSummary && (
+          <StreamFadeIn>
+            <ExpandableSection title="AI Detailed Analysis">
+              <AISummaryCard summary={report.summary} />
+            </ExpandableSection>
+          </StreamFadeIn>
+        )}
 
         {/* Disclaimers */}
-        <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-          <p className="text-xs font-medium text-gray-500 mb-2">Disclaimers</p>
-          <ul className="space-y-1">
-            {report.disclaimers.map((d, i) => (
-              <li key={i} className="text-xs text-gray-400">
-                {d}
-              </li>
-            ))}
-          </ul>
-        </div>
+        {report.disclaimers && (
+          <StreamFadeIn delay={100}>
+            <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+              <p className="text-xs font-medium text-gray-500 mb-2">Disclaimers</p>
+              <ul className="space-y-1">
+                {report.disclaimers.map((d, i) => (
+                  <li key={i} className="text-xs text-gray-400">
+                    {d}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </StreamFadeIn>
+        )}
 
         {/* Chat panel - mobile/tablet (below content) */}
-        <div className="xl:hidden">
-          <ChatInterface report={report} />
-        </div>
+        {!summaryLoading && hasCore && (
+          <div className="xl:hidden">
+            <ChatInterface report={report} />
+          </div>
+        )}
       </div>
 
       {/* Chat panel - fixed right column (desktop xl+) */}
-      <div className="hidden xl:flex fixed top-0 right-0 w-[390px] h-screen flex-col p-4 pl-0">
-        <ChatInterface report={report} />
-      </div>
+      {!summaryLoading && hasCore && (
+        <div className="hidden xl:flex fixed top-0 right-0 w-[390px] h-screen flex-col p-4 pl-0">
+          <ChatInterface report={report} />
+        </div>
+      )}
     </>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import AffordabilityForm from "@/components/AffordabilityForm";
 import LoadingState from "@/components/LoadingState";
 import ResultsDashboard from "@/components/ResultsDashboard";
@@ -8,18 +8,22 @@ import type { UserProfile, FinalReport } from "@/lib/types";
 
 type AppState = "form" | "loading" | "results";
 
+// Partial report that builds up as phases stream in
+type PartialReport = Partial<FinalReport> & { _summaryLoading?: boolean };
+
 export default function Home() {
   const [state, setState] = useState<AppState>("form");
-  const [report, setReport] = useState<FinalReport | null>(null);
+  const [report, setReport] = useState<PartialReport | null>(null);
   const [error, setError] = useState("");
 
-  const handleSubmit = async (profile: UserProfile) => {
+  const handleSubmit = useCallback(async (profile: UserProfile) => {
     setState("loading");
     setError("");
+    setReport(null);
 
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 min client timeout
+      const timeoutId = setTimeout(() => controller.abort(), 120000);
 
       const res = await fetch("/api/analyze", {
         method: "POST",
@@ -34,9 +38,66 @@ export default function Home() {
         throw new Error(data.error || "Analysis failed");
       }
 
-      const data: FinalReport = await res.json();
-      setReport(data);
-      setState("results");
+      const reader = res.body?.getReader();
+      if (!reader) throw new Error("No response stream");
+
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          const event = JSON.parse(line);
+
+          if (event.phase === "error") {
+            throw new Error(event.error);
+          }
+
+          if (event.phase === "market_data") {
+            setReport((prev) => ({
+              ...prev,
+              marketSnapshot: event.marketSnapshot,
+            }));
+          }
+
+          if (event.phase === "analysis") {
+            setReport((prev) => ({
+              ...prev,
+              affordability: event.affordability,
+              riskAssessment: event.riskAssessment,
+              recommendations: event.recommendations,
+              propertyAnalysis: event.propertyAnalysis,
+              _summaryLoading: true,
+            }));
+            // Transition to results view once we have the core data
+            setState("results");
+          }
+
+          if (event.phase === "summary") {
+            setReport((prev) => ({
+              ...prev,
+              summary: event.summary,
+              _summaryLoading: false,
+            }));
+          }
+
+          if (event.phase === "complete") {
+            setReport((prev) => ({
+              ...prev,
+              disclaimers: event.disclaimers,
+              generatedAt: event.generatedAt,
+              _summaryLoading: false,
+            }));
+          }
+        }
+      }
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") {
         setError("The analysis took too long. Please try again — it usually works on the second attempt.");
@@ -45,7 +106,7 @@ export default function Home() {
       }
       setState("form");
     }
-  };
+  }, []);
 
   const handleReset = () => {
     setState("form");
@@ -108,7 +169,11 @@ export default function Home() {
         {state === "loading" && <LoadingState />}
 
         {state === "results" && report && (
-          <ResultsDashboard report={report} onReset={handleReset} />
+          <ResultsDashboard
+            report={report as FinalReport}
+            onReset={handleReset}
+            summaryLoading={report._summaryLoading}
+          />
         )}
       </main>
 

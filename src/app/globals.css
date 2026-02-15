@@ -79,6 +79,18 @@ input[type="number"] {
 .ai-fade-in-delay-3 { animation-delay: 0.3s; }
 .ai-fade-in-delay-4 { animation-delay: 0.4s; }
 
+/* Streaming report section fade-in */
+@keyframes streamFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .ai-highlight-number {
   background: linear-gradient(135deg, #eef2ff, #e0e7ff);
   padding: 1px 6px;

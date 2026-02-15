@@ -3,7 +3,6 @@
 import { useState } from "react";
 import type { UserProfile } from "@/lib/types";
 import LocationPicker from "./LocationPicker";
-import SmartFillUpload from "./SmartFillUpload";
 import PropertySection from "./PropertySection";
 
 interface Props {
@@ -74,23 +73,8 @@ export default function AffordabilityForm({ onSubmit, isLoading }: Props) {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleSmartFill = (fields: Array<{ field: string; value: string }>) => {
-    setForm((prev) => {
-      const updates: Record<string, string> = {};
-      for (const { field, value } of fields) {
-        if (field in prev) {
-          updates[field] = value;
-        }
-      }
-      return { ...prev, ...updates };
-    });
-  };
-
   return (
     <form onSubmit={handleSubmit} className="space-y-8 max-w-2xl mx-auto">
-      {/* Smart Fill */}
-      <SmartFillUpload onFieldsApplied={handleSmartFill} />
-
       {/* Income */}
       <section>
         <h2 className="text-lg font-semibold text-gray-900 mb-4 border-b pb-2">

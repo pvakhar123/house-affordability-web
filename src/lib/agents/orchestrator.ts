@@ -30,6 +30,12 @@ import type {
 
 const cache = new CacheService();
 
+export type StreamPhase =
+  | { phase: "market_data"; marketSnapshot: MarketDataResult }
+  | { phase: "analysis"; affordability: AffordabilityResult; riskAssessment: RiskReport; recommendations: RecommendationsResult; propertyAnalysis?: PropertyAnalysis }
+  | { phase: "summary"; summary: string }
+  | { phase: "complete"; disclaimers: string[]; generatedAt: string };
+
 export class OrchestratorAgent {
   private client: Anthropic;
 
@@ -37,13 +43,14 @@ export class OrchestratorAgent {
     this.client = new Anthropic();
   }
 
-  async run(userProfile: UserProfile): Promise<FinalReport> {
+  async run(userProfile: UserProfile, onProgress?: (event: StreamPhase) => void): Promise<FinalReport> {
     const t0 = Date.now();
 
     // ── Phase 1: Fetch market data directly (parallel APIs, ~2-5s) ──
     console.log("\n[1/3] Fetching market data...");
     const marketData = await this.fetchMarketData(userProfile.targetLocation);
     console.log(`      Done (${((Date.now() - t0) / 1000).toFixed(1)}s)`);
+    onProgress?.({ phase: "market_data", marketSnapshot: marketData });
 
     // ── Phase 2: Compute everything directly (instant — pure JS math) ──
     console.log("[2/3] Computing analysis...");
@@ -58,12 +65,23 @@ export class OrchestratorAgent {
       propertyAnalysis = this.computePropertyAnalysis(userProfile, marketData, affordability);
     }
     console.log(`      Done (${((Date.now() - t2) / 1000).toFixed(1)}s)`);
+    onProgress?.({ phase: "analysis", affordability, riskAssessment: riskReport, recommendations, propertyAnalysis });
 
     // ── Phase 3: Single Claude call for narrative summary (~3-5s) ──
     console.log("[3/3] Generating AI summary...");
     const t3 = Date.now();
     const summary = await this.synthesize(userProfile, marketData, affordability, riskReport, recommendations, propertyAnalysis);
     console.log(`      Done (${((Date.now() - t3) / 1000).toFixed(1)}s)`);
+    onProgress?.({ phase: "summary", summary });
+
+    const disclaimers = [
+      "This analysis is for informational purposes only and does not constitute financial advice.",
+      "Consult a licensed mortgage professional before making any home purchase decisions.",
+      "Market data is based on the most recent available figures and may not reflect real-time conditions.",
+    ];
+    const generatedAt = new Date().toISOString();
+    onProgress?.({ phase: "complete", disclaimers, generatedAt });
+
     console.log(`\nTotal: ${((Date.now() - t0) / 1000).toFixed(1)}s`);
 
     return {
@@ -73,12 +91,8 @@ export class OrchestratorAgent {
       riskAssessment: riskReport,
       recommendations,
       propertyAnalysis,
-      disclaimers: [
-        "This analysis is for informational purposes only and does not constitute financial advice.",
-        "Consult a licensed mortgage professional before making any home purchase decisions.",
-        "Market data is based on the most recent available figures and may not reflect real-time conditions.",
-      ],
-      generatedAt: new Date().toISOString(),
+      disclaimers,
+      generatedAt,
     };
   }
 
