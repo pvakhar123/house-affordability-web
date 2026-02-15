@@ -172,6 +172,34 @@ const tools: Anthropic.Messages.Tool[] = [
       ],
     },
   },
+  {
+    name: "analyze_property",
+    description:
+      "Analyze whether the buyer can afford a specific property at a given listing price. Returns monthly payment, DTI, stretch factor, and affordability verdict.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        listingPrice: {
+          type: "number",
+          description: "Property listing price",
+        },
+        address: {
+          type: "string",
+          description: "Property address (optional)",
+        },
+        propertyTaxAnnual: {
+          type: "number",
+          description:
+            "Annual property tax amount (optional, defaults to 1.1% of price)",
+        },
+        hoaMonthly: {
+          type: "number",
+          description: "Monthly HOA dues (optional, defaults to 0)",
+        },
+      },
+      required: ["listingPrice"],
+    },
+  },
 ];
 
 function handleToolCall(
@@ -300,6 +328,86 @@ function handleToolCall(
   }
 }
 
+function handleAnalyzeProperty(
+  input: Record<string, unknown>,
+  report: FinalReport
+): string {
+  const listingPrice = input.listingPrice as number;
+  const hoaMonthly = (input.hoaMonthly as number) ?? 0;
+  const propertyTaxAnnual = input.propertyTaxAnnual as number | undefined;
+  const propertyTaxRate = propertyTaxAnnual
+    ? propertyTaxAnnual / listingPrice
+    : 0.011;
+
+  const downPayment = Math.min(
+    report.affordability.downPaymentAmount,
+    listingPrice
+  );
+  const downPaymentPercent = (downPayment / listingPrice) * 100;
+  const rate = report.marketSnapshot.mortgageRates.thirtyYearFixed / 100;
+
+  const payment = calculateMonthlyPayment({
+    homePrice: listingPrice,
+    downPaymentAmount: downPayment,
+    interestRate: rate,
+    loanTermYears: 30,
+    propertyTaxRate,
+    insuranceAnnual: 1500,
+    pmiRate: downPaymentPercent >= 20 ? 0 : 0.005,
+  });
+
+  const totalMonthly = Math.round((payment.totalMonthly + hoaMonthly) * 100) / 100;
+  const grossMonthlyIncome =
+    (report.affordability.monthlyPayment.totalMonthly /
+      (report.affordability.dtiAnalysis.frontEndRatio / 100));
+
+  const dti = calculateDTI({
+    grossMonthlyIncome,
+    proposedHousingPayment: totalMonthly,
+    existingMonthlyDebts:
+      grossMonthlyIncome *
+      (report.affordability.dtiAnalysis.backEndRatio / 100) -
+      report.affordability.monthlyPayment.totalMonthly,
+  });
+
+  const stretchFactor =
+    Math.round((listingPrice / report.affordability.maxHomePrice) * 100) / 100;
+
+  let verdict: string;
+  if (stretchFactor <= 0.85) verdict = "comfortable";
+  else if (stretchFactor <= 1.0) verdict = "tight but affordable";
+  else if (stretchFactor <= 1.15) verdict = "stretch - over budget";
+  else verdict = "significantly over budget";
+
+  const fmt = (n: number) => "$" + Math.round(n).toLocaleString("en-US");
+
+  return JSON.stringify({
+    address: (input.address as string) || "Specified property",
+    listingPrice: fmt(listingPrice),
+    monthlyPayment: fmt(totalMonthly),
+    paymentBreakdown: {
+      principalAndInterest: fmt(payment.principal + payment.interest),
+      propertyTax: fmt(payment.propertyTax),
+      insurance: fmt(payment.homeInsurance),
+      pmi: payment.pmi > 0 ? fmt(payment.pmi) : "N/A",
+      hoa: hoaMonthly > 0 ? fmt(hoaMonthly) : "N/A",
+    },
+    dti: {
+      frontEnd: dti.frontEndRatio + "%",
+      backEnd: dti.backEndRatio + "%",
+      status: dti.backEndStatus,
+    },
+    stretchFactor: stretchFactor,
+    percentOfMax: Math.round(stretchFactor * 100) + "%",
+    verdict,
+    maxHomePrice: fmt(report.affordability.maxHomePrice),
+    recommendedPrice: fmt(report.affordability.recommendedHomePrice),
+    differenceFromRecommended: fmt(
+      listingPrice - report.affordability.recommendedHomePrice
+    ),
+  });
+}
+
 export async function POST(request: Request) {
   try {
     config.validate();
@@ -328,8 +436,14 @@ MARKET DATA:
 RISK: ${report.riskAssessment.overallRiskLevel} (score: ${report.riskAssessment.overallScore}/100)
 
 LOAN OPTIONS: ${report.recommendations.loanOptions.map((l) => `${l.type}(${l.eligible ? "eligible" : "not eligible"})`).join(", ")}
+${report.propertyAnalysis ? `
+PROPERTY ANALYZED: ${report.propertyAnalysis.property.address || "Specific property"}
+- Listing Price: $${report.propertyAnalysis.property.listingPrice.toLocaleString()}
+- Monthly Payment: $${report.propertyAnalysis.totalMonthlyWithHoa.toLocaleString()}/mo
+- Stretch Factor: ${Math.round(report.propertyAnalysis.stretchFactor * 100)}% of max
+- Verdict: ${report.propertyAnalysis.verdict}` : ""}
 
-Use the tools to run calculations when the user asks "what if" questions. Be specific with numbers. Keep responses concise. Do not provide legal or binding financial advice.`;
+Use the tools to run calculations when the user asks "what if" questions. Use the analyze_property tool when a user asks about a specific property or home price. Be specific with numbers. Keep responses concise. Do not provide legal or binding financial advice.`;
 
     // Build messages from history + new message
     const messages: Anthropic.Messages.MessageParam[] = [
@@ -374,10 +488,16 @@ Use the tools to run calculations when the user asks "what if" questions. Be spe
         toolUseBlocks.map((toolUse) => ({
           type: "tool_result" as const,
           tool_use_id: toolUse.id,
-          content: handleToolCall(
-            toolUse.name,
-            toolUse.input as Record<string, unknown>
-          ),
+          content:
+            toolUse.name === "analyze_property"
+              ? handleAnalyzeProperty(
+                  toolUse.input as Record<string, unknown>,
+                  report
+                )
+              : handleToolCall(
+                  toolUse.name,
+                  toolUse.input as Record<string, unknown>
+                ),
         }));
 
       messages.push({ role: "user", content: toolResults });

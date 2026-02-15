@@ -23,6 +23,7 @@ import type {
   AffordabilityResult,
   RiskReport,
   RecommendationsResult,
+  PropertyAnalysis,
   StressTestResult,
   RiskFlag,
 } from "../types/index";
@@ -49,13 +50,19 @@ export class OrchestratorAgent {
     const t2 = Date.now();
     const affordability = this.computeAffordability(userProfile, marketData);
     const riskReport = this.computeRiskAssessment(userProfile, marketData, affordability);
-    const recommendations = await this.computeRecommendations(userProfile, marketData, affordability);
+    const recommendations = await this.computeRecommendations(userProfile, marketData, affordability, riskReport);
+
+    // Property-specific analysis (if a property was provided)
+    let propertyAnalysis: PropertyAnalysis | undefined;
+    if (userProfile.property) {
+      propertyAnalysis = this.computePropertyAnalysis(userProfile, marketData, affordability);
+    }
     console.log(`      Done (${((Date.now() - t2) / 1000).toFixed(1)}s)`);
 
     // ── Phase 3: Single Claude call for narrative summary (~3-5s) ──
     console.log("[3/3] Generating AI summary...");
     const t3 = Date.now();
-    const summary = await this.synthesize(userProfile, marketData, affordability, riskReport, recommendations);
+    const summary = await this.synthesize(userProfile, marketData, affordability, riskReport, recommendations, propertyAnalysis);
     console.log(`      Done (${((Date.now() - t3) / 1000).toFixed(1)}s)`);
     console.log(`\nTotal: ${((Date.now() - t0) / 1000).toFixed(1)}s`);
 
@@ -65,6 +72,7 @@ export class OrchestratorAgent {
       marketSnapshot: marketData,
       riskAssessment: riskReport,
       recommendations,
+      propertyAnalysis,
       disclaimers: [
         "This analysis is for informational purposes only and does not constitute financial advice.",
         "Consult a licensed mortgage professional before making any home purchase decisions.",
@@ -444,7 +452,8 @@ export class OrchestratorAgent {
   private async computeRecommendations(
     profile: UserProfile,
     market: MarketDataResult,
-    afford: AffordabilityResult
+    afford: AffordabilityResult,
+    risk: RiskReport
   ): Promise<RecommendationsResult> {
     const totalIncome = profile.annualGrossIncome + (profile.additionalIncome ?? 0);
     const rate = market.mortgageRates.thirtyYearFixed / 100;
@@ -516,15 +525,153 @@ export class OrchestratorAgent {
     });
     const savingsStrategies = JSON.parse(strategiesJson);
 
+    // Build risk-aware general advice
+    const generalAdvice: string[] = [
+      "Get pre-approved before shopping to strengthen your offers.",
+      "Budget for closing costs (2-5% of home price) on top of down payment.",
+    ];
+
+    // Add risk mitigation advice based on identified risk flags
+    for (const flag of risk.riskFlags) {
+      if (flag.recommendation) {
+        generalAdvice.push(flag.recommendation);
+      }
+    }
+
+    // DTI-specific mitigation
+    if (afford.dtiAnalysis.backEndRatio > 36) {
+      generalAdvice.push(
+        `Your DTI is ${afford.dtiAnalysis.backEndRatio}%. Pay off smallest debts first to lower monthly obligations before applying.`
+      );
+    }
+
+    // Credit score mitigation
+    if (profile.creditScore < 700) {
+      generalAdvice.push(
+        `A credit score of ${profile.creditScore} means higher rates. Paying down credit card balances below 30% utilization can boost your score quickly.`
+      );
+    }
+
+    // Emergency fund mitigation
+    if (risk.emergencyFundAnalysis.monthsCovered < 6) {
+      const deficit = Math.round(
+        risk.emergencyFundAnalysis.monthlyExpenses * 6 -
+          risk.emergencyFundAnalysis.postPurchaseEmergencyFund
+      );
+      if (deficit > 0) {
+        generalAdvice.push(
+          `After purchase, you'd have only ${risk.emergencyFundAnalysis.monthsCovered} months of reserves. Consider saving an additional $${deficit.toLocaleString()} or choosing a lower-priced home.`
+        );
+      }
+    }
+
+    // Stress test mitigation
+    const failedStress = risk.stressTests.filter((t) => !t.canAfford);
+    if (failedStress.length > 0) {
+      generalAdvice.push(
+        `Stress tests show risk under ${failedStress.map((t) => t.scenario).join(" and ")} scenarios. Consider a fixed-rate mortgage and building a larger financial buffer.`
+      );
+    }
+
+    // PMI mitigation
+    if (afford.downPaymentPercent < 20) {
+      const neededFor20 = Math.round(afford.recommendedHomePrice * 0.2) - afford.downPaymentAmount;
+      if (neededFor20 > 0) {
+        generalAdvice.push(
+          `Saving an additional $${neededFor20.toLocaleString()} would reach 20% down and eliminate PMI ($${Math.round(afford.monthlyPayment.pmi)}/mo savings).`
+        );
+      }
+    }
+
+    generalAdvice.push(
+      "Consider a home inspection contingency to protect your investment."
+    );
+
     return {
       loanOptions,
       savingsStrategies,
       closingCostEstimate,
-      generalAdvice: [
-        "Get pre-approved before shopping to strengthen your offers.",
-        "Budget for closing costs (2-5% of home price) on top of down payment.",
-        "Consider a home inspection contingency to protect your investment.",
-      ],
+      generalAdvice,
+    };
+  }
+
+  // ─────────────────────────────────────────────
+  // Phase 2d: Property-specific analysis
+  // ─────────────────────────────────────────────
+
+  private computePropertyAnalysis(
+    profile: UserProfile,
+    market: MarketDataResult,
+    afford: AffordabilityResult
+  ): PropertyAnalysis {
+    const property = profile.property!;
+    const totalIncome = profile.annualGrossIncome + (profile.additionalIncome ?? 0);
+    const rate = market.mortgageRates.thirtyYearFixed / 100;
+    const loanTerm = profile.preferredLoanTerm ?? 30;
+    const downPayment = Math.min(profile.downPaymentSavings, property.listingPrice);
+
+    const propertyTaxRate = property.propertyTaxAnnual
+      ? property.propertyTaxAnnual / property.listingPrice
+      : 0.011;
+
+    const hoaMonthly = property.hoaMonthly ?? 0;
+    const downPaymentPercent = (downPayment / property.listingPrice) * 100;
+
+    const monthlyPayment = calculateMonthlyPayment({
+      homePrice: property.listingPrice,
+      downPaymentAmount: downPayment,
+      interestRate: rate,
+      loanTermYears: loanTerm,
+      propertyTaxRate,
+      insuranceAnnual: 1500,
+      pmiRate: downPaymentPercent >= 20 ? 0 : 0.005,
+    });
+
+    const totalMonthlyWithHoa = Math.round(
+      (monthlyPayment.totalMonthly + hoaMonthly) * 100
+    ) / 100;
+
+    const dtiWithProperty = calculateDTI({
+      grossMonthlyIncome: totalIncome / 12,
+      proposedHousingPayment: totalMonthlyWithHoa,
+      existingMonthlyDebts: profile.monthlyDebtPayments,
+    });
+
+    const stretchFactor =
+      Math.round((property.listingPrice / afford.maxHomePrice) * 100) / 100;
+
+    let verdict: PropertyAnalysis["verdict"];
+    let verdictExplanation: string;
+
+    const fmt = (n: number) => "$" + Math.round(n).toLocaleString("en-US");
+
+    if (stretchFactor <= 0.85) {
+      verdict = "comfortable";
+      verdictExplanation = `This property at ${fmt(property.listingPrice)} is well within your budget at ${Math.round(stretchFactor * 100)}% of your maximum (${fmt(afford.maxHomePrice)}). You'll have a comfortable financial cushion.`;
+    } else if (stretchFactor <= 1.0) {
+      verdict = "tight";
+      verdictExplanation = `This property at ${fmt(property.listingPrice)} is ${Math.round(stretchFactor * 100)}% of your maximum (${fmt(afford.maxHomePrice)}). It's affordable but leaves less financial cushion than recommended.`;
+    } else if (stretchFactor <= 1.15) {
+      verdict = "stretch";
+      verdictExplanation = `This property at ${fmt(property.listingPrice)} is ${Math.round((stretchFactor - 1) * 100)}% over your calculated maximum (${fmt(afford.maxHomePrice)}). You'd need to stretch your budget, which increases financial risk.`;
+    } else {
+      verdict = "over_budget";
+      verdictExplanation = `This property at ${fmt(property.listingPrice)} is ${Math.round((stretchFactor - 1) * 100)}% over your maximum (${fmt(afford.maxHomePrice)}). It's not recommended at your current financial position.`;
+    }
+
+    return {
+      property,
+      canAfford: stretchFactor <= 1.0,
+      monthlyPayment: { ...monthlyPayment, hoa: hoaMonthly },
+      totalMonthlyWithHoa,
+      dtiWithProperty,
+      stretchFactor,
+      vsRecommended: {
+        priceDifference: property.listingPrice - afford.recommendedHomePrice,
+        paymentDifference: totalMonthlyWithHoa - afford.monthlyPayment.totalMonthly,
+      },
+      verdict,
+      verdictExplanation,
     };
   }
 
@@ -537,10 +684,11 @@ export class OrchestratorAgent {
     market: MarketDataResult,
     afford: AffordabilityResult,
     risk: RiskReport,
-    recs: RecommendationsResult
+    recs: RecommendationsResult,
+    propAnalysis?: PropertyAnalysis
   ): Promise<string> {
     // Build a compact data summary for Claude (not the full state object)
-    const data = {
+    const data: Record<string, unknown> = {
       income: profile.annualGrossIncome + (profile.additionalIncome ?? 0),
       debts: profile.monthlyDebtPayments,
       creditScore: profile.creditScore,
@@ -563,6 +711,18 @@ export class OrchestratorAgent {
       eligibleLoans: recs.loanOptions.filter((l) => l.eligible).map((l) => l.type),
       closingCosts: recs.closingCostEstimate,
     };
+
+    if (propAnalysis) {
+      data.propertyAnalysis = {
+        address: propAnalysis.property.address,
+        listingPrice: propAnalysis.property.listingPrice,
+        canAfford: propAnalysis.canAfford,
+        totalMonthly: propAnalysis.totalMonthlyWithHoa,
+        stretchFactor: propAnalysis.stretchFactor,
+        verdict: propAnalysis.verdict,
+        verdictExplanation: propAnalysis.verdictExplanation,
+      };
+    }
 
     try {
       const response = await this.client.messages.create(

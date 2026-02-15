@@ -3,6 +3,8 @@
 import { useState } from "react";
 import type { UserProfile } from "@/lib/types";
 import LocationPicker from "./LocationPicker";
+import SmartFillUpload from "./SmartFillUpload";
+import PropertySection from "./PropertySection";
 
 interface Props {
   onSubmit: (profile: UserProfile) => void;
@@ -23,6 +25,13 @@ export default function AffordabilityForm({ onSubmit, isLoading }: Props) {
     preferredLoanTerm: "30",
     militaryVeteran: false,
     firstTimeBuyer: true,
+    // Property fields
+    propertyUrl: "",
+    propertyAddress: "",
+    propertyListingPrice: "",
+    propertyTaxAnnual: "",
+    propertyHoaMonthly: "",
+    propertySquareFootage: "",
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -44,6 +53,20 @@ export default function AffordabilityForm({ onSubmit, isLoading }: Props) {
       militaryVeteran: form.militaryVeteran,
       firstTimeBuyer: form.firstTimeBuyer,
     };
+
+    // Add property if listing price is provided
+    if (form.propertyListingPrice) {
+      profile.property = {
+        source: form.propertyUrl ? "url_extracted" : "manual",
+        sourceUrl: form.propertyUrl || undefined,
+        address: form.propertyAddress || undefined,
+        listingPrice: Number(form.propertyListingPrice),
+        propertyTaxAnnual: Number(form.propertyTaxAnnual) || undefined,
+        hoaMonthly: Number(form.propertyHoaMonthly) || undefined,
+        squareFootage: Number(form.propertySquareFootage) || undefined,
+      };
+    }
+
     onSubmit(profile);
   };
 
@@ -51,8 +74,23 @@ export default function AffordabilityForm({ onSubmit, isLoading }: Props) {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
+  const handleSmartFill = (fields: Array<{ field: string; value: string }>) => {
+    setForm((prev) => {
+      const updates: Record<string, string> = {};
+      for (const { field, value } of fields) {
+        if (field in prev) {
+          updates[field] = value;
+        }
+      }
+      return { ...prev, ...updates };
+    });
+  };
+
   return (
     <form onSubmit={handleSubmit} className="space-y-8 max-w-2xl mx-auto">
+      {/* Smart Fill */}
+      <SmartFillUpload onFieldsApplied={handleSmartFill} />
+
       {/* Income */}
       <section>
         <h2 className="text-lg font-semibold text-gray-900 mb-4 border-b pb-2">
@@ -277,6 +315,19 @@ export default function AffordabilityForm({ onSubmit, isLoading }: Props) {
           </div>
         </div>
       </section>
+
+      {/* Specific Property */}
+      <PropertySection
+        data={{
+          propertyUrl: form.propertyUrl,
+          propertyAddress: form.propertyAddress,
+          propertyListingPrice: form.propertyListingPrice,
+          propertyTaxAnnual: form.propertyTaxAnnual,
+          propertyHoaMonthly: form.propertyHoaMonthly,
+          propertySquareFootage: form.propertySquareFootage,
+        }}
+        onChange={(field, value) => update(field, value)}
+      />
 
       <button
         type="submit"

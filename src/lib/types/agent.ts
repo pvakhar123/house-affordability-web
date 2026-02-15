@@ -1,5 +1,6 @@
 import type { AffordabilityResult } from "./affordability";
 import type { MarketDataResult } from "./market-data";
+import type { PropertyAnalysis } from "./property";
 import type { RecommendationsResult } from "./recommendations";
 import type { RiskReport } from "./risk-assessment";
 import type { UserProfile } from "./user-profile";
@@ -34,6 +35,7 @@ export interface FinalReport {
   marketSnapshot: MarketDataResult;
   riskAssessment: RiskReport;
   recommendations: RecommendationsResult;
+  propertyAnalysis?: PropertyAnalysis;
   disclaimers: string[];
   generatedAt: string;
 }

@@ -1,3 +1,5 @@
+import type { PropertyInfo } from "./property";
+
 export interface UserProfile {
   annualGrossIncome: number;
   additionalIncome?: number;
@@ -13,6 +15,7 @@ export interface UserProfile {
   firstTimeBuyer?: boolean;
   householdSize?: number;
   monthlyExpenses?: number;
+  property?: PropertyInfo;
 }
 
 export interface DebtItem {

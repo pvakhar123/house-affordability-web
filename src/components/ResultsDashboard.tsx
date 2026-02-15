@@ -10,6 +10,7 @@ import AmortizationTable from "./AmortizationTable";
 import ChatInterface from "./ChatInterface";
 import ReportActions from "./ReportActions";
 import AISummaryCard from "./AISummaryCard";
+import PropertyAffordabilityCard from "./PropertyAffordabilityCard";
 
 interface Props {
   report: FinalReport;
@@ -47,8 +48,8 @@ function SummaryHero({ report }: { report: FinalReport }) {
             <p className="text-xl sm:text-2xl font-bold text-blue-900">{fmt(a.maxHomePrice)}</p>
           </div>
           <div className="text-center p-4 bg-green-50 rounded-xl">
-            <p className="text-xs font-medium text-green-600 uppercase tracking-wide mb-1">Recommended</p>
-            <p className="text-xl sm:text-2xl font-bold text-green-900">{fmt(a.recommendedHomePrice)}</p>
+            <p className="text-xs font-medium text-green-600 uppercase tracking-wide mb-1">Max Loan Amount</p>
+            <p className="text-xl sm:text-2xl font-bold text-green-900">{fmt(a.loanAmount)}</p>
           </div>
           <div className="text-center p-4 bg-indigo-50 rounded-xl">
             <p className="text-xs font-medium text-indigo-600 uppercase tracking-wide mb-1">Monthly</p>
@@ -121,69 +122,89 @@ function ExpandableSection({
 
 export default function ResultsDashboard({ report, onReset }: Props) {
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">Your Affordability Report</h2>
-          <p className="text-sm text-gray-500">
-            Generated {new Date(report.generatedAt).toLocaleString()}
-          </p>
+    <>
+      {/* Main content - adds right margin on xl to make room for fixed chat */}
+      <div className="space-y-6 xl:mr-[400px]">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">Your Affordability Report</h2>
+            <p className="text-sm text-gray-500">
+              Generated {new Date(report.generatedAt).toLocaleString()}
+            </p>
+          </div>
+          <button
+            onClick={onReset}
+            className="px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+          >
+            New Analysis
+          </button>
         </div>
-        <button
-          onClick={onReset}
-          className="px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
-        >
-          New Analysis
-        </button>
+
+        {/* Download / Email Actions */}
+        <ReportActions report={report} />
+
+        {/* Summary Hero */}
+        <SummaryHero report={report} />
+
+        {/* Property Analysis (when a specific property was analyzed) */}
+        {report.propertyAnalysis && (
+          <PropertyAffordabilityCard
+            data={report.propertyAnalysis}
+            affordability={report.affordability}
+          />
+        )}
+
+        {/* Data Cards */}
+        <div className="space-y-4">
+          <ExpandableSection title="Affordability Details" defaultOpen>
+            <AffordabilityCard data={report.affordability} />
+          </ExpandableSection>
+
+          <ExpandableSection title="Market Snapshot">
+            <MarketSnapshotCard data={report.marketSnapshot} />
+          </ExpandableSection>
+
+          <ExpandableSection title="Risk Assessment">
+            <RiskAssessmentCard data={report.riskAssessment} />
+          </ExpandableSection>
+
+          <ExpandableSection title="Recommendations" defaultOpen>
+            <RecommendationsCard data={report.recommendations} />
+          </ExpandableSection>
+
+          <ExpandableSection title="5-Year Equity Buildup">
+            <AmortizationTable data={report.affordability.amortizationSummary} />
+          </ExpandableSection>
+        </div>
+
+        {/* AI Detailed Analysis */}
+        <ExpandableSection title="AI Detailed Analysis">
+          <AISummaryCard summary={report.summary} />
+        </ExpandableSection>
+
+        {/* Disclaimers */}
+        <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+          <p className="text-xs font-medium text-gray-500 mb-2">Disclaimers</p>
+          <ul className="space-y-1">
+            {report.disclaimers.map((d, i) => (
+              <li key={i} className="text-xs text-gray-400">
+                {d}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* Chat panel - mobile/tablet (below content) */}
+        <div className="xl:hidden">
+          <ChatInterface report={report} />
+        </div>
       </div>
 
-      {/* Download / Email Actions */}
-      <ReportActions report={report} />
-
-      {/* Summary Hero */}
-      <SummaryHero report={report} />
-
-      {/* Data Cards */}
-      <div className="space-y-4">
-        <ExpandableSection title="Affordability Details" defaultOpen>
-          <AffordabilityCard data={report.affordability} />
-        </ExpandableSection>
-
-        <ExpandableSection title="Market Snapshot" defaultOpen>
-          <MarketSnapshotCard data={report.marketSnapshot} />
-        </ExpandableSection>
-
-        <ExpandableSection title="Risk Assessment" defaultOpen>
-          <RiskAssessmentCard data={report.riskAssessment} />
-        </ExpandableSection>
-
-        <ExpandableSection title="Recommendations" defaultOpen>
-          <RecommendationsCard data={report.recommendations} />
-        </ExpandableSection>
-
-        <ExpandableSection title="5-Year Equity Buildup">
-          <AmortizationTable data={report.affordability.amortizationSummary} />
-        </ExpandableSection>
+      {/* Chat panel - fixed right column (desktop xl+) */}
+      <div className="hidden xl:flex fixed top-0 right-0 w-[390px] h-screen flex-col p-4 pl-0">
+        <ChatInterface report={report} />
       </div>
-
-      {/* AI Detailed Analysis */}
-      <AISummaryCard summary={report.summary} title="AI Detailed Analysis" />
-
-      {/* Chat Follow-up */}
-      <ChatInterface report={report} />
-
-      {/* Disclaimers */}
-      <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-        <p className="text-xs font-medium text-gray-500 mb-2">Disclaimers</p>
-        <ul className="space-y-1">
-          {report.disclaimers.map((d, i) => (
-            <li key={i} className="text-xs text-gray-400">
-              {d}
-            </li>
-          ))}
-        </ul>
-      </div>
-    </div>
+    </>
   );
 }

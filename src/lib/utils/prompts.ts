@@ -19,6 +19,11 @@ Key risks, stress test results, and emergency fund status.
 ## Recommendations
 Top 3-5 actionable next steps, loan options, and savings strategies.
 
+If a specific property was analyzed (propertyAnalysis field in data), also include:
+## Property Analysis
+Whether the buyer can afford this specific property, the monthly payment for it,
+how it compares to their maximum and recommended price, and your recommendation.
+
 Use bullet points within sections. Highlight specific dollar amounts and percentages.
 Keep each section concise but specific with real numbers from the data.
 Always end with a disclaimer that this is informational only, not financial advice.`,
