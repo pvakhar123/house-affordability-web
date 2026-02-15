@@ -274,7 +274,7 @@ export default function ResultsDashboard({ report, onReset, summaryLoading }: Pr
         )}
 
         {/* Chat panel - mobile/tablet (below content) */}
-        {!summaryLoading && hasCore && (
+        {hasCore && (
           <div className="xl:hidden">
             <ChatInterface report={report} />
           </div>
@@ -282,7 +282,7 @@ export default function ResultsDashboard({ report, onReset, summaryLoading }: Pr
       </div>
 
       {/* Chat panel - fixed right column (desktop xl+) */}
-      {!summaryLoading && hasCore && (
+      {hasCore && (
         <div className="hidden xl:flex fixed top-0 right-0 w-[390px] h-screen flex-col p-4 pl-0">
           <ChatInterface report={report} />
         </div>
