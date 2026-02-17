@@ -99,3 +99,89 @@ input[type="number"] {
   color: #3730a3;
   white-space: nowrap;
 }
+
+/* ─── Dark Mode Overrides ─── */
+/* CSS-only approach: override Tailwind utility classes when .dark is on <html> */
+/* This avoids touching all 19 component files */
+
+/* Backgrounds */
+.dark .bg-white { background-color: #111827 !important; }
+.dark .bg-gray-50 { background-color: #0d1117 !important; }
+.dark .bg-gray-100 { background-color: #1f2937 !important; }
+.dark .min-h-screen.bg-gray-50 { background-color: #0d1117 !important; }
+
+/* Text colors */
+.dark .text-gray-900 { color: #f9fafb !important; }
+.dark .text-gray-800 { color: #e5e7eb !important; }
+.dark .text-gray-700 { color: #d1d5db !important; }
+.dark .text-gray-600 { color: #9ca3af !important; }
+.dark .text-gray-500 { color: #9ca3af !important; }
+.dark .text-gray-400 { color: #6b7280 !important; }
+
+/* Borders */
+.dark .border-gray-200 { border-color: #374151 !important; }
+.dark .border-gray-100 { border-color: #1f2937 !important; }
+.dark .border-gray-300 { border-color: #4b5563 !important; }
+
+/* Inputs */
+.dark input,
+.dark select,
+.dark textarea {
+  background-color: #1f2937 !important;
+  color: #f9fafb !important;
+  border-color: #4b5563 !important;
+}
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #6b7280 !important;
+}
+
+/* Colored backgrounds (keep readable in dark) */
+.dark .bg-blue-50 { background-color: #1e293b !important; }
+.dark .bg-blue-100 { background-color: #1e3a5f !important; }
+.dark .bg-green-50 { background-color: #0f2419 !important; }
+.dark .bg-indigo-50 { background-color: #1e1b4b !important; }
+.dark .bg-red-50 { background-color: #2d1215 !important; }
+.dark .bg-yellow-50 { background-color: #2d2305 !important; }
+.dark .bg-violet-50 { background-color: #1e1533 !important; }
+.dark .bg-amber-50 { background-color: #2d2305 !important; }
+.dark .bg-orange-50 { background-color: #2d1a05 !important; }
+
+/* Colored text stays mostly the same but lighten dark variants */
+.dark .text-blue-900 { color: #93c5fd !important; }
+.dark .text-green-900 { color: #86efac !important; }
+.dark .text-indigo-900 { color: #a5b4fc !important; }
+.dark .text-red-800 { color: #fca5a5 !important; }
+.dark .text-violet-900 { color: #c4b5fd !important; }
+.dark .text-amber-800 { color: #fcd34d !important; }
+
+/* Gradients in header */
+.dark .bg-gradient-to-r.from-blue-50.to-indigo-50 {
+  background: linear-gradient(to right, #1e293b, #1e1b4b) !important;
+}
+
+/* Hover states */
+.dark .hover\:bg-gray-50:hover { background-color: #1f2937 !important; }
+.dark .hover\:bg-gray-100:hover { background-color: #374151 !important; }
+.dark .hover\:bg-blue-100:hover { background-color: #1e3a5f !important; }
+
+/* Shadows */
+.dark .shadow-sm { box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.3) !important; }
+
+/* Body override */
+.dark body {
+  background-color: #0d1117 !important;
+  color: #f9fafb !important;
+}
+
+/* AI highlight in dark mode */
+.dark .ai-highlight-number {
+  background: linear-gradient(135deg, #1e1b4b, #312e81);
+  color: #a5b4fc;
+}
+
+/* Scrollbar styling */
+.dark ::-webkit-scrollbar { width: 8px; }
+.dark ::-webkit-scrollbar-track { background: #1f2937; }
+.dark ::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 4px; }
+.dark ::-webkit-scrollbar-thumb:hover { background: #6b7280; }

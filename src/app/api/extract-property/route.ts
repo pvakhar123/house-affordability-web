@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { config } from "@/lib/config";
 import type { PropertyInfo } from "@/lib/types";
+import { traceGeneration, flushLangfuse } from "@/lib/langfuse";
 
 const EXTRACTION_PROMPT = `Extract property listing details from the following page content. Return ONLY valid JSON (no markdown, no explanation) with these fields:
 
@@ -122,8 +123,9 @@ export async function POST(request: Request) {
     // Send to Claude for extraction
     const client = new Anthropic();
 
-    const response = await client.messages.create(
-      {
+    const response = await traceGeneration({
+      client,
+      params: {
         model: config.model,
         max_tokens: 512,
         messages: [
@@ -133,8 +135,10 @@ export async function POST(request: Request) {
           },
         ],
       },
-      { timeout: 10000 }
-    );
+      options: { timeout: 10000 },
+      trace: { name: "extract-property" },
+      metadata: { url, contentLength: cleaned.length },
+    });
 
     const textBlock = response.content.find(
       (b): b is Anthropic.Messages.TextBlock => b.type === "text"
@@ -195,9 +199,11 @@ export async function POST(request: Request) {
       propertyType: parsed.propertyType || undefined,
     };
 
+    await flushLangfuse();
     return NextResponse.json({ success: true, property });
   } catch (error) {
     console.error("Property extraction error:", error);
+    await flushLangfuse();
     return NextResponse.json(
       {
         success: false,

@@ -6,16 +6,20 @@ import AffordabilityCard from "./AffordabilityCard";
 import MarketSnapshotCard from "./MarketSnapshotCard";
 import RiskAssessmentCard from "./RiskAssessmentCard";
 import RecommendationsCard from "./RecommendationsCard";
+import LoanProgramsCard from "./LoanProgramsCard";
 import AmortizationTable from "./AmortizationTable";
 import ChatInterface from "./ChatInterface";
 import ReportActions from "./ReportActions";
 import AISummaryCard from "./AISummaryCard";
 import PropertyAffordabilityCard from "./PropertyAffordabilityCard";
+import RentVsBuyCard from "./RentVsBuyCard";
+import MatchingPropertiesCard from "./MatchingPropertiesCard";
 
 interface Props {
   report: FinalReport;
   onReset: () => void;
   summaryLoading?: boolean;
+  userLocation?: string;
 }
 
 function fmt(n: number): string {
@@ -156,14 +160,14 @@ function SummaryLoadingSkeleton() {
   );
 }
 
-export default function ResultsDashboard({ report, onReset, summaryLoading }: Props) {
+export default function ResultsDashboard({ report, onReset, summaryLoading, userLocation }: Props) {
   const hasCore = report.affordability && report.riskAssessment && report.recommendations;
   const hasSummary = !!report.summary && !summaryLoading;
 
   return (
     <>
-      {/* Main content - adds right margin on xl to make room for fixed chat */}
-      <div className="space-y-6 xl:mr-[400px]">
+      {/* Main content */}
+      <div className="space-y-6" style={{ marginRight: "clamp(0px, calc(100vw - 1280px + 400px), 400px)" }}>
         {/* Header */}
         <StreamFadeIn>
           <div className="flex items-center justify-between">
@@ -187,24 +191,24 @@ export default function ResultsDashboard({ report, onReset, summaryLoading }: Pr
         {/* Download / Email Actions */}
         {!summaryLoading && report.generatedAt && (
           <StreamFadeIn delay={100}>
-            <ReportActions report={report} />
+            <ReportActions report={report} userLocation={userLocation} />
+          </StreamFadeIn>
+        )}
+
+        {/* Property Analysis (when a specific property was analyzed) — show first */}
+        {report.propertyAnalysis && hasCore && (
+          <StreamFadeIn delay={100}>
+            <PropertyAffordabilityCard
+              data={report.propertyAnalysis}
+              affordability={report.affordability}
+            />
           </StreamFadeIn>
         )}
 
         {/* Summary Hero */}
         {hasCore && (
-          <StreamFadeIn delay={100}>
+          <StreamFadeIn delay={report.propertyAnalysis ? 200 : 100}>
             <SummaryHero report={report} />
-          </StreamFadeIn>
-        )}
-
-        {/* Property Analysis (when a specific property was analyzed) */}
-        {report.propertyAnalysis && hasCore && (
-          <StreamFadeIn delay={200}>
-            <PropertyAffordabilityCard
-              data={report.propertyAnalysis}
-              affordability={report.affordability}
-            />
           </StreamFadeIn>
         )}
 
@@ -229,11 +233,27 @@ export default function ResultsDashboard({ report, onReset, summaryLoading }: Pr
               </ExpandableSection>
             </StreamFadeIn>
 
+            {report.rentVsBuy && (
+              <StreamFadeIn delay={450}>
+                <ExpandableSection title="Rent vs. Buy Analysis">
+                  <RentVsBuyCard data={report.rentVsBuy} />
+                </ExpandableSection>
+              </StreamFadeIn>
+            )}
+
             <StreamFadeIn delay={500}>
               <ExpandableSection title="Recommendations" defaultOpen>
                 <RecommendationsCard data={report.recommendations} />
               </ExpandableSection>
             </StreamFadeIn>
+
+            {report.recommendations.loanOptions?.length > 0 && (
+              <StreamFadeIn delay={550}>
+                <ExpandableSection title="Loan Programs">
+                  <LoanProgramsCard data={report.recommendations.loanOptions} />
+                </ExpandableSection>
+              </StreamFadeIn>
+            )}
 
             <StreamFadeIn delay={600}>
               <ExpandableSection title="5-Year Equity Buildup">
@@ -241,6 +261,17 @@ export default function ResultsDashboard({ report, onReset, summaryLoading }: Pr
               </ExpandableSection>
             </StreamFadeIn>
           </div>
+        )}
+
+        {/* Matching Properties */}
+        {hasCore && userLocation && (
+          <StreamFadeIn delay={650}>
+            <MatchingPropertiesCard
+              affordability={report.affordability}
+              marketData={report.marketSnapshot}
+              location={userLocation}
+            />
+          </StreamFadeIn>
         )}
 
         {/* AI Detailed Analysis - shows skeleton while loading, then fades in */}
@@ -273,14 +304,17 @@ export default function ResultsDashboard({ report, onReset, summaryLoading }: Pr
           </StreamFadeIn>
         )}
 
-        {/* Chat panel - mobile/tablet (below content) */}
-        <div className="xl:hidden">
+        {/* Chat - below content on smaller screens */}
+        <div className="block xl:hidden" style={{ height: "500px" }}>
           <ChatInterface report={report} />
         </div>
       </div>
 
-      {/* Chat panel - fixed right column (desktop xl+) */}
-      <div className="hidden xl:flex fixed top-0 right-0 w-[390px] h-screen flex-col p-4 pl-0">
+      {/* Chat - fixed right column on xl+ */}
+      <div
+        style={{ zIndex: 40 }}
+        className="fixed right-0 top-0 bottom-0 w-[390px] p-4 pl-0 max-xl:hidden"
+      >
         <ChatInterface report={report} />
       </div>
     </>

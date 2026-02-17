@@ -1,25 +1,60 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 import AffordabilityForm from "@/components/AffordabilityForm";
 import LoadingState from "@/components/LoadingState";
 import ResultsDashboard from "@/components/ResultsDashboard";
+import SavedReportsList from "@/components/SavedReportsList";
 import type { UserProfile, FinalReport } from "@/lib/types";
+import ThemeToggle from "@/components/ThemeToggle";
+import { decompressReport } from "@/lib/share-report";
 
 type AppState = "form" | "loading" | "results";
 
 // Partial report that builds up as phases stream in
 type PartialReport = Partial<FinalReport> & { _summaryLoading?: boolean };
 
-export default function Home() {
+function HomeContent() {
   const [state, setState] = useState<AppState>("form");
   const [report, setReport] = useState<PartialReport | null>(null);
   const [error, setError] = useState("");
+  const [userLocation, setUserLocation] = useState("");
+  const [sharedLoading, setSharedLoading] = useState(false);
+  const searchParams = useSearchParams();
+
+  // Load shared report from URL param
+  useEffect(() => {
+    const encoded = searchParams.get("report");
+    if (!encoded) return;
+
+    setSharedLoading(true);
+    decompressReport(encoded)
+      .then((shared) => {
+        setReport(shared);
+        setState("results");
+        // Clean URL without reload
+        window.history.replaceState({}, "", window.location.pathname);
+      })
+      .catch((err) => {
+        console.error("Failed to load shared report:", err);
+        setError("Could not load the shared report. The link may be invalid or expired.");
+      })
+      .finally(() => setSharedLoading(false));
+  }, [searchParams]);
+
+  const handleLoadSaved = useCallback((savedReport: FinalReport, location?: string) => {
+    setReport(savedReport);
+    setUserLocation(location || "");
+    setState("results");
+  }, []);
 
   const handleSubmit = useCallback(async (profile: UserProfile) => {
     setState("loading");
     setError("");
     setReport(null);
+    setUserLocation(profile.targetLocation || "");
 
     try {
       const controller = new AbortController();
@@ -74,6 +109,7 @@ export default function Home() {
               riskAssessment: event.riskAssessment,
               recommendations: event.recommendations,
               propertyAnalysis: event.propertyAnalysis,
+              rentVsBuy: event.rentVsBuy,
               _summaryLoading: true,
             }));
             // Transition to results view once we have the core data
@@ -119,21 +155,42 @@ export default function Home() {
       {/* Header */}
       <header className="bg-white border-b border-gray-200">
         <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">
-              House Affordability Calculator
-            </h1>
-            <p className="text-xs text-gray-500">Powered by 4 AI Agents</p>
-            <p className="text-sm text-gray-600 mt-1">Enter your information to simulate your home affordability scenario</p>
+          <div className="flex items-center gap-3">
+            {/* AI Logo */}
+            <div className="relative flex-shrink-0 w-10 h-10">
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-600 rounded-xl rotate-3 opacity-90" />
+              <div className="relative w-full h-full bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-md">
+                <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={1.5}>
+                  {/* House shape */}
+                  <path d="M3.5 11L12 4l8.5 7" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M5 10v9a1 1 0 001 1h12a1 1 0 001-1v-9" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
+                  {/* AI sparkle dots */}
+                  <circle cx="9.5" cy="14.5" r="1" fill="currentColor" opacity="0.9" />
+                  <circle cx="14.5" cy="14.5" r="1" fill="currentColor" opacity="0.9" />
+                  <path d="M9.5 14.5c0 1.5 1.5 2.5 2.5 2.5s2.5-1 2.5-2.5" stroke="currentColor" strokeWidth="1" strokeLinecap="round" opacity="0.7" />
+                  {/* Sparkle */}
+                  <path d="M17 3l.5 1.5L19 5l-1.5.5L17 7l-.5-1.5L15 5l1.5-.5L17 3z" fill="currentColor" opacity="0.8" />
+                </svg>
+              </div>
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-gray-900">
+                AI Home Calculator
+              </h1>
+              <p className="text-xs text-gray-500">Powered by 4 AI Agents &middot; Real-time market data</p>
+            </div>
           </div>
-          {state !== "form" && (
-            <button
-              onClick={handleReset}
-              className="text-sm text-blue-600 hover:text-blue-800"
-            >
-              Start Over
-            </button>
-          )}
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            {state !== "form" && (
+              <button
+                onClick={handleReset}
+                className="text-sm text-blue-600 hover:text-blue-800"
+              >
+                Start Over
+              </button>
+            )}
+          </div>
         </div>
       </header>
 
@@ -164,7 +221,17 @@ export default function Home() {
             </div>
           )}
           <AffordabilityForm onSubmit={handleSubmit} isLoading={false} />
+          <SavedReportsList onLoad={handleLoadSaved} />
         </div>
+
+        {sharedLoading && (
+          <div className="flex items-center justify-center py-20">
+            <div className="text-center">
+              <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+              <p className="text-sm text-gray-500">Loading shared report...</p>
+            </div>
+          </div>
+        )}
 
         {state === "loading" && <LoadingState />}
 
@@ -173,6 +240,7 @@ export default function Home() {
             report={report as FinalReport}
             onReset={handleReset}
             summaryLoading={report._summaryLoading}
+            userLocation={userLocation}
           />
         )}
       </main>
@@ -195,5 +263,13 @@ export default function Home() {
         </div>
       </footer>
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense>
+      <HomeContent />
+    </Suspense>
   );
 }

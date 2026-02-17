@@ -13,8 +13,8 @@ const INITIAL_SUGGESTIONS = [
   "What if I save for 6 more months?",
   "Show me the 15-year loan option",
   "What if rates drop to 5.5%?",
-  "Compare a $350k vs $400k home",
-  "Should I rent or buy?",
+  "What's the difference between FHA and conventional?",
+  "How can I avoid paying PMI?",
 ];
 
 const FOLLOW_UP_PROMPTS = [
@@ -35,8 +35,8 @@ const FOLLOW_UP_PROMPTS = [
   ],
   [
     "What if I wait a year to buy?",
-    "Can I afford a $500K home with HOA?",
-    "What's the minimum I need saved?",
+    "What are first-time buyer programs?",
+    "How does my credit score affect my rate?",
   ],
 ];
 
@@ -176,6 +176,18 @@ export default function ChatInterface({ report }: { report: FinalReport }) {
   const followUpIndex = exchangeCount % FOLLOW_UP_PROMPTS.length;
   const currentFollowUps = FOLLOW_UP_PROMPTS[followUpIndex];
 
+  // ── STREAMING MESSAGE SENDER ───────────────────────────────
+  // Instead of waiting for the full JSON response, we read an SSE stream.
+  //
+  // How it works:
+  //   1. POST to /api/chat → server returns Content-Type: text/event-stream
+  //   2. We read chunks with fetch().body.getReader()
+  //   3. Each SSE line is: data: {"text":"word"}\n\n
+  //   4. We parse each chunk and append to the assistant message progressively
+  //   5. Stream ends with: data: [DONE]\n\n
+  //
+  // The user sees text appear word-by-word instead of waiting 3-5 seconds.
+
   const sendMessage = async (text: string) => {
     if (!text.trim() || isLoading) return;
 
@@ -195,16 +207,83 @@ export default function ChatInterface({ report }: { report: FinalReport }) {
         }),
       });
 
-      const data = await res.json();
-
+      // If the server returned a JSON error (not SSE), handle it
       if (!res.ok) {
+        const data = await res.json();
         throw new Error(data.error || "Failed to get response");
       }
 
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: data.response },
-      ]);
+      // Read the SSE stream
+      const reader = res.body!.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let assistantAdded = false;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+
+        // SSE messages are separated by \n\n
+        const parts = buffer.split("\n\n");
+        buffer = parts.pop() || ""; // Keep incomplete part in buffer
+
+        for (const part of parts) {
+          const trimmed = part.trim();
+          if (!trimmed.startsWith("data: ")) continue;
+          const data = trimmed.slice(6); // Remove "data: " prefix
+
+          if (data === "[DONE]") continue;
+
+          try {
+            const parsed = JSON.parse(data);
+
+            if (parsed.error) {
+              throw new Error(parsed.error);
+            }
+
+            if (parsed.text) {
+              if (!assistantAdded) {
+                // First chunk — add the assistant message
+                setMessages((prev) => [
+                  ...prev,
+                  { role: "assistant", content: parsed.text },
+                ]);
+                assistantAdded = true;
+              } else {
+                // Subsequent chunks — append to the existing assistant message
+                setMessages((prev) => {
+                  const updated = [...prev];
+                  const last = updated[updated.length - 1];
+                  if (last && last.role === "assistant") {
+                    return [
+                      ...updated.slice(0, -1),
+                      { ...last, content: last.content + parsed.text },
+                    ];
+                  }
+                  return updated;
+                });
+              }
+            }
+          } catch (e) {
+            // Ignore JSON parse errors from incomplete chunks
+            if (e instanceof SyntaxError) continue;
+            throw e;
+          }
+        }
+      }
+
+      // If no text was streamed at all, show a fallback
+      if (!assistantAdded) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "assistant",
+            content: "I wasn't able to generate a response. Please try again.",
+          },
+        ]);
+      }
     } catch (err) {
       setMessages((prev) => [
         ...prev,
@@ -223,6 +302,11 @@ export default function ChatInterface({ report }: { report: FinalReport }) {
     e.preventDefault();
     sendMessage(input);
   };
+
+  // Show loading dots only when waiting for the first chunk (no assistant message yet)
+  const lastMessage = messages[messages.length - 1];
+  const showLoadingDots =
+    isLoading && (!lastMessage || lastMessage.role !== "assistant");
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col h-full">
@@ -282,7 +366,8 @@ export default function ChatInterface({ report }: { report: FinalReport }) {
               </div>
             ))}
 
-            {isLoading && (
+            {/* Loading dots — only shown before first text chunk arrives */}
+            {showLoadingDots && (
               <div className="flex justify-start">
                 <div className="bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3">
                   <div className="flex gap-1.5">

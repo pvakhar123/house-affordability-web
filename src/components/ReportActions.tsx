@@ -3,17 +3,23 @@
 import { useState } from "react";
 import type { FinalReport } from "@/lib/types";
 import { generateReportPDF } from "@/lib/utils/generate-pdf";
+import { saveReport } from "@/lib/saved-reports";
+import { compressReport } from "@/lib/share-report";
 
 interface Props {
   report: FinalReport;
+  userLocation?: string;
 }
 
-export default function ReportActions({ report }: Props) {
+export default function ReportActions({ report, userLocation }: Props) {
   const [emailOpen, setEmailOpen] = useState(false);
   const [email, setEmail] = useState("");
   const [emailStatus, setEmailStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const [emailError, setEmailError] = useState("");
   const [downloading, setDownloading] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [shareStatus, setShareStatus] = useState<"idle" | "copied" | "error">("idle");
+  const [shareError, setShareError] = useState("");
 
   async function handleDownload() {
     setDownloading(true);
@@ -24,6 +30,28 @@ export default function ReportActions({ report }: Props) {
       console.error("PDF generation failed:", err);
     } finally {
       setDownloading(false);
+    }
+  }
+
+  function handleSave() {
+    saveReport(report, undefined, userLocation);
+    setSaved(true);
+  }
+
+  async function handleShare() {
+    setShareError("");
+    try {
+      const encoded = await compressReport(report);
+      const url = `${window.location.origin}?report=${encoded}`;
+      await navigator.clipboard.writeText(url);
+      setShareStatus("copied");
+      setTimeout(() => setShareStatus("idle"), 2000);
+    } catch (err) {
+      setShareStatus("error");
+      setShareError(
+        err instanceof Error ? err.message : "Failed to generate share link"
+      );
+      setTimeout(() => setShareStatus("idle"), 4000);
     }
   }
 
@@ -73,6 +101,38 @@ export default function ReportActions({ report }: Props) {
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
         </svg>
         {downloading ? "Generating..." : "Download PDF"}
+      </button>
+
+      {/* Save Report */}
+      <button
+        onClick={handleSave}
+        disabled={saved}
+        className={`inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg transition-colors ${
+          saved
+            ? "bg-green-600 text-white"
+            : "text-gray-700 bg-white border border-gray-300 hover:bg-gray-50"
+        }`}
+      >
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
+        </svg>
+        {saved ? "Saved!" : "Save Report"}
+      </button>
+
+      {/* Share Link */}
+      <button
+        onClick={handleShare}
+        disabled={shareStatus === "copied"}
+        className={`inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg transition-colors ${
+          shareStatus === "copied"
+            ? "bg-green-600 text-white"
+            : "text-gray-700 bg-white border border-gray-300 hover:bg-gray-50"
+        }`}
+      >
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m9.86-3.048a4.5 4.5 0 00-1.242-7.244l-4.5-4.5a4.5 4.5 0 00-6.364 6.364L4.5 8.688" />
+        </svg>
+        {shareStatus === "copied" ? "Copied!" : "Copy Link"}
       </button>
 
       {/* Email Toggle */}
@@ -128,8 +188,12 @@ export default function ReportActions({ report }: Props) {
         </form>
       )}
 
+      {/* Error messages */}
       {emailStatus === "error" && emailError && (
         <p className="text-xs text-red-500 w-full">{emailError}</p>
+      )}
+      {shareStatus === "error" && shareError && (
+        <p className="text-xs text-red-500 w-full">{shareError}</p>
       )}
     </div>
   );

@@ -1,3 +1,30 @@
+/**
+ * STREAMING CHAT API WITH PROMPT CACHING
+ *
+ * Two AI concepts implemented here:
+ *
+ * 1. STREAMING (Server-Sent Events / SSE)
+ *    Instead of waiting for the full response, we stream tokens as Claude
+ *    generates them. The client sees text appear word-by-word, like ChatGPT.
+ *
+ *    How it works:
+ *    - Server returns a ReadableStream with Content-Type: text/event-stream
+ *    - Each token is sent as: data: {"text":"word"}\n\n
+ *    - Client reads with fetch().body.getReader() and updates UI per chunk
+ *    - Stream ends with: data: [DONE]\n\n
+ *
+ * 2. PROMPT CACHING
+ *    The system prompt (with the full report) is identical across all messages
+ *    in a conversation. Without caching, we re-process ~2000 tokens every time.
+ *
+ *    With cache_control: { type: "ephemeral" }:
+ *    - First message: full processing (cache write)
+ *    - Subsequent messages: cache hit → ~90% cheaper, ~80% faster
+ *    - Cache lasts ~5 minutes (auto-refreshed on each use)
+ *
+ *    We cache both the system prompt AND the tools definition.
+ */
+
 import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { config } from "@/lib/config";
@@ -9,7 +36,9 @@ import {
   stressTestIncomeLoss,
   calculateRentVsBuy,
 } from "@/lib/utils/financial-math";
+import { retrieve } from "@/lib/rag/retriever";
 import type { FinalReport } from "@/lib/types";
+import { createStreamTrace, flushLangfuse } from "@/lib/langfuse";
 
 interface ChatMessage {
   role: "user" | "assistant";
@@ -200,6 +229,21 @@ const tools: Anthropic.Messages.Tool[] = [
       required: ["listingPrice"],
     },
   },
+  {
+    name: "lookup_mortgage_info",
+    description:
+      "Search the mortgage knowledge base for information about loan types (FHA, VA, conventional, ARM), down payments, PMI, DTI ratios, closing costs, credit score impacts, first-time buyer programs, property taxes, and home inspections. Use this when the user asks general mortgage or homebuying questions.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        query: {
+          type: "string",
+          description: "The mortgage/homebuying topic to look up",
+        },
+      },
+      required: ["query"],
+    },
+  },
 ];
 
 function handleToolCall(
@@ -323,6 +367,18 @@ function handleToolCall(
       );
     }
 
+    case "lookup_mortgage_info": {
+      const results = retrieve(input.query as string, 3);
+      return JSON.stringify({
+        documents: results.map((r) => ({
+          title: r.document.title,
+          content: r.document.content,
+          source: r.document.source,
+          relevance: Math.round(r.score * 100) / 100,
+        })),
+      });
+    }
+
     default:
       return JSON.stringify({ error: `Unknown tool: ${name}` });
   }
@@ -415,7 +471,16 @@ export async function POST(request: Request) {
 
     const client = new Anthropic();
 
-    const systemPrompt = `You are a helpful home buying advisor following up on an affordability analysis.
+    // ── PROMPT CACHING ────────────────────────────────────────
+    // The system prompt contains the full report — identical across all
+    // messages in a conversation. By marking it with cache_control,
+    // subsequent messages reuse the cached prompt instead of re-processing it.
+    //
+    // First message:  cache MISS → normal price, writes to cache
+    // Second message: cache HIT  → ~90% cheaper input tokens, ~80% faster
+    // Cache TTL: 5 minutes (refreshed on each use)
+
+    const systemPromptText = `You are a helpful home buying advisor following up on an affordability analysis.
 
 Here is the buyer's complete analysis report:
 
@@ -443,7 +508,23 @@ PROPERTY ANALYZED: ${report.propertyAnalysis.property.address || "Specific prope
 - Stretch Factor: ${Math.round(report.propertyAnalysis.stretchFactor * 100)}% of max
 - Verdict: ${report.propertyAnalysis.verdict}` : ""}
 
-Use the tools to run calculations when the user asks "what if" questions. Use the analyze_property tool when a user asks about a specific property or home price. Be specific with numbers. Keep responses concise. Do not provide legal or binding financial advice.`;
+Use the tools to run calculations when the user asks "what if" questions. Use the analyze_property tool when a user asks about a specific property or home price. Use the lookup_mortgage_info tool when the user asks general questions about mortgage types (FHA, VA, conventional, ARM), PMI, DTI, closing costs, credit scores, first-time buyer programs, or other homebuying topics — it searches a curated knowledge base and returns relevant documents. Be specific with numbers. Keep responses concise. Do not provide legal or binding financial advice.`;
+
+    // System prompt with cache control — cached for the duration of the conversation
+    const system: Anthropic.Messages.TextBlockParam[] = [
+      {
+        type: "text",
+        text: systemPromptText,
+        cache_control: { type: "ephemeral" },
+      },
+    ];
+
+    // Tools with cache control on the last tool — tools are identical across ALL requests
+    const cachedTools = tools.map((tool, i) =>
+      i === tools.length - 1
+        ? { ...tool, cache_control: { type: "ephemeral" as const } }
+        : tool
+    );
 
     // Build messages from history + new message
     const messages: Anthropic.Messages.MessageParam[] = [
@@ -454,63 +535,135 @@ Use the tools to run calculations when the user asks "what if" questions. Use th
       { role: "user" as const, content: message },
     ];
 
-    // Tool-use loop
-    let iterations = 0;
-    const maxIterations = 5;
+    // ── STREAMING (SSE) ───────────────────────────────────────
+    // Instead of waiting for the full response, we stream tokens
+    // as Claude generates them using Server-Sent Events.
+    //
+    // Flow with tool use:
+    //   1. Stream starts → text deltas sent to client as they arrive
+    //   2. If Claude calls a tool → we process it locally (fast, ~1ms)
+    //   3. New stream starts with tool results → more text deltas
+    //   4. Final text streamed → send [DONE]
+    //
+    // The client sees text appearing word-by-word for the final answer.
 
-    while (iterations < maxIterations) {
-      iterations++;
+    const encoder = new TextEncoder();
 
-      const response = await client.messages.create({
-        model: config.model,
-        max_tokens: 2048,
-        system: systemPrompt,
-        messages,
-        tools,
-      });
+    return new Response(
+      new ReadableStream({
+        async start(controller) {
+          const send = (data: string) => {
+            controller.enqueue(encoder.encode(`data: ${data}\n\n`));
+          };
 
-      const toolUseBlocks = response.content.filter(
-        (b): b is Anthropic.Messages.ToolUseBlock => b.type === "tool_use"
-      );
-      const textBlocks = response.content.filter(
-        (b): b is Anthropic.Messages.TextBlock => b.type === "text"
-      );
+          try {
+            let iterations = 0;
+            const maxIterations = 5;
 
-      if (toolUseBlocks.length === 0) {
-        const text = textBlocks.map((b) => b.text).join("\n");
-        return NextResponse.json({ response: text });
+            const chatTrace = createStreamTrace({
+              name: "chat",
+              model: config.model,
+              maxTokens: 2048,
+              sessionId: `chat-${Date.now()}`,
+              metadata: { messageCount: history.length + 1 },
+            });
+
+            while (iterations < maxIterations) {
+              iterations++;
+
+              const gen = chatTrace.createGeneration(`chat-turn-${iterations}`, {
+                toolCount: cachedTools.length,
+                messageCount: messages.length,
+              });
+
+              // Create a streaming request to Claude
+              const stream = client.messages.stream({
+                model: config.model,
+                max_tokens: 2048,
+                system,
+                messages,
+                tools: cachedTools,
+              });
+
+              // Stream text deltas to the client as they arrive
+              stream.on("text", (text) => {
+                send(JSON.stringify({ text }));
+              });
+
+              // Wait for the complete message to check for tool use
+              const finalMessage = await stream.finalMessage();
+              gen.end(finalMessage);
+
+              const toolUseBlocks = finalMessage.content.filter(
+                (b): b is Anthropic.Messages.ToolUseBlock =>
+                  b.type === "tool_use"
+              );
+
+              if (toolUseBlocks.length === 0) {
+                // Pure text response — already streamed via on('text')
+                send("[DONE]");
+                await flushLangfuse();
+                controller.close();
+                return;
+              }
+
+              // Tool use detected — process tools locally, then loop
+              messages.push({
+                role: "assistant",
+                content: finalMessage.content,
+              });
+
+              const toolResults: Anthropic.Messages.ToolResultBlockParam[] =
+                toolUseBlocks.map((toolUse) => ({
+                  type: "tool_result" as const,
+                  tool_use_id: toolUse.id,
+                  content:
+                    toolUse.name === "analyze_property"
+                      ? handleAnalyzeProperty(
+                          toolUse.input as Record<string, unknown>,
+                          report
+                        )
+                      : handleToolCall(
+                          toolUse.name,
+                          toolUse.input as Record<string, unknown>
+                        ),
+                }));
+
+              messages.push({ role: "user", content: toolResults });
+              // Loop again — next iteration streams the text response
+            }
+
+            // Max iterations reached
+            send(
+              JSON.stringify({
+                text: "I ran into an issue processing that request. Could you try rephrasing?",
+              })
+            );
+            send("[DONE]");
+            await flushLangfuse();
+            controller.close();
+          } catch (error) {
+            console.error("Chat streaming error:", error);
+            send(
+              JSON.stringify({
+                error:
+                  error instanceof Error ? error.message : "Chat failed",
+              })
+            );
+            send("[DONE]");
+            await flushLangfuse();
+            controller.close();
+          }
+        },
+      }),
+      {
+        headers: {
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache",
+          Connection: "keep-alive",
+        },
       }
-
-      // Process tool calls
-      messages.push({ role: "assistant", content: response.content });
-
-      const toolResults: Anthropic.Messages.ToolResultBlockParam[] =
-        toolUseBlocks.map((toolUse) => ({
-          type: "tool_result" as const,
-          tool_use_id: toolUse.id,
-          content:
-            toolUse.name === "analyze_property"
-              ? handleAnalyzeProperty(
-                  toolUse.input as Record<string, unknown>,
-                  report
-                )
-              : handleToolCall(
-                  toolUse.name,
-                  toolUse.input as Record<string, unknown>
-                ),
-        }));
-
-      messages.push({ role: "user", content: toolResults });
-
-      if (response.stop_reason === "end_turn" && textBlocks.length > 0) {
-        const text = textBlocks.map((b) => b.text).join("\n");
-        return NextResponse.json({ response: text });
-      }
-    }
-
-    return NextResponse.json({
-      response: "I ran into an issue processing that request. Could you try rephrasing?",
-    });
+    );
   } catch (error) {
     console.error("Chat error:", error);
     return NextResponse.json(

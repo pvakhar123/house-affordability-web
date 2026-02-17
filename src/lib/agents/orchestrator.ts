@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { config } from "../config";
 import { PROMPTS } from "../utils/prompts";
+import { traceGeneration, getLangfuse } from "../langfuse";
 import { FredApiClient } from "../services/fred-api";
 import { BlsApiClient } from "../services/bls-api";
 import { HousingApiClient } from "../services/housing-api";
@@ -24,6 +25,7 @@ import type {
   RiskReport,
   RecommendationsResult,
   PropertyAnalysis,
+  RentVsBuyReport,
   StressTestResult,
   RiskFlag,
 } from "../types/index";
@@ -32,12 +34,13 @@ const cache = new CacheService();
 
 export type StreamPhase =
   | { phase: "market_data"; marketSnapshot: MarketDataResult }
-  | { phase: "analysis"; affordability: AffordabilityResult; riskAssessment: RiskReport; recommendations: RecommendationsResult; propertyAnalysis?: PropertyAnalysis }
+  | { phase: "analysis"; affordability: AffordabilityResult; riskAssessment: RiskReport; recommendations: RecommendationsResult; propertyAnalysis?: PropertyAnalysis; rentVsBuy?: RentVsBuyReport }
   | { phase: "summary"; summary: string }
   | { phase: "complete"; disclaimers: string[]; generatedAt: string };
 
 export class OrchestratorAgent {
   private client: Anthropic;
+  private traceId?: string;
 
   constructor() {
     this.client = new Anthropic();
@@ -45,6 +48,16 @@ export class OrchestratorAgent {
 
   async run(userProfile: UserProfile, onProgress?: (event: StreamPhase) => void): Promise<FinalReport> {
     const t0 = Date.now();
+    const langfuseTrace = getLangfuse().trace({
+      name: "full-analysis",
+      metadata: {
+        income: userProfile.annualGrossIncome,
+        location: userProfile.targetLocation,
+        creditScore: userProfile.creditScore,
+        hasProperty: !!userProfile.property,
+      },
+    });
+    this.traceId = langfuseTrace.id;
 
     // ── Phase 1: Fetch market data directly (parallel APIs, ~2-5s) ──
     console.log("\n[1/3] Fetching market data...");
@@ -64,8 +77,15 @@ export class OrchestratorAgent {
     if (userProfile.property) {
       propertyAnalysis = this.computePropertyAnalysis(userProfile, marketData, affordability);
     }
+
+    // Rent vs Buy analysis (if current rent was provided)
+    let rentVsBuy: RentVsBuyReport | undefined;
+    if (userProfile.currentMonthlyRent && userProfile.currentMonthlyRent > 0) {
+      rentVsBuy = this.computeRentVsBuy(userProfile, marketData, affordability);
+    }
+
     console.log(`      Done (${((Date.now() - t2) / 1000).toFixed(1)}s)`);
-    onProgress?.({ phase: "analysis", affordability, riskAssessment: riskReport, recommendations, propertyAnalysis });
+    onProgress?.({ phase: "analysis", affordability, riskAssessment: riskReport, recommendations, propertyAnalysis, rentVsBuy });
 
     // ── Phase 3: Single Claude call for narrative summary (~3-5s) ──
     console.log("[3/3] Generating AI summary...");
@@ -91,6 +111,7 @@ export class OrchestratorAgent {
       riskAssessment: riskReport,
       recommendations,
       propertyAnalysis,
+      rentVsBuy,
       disclaimers,
       generatedAt,
     };
@@ -689,6 +710,142 @@ export class OrchestratorAgent {
     };
   }
 
+  private computeRentVsBuy(
+    profile: UserProfile,
+    market: MarketDataResult,
+    afford: AffordabilityResult
+  ): RentVsBuyReport {
+    const rent = profile.currentMonthlyRent!;
+    const buyCost = afford.monthlyPayment.totalMonthly;
+    const monthlyCostDifference = Math.round(buyCost - rent);
+
+    const homePrice = afford.recommendedHomePrice;
+    const downPayment = afford.downPaymentAmount;
+    const loanAmount = afford.loanAmount;
+    const rate = market.mortgageRates.thirtyYearFixed / 100;
+    const monthlyRate = rate / 12;
+    const loanTermMonths = (profile.preferredLoanTerm ?? 30) * 12;
+
+    // Assumptions
+    const annualHomeAppreciation = 0.03;   // 3% per year
+    const annualRentIncrease = 0.035;      // 3.5% per year
+    const annualMaintenance = 0.01;        // 1% of home value per year
+    const closingCostPercent = 0.03;       // 3% of home price (upfront)
+    const opportunityCostRate = 0.06;      // 6% annual return on invested down payment
+
+    const closingCosts = homePrice * closingCostPercent;
+    const downPaymentOpportunityCost = downPayment + closingCosts;
+
+    const yearByYear: Array<{
+      year: number;
+      rentCumulative: number;
+      buyCumulative: number;
+      equityBuilt: number;
+      netBuyAdvantage: number;
+    }> = [];
+
+    let rentCumulative = 0;
+    let buyCumulative = closingCosts; // upfront closing costs
+    let currentRent = rent;
+    let remainingBalance = loanAmount;
+    let homeValue = homePrice;
+    let investedAlternative = downPaymentOpportunityCost; // what the down payment could earn
+    let breakEvenMonth: number | null = null;
+
+    for (let month = 1; month <= Math.min(loanTermMonths, 360); month++) {
+      // Rent side: monthly rent (increases annually)
+      if (month > 1 && (month - 1) % 12 === 0) {
+        currentRent *= (1 + annualRentIncrease);
+      }
+      rentCumulative += currentRent;
+
+      // Buy side: mortgage payment + maintenance - equity gain
+      const interestPayment = remainingBalance * monthlyRate;
+      const principalPayment = (buyCost - afford.monthlyPayment.propertyTax - afford.monthlyPayment.homeInsurance - afford.monthlyPayment.pmi) - interestPayment;
+      remainingBalance = Math.max(0, remainingBalance - principalPayment);
+
+      // Monthly maintenance cost
+      if (month > 1 && (month - 1) % 12 === 0) {
+        homeValue *= (1 + annualHomeAppreciation);
+      }
+      const monthlyMaintenance = (homeValue * annualMaintenance) / 12;
+
+      buyCumulative += buyCost + monthlyMaintenance;
+
+      // Opportunity cost: the down payment could have been invested
+      if (month % 12 === 0) {
+        investedAlternative *= (1 + opportunityCostRate);
+      }
+
+      // Equity = home value - remaining balance
+      const equity = homeValue - remainingBalance;
+
+      // Net buy cost = total paid - equity built + opportunity cost of down payment
+      const netBuyCost = buyCumulative - equity + (investedAlternative - downPaymentOpportunityCost);
+
+      // Break-even: when net buy cost < rent cumulative
+      if (breakEvenMonth === null && rentCumulative > netBuyCost) {
+        breakEvenMonth = month;
+      }
+
+      // Yearly snapshot
+      if (month % 12 === 0) {
+        const year = month / 12;
+        yearByYear.push({
+          year,
+          rentCumulative: Math.round(rentCumulative),
+          buyCumulative: Math.round(buyCumulative - equity + (investedAlternative - downPaymentOpportunityCost)),
+          equityBuilt: Math.round(equity),
+          netBuyAdvantage: Math.round(rentCumulative - (buyCumulative - equity + (investedAlternative - downPaymentOpportunityCost))),
+        });
+      }
+    }
+
+    const yr5 = yearByYear.find(y => y.year === 5);
+    const yr10 = yearByYear.find(y => y.year === 10);
+
+    const fiveYearRentTotal = yr5?.rentCumulative ?? 0;
+    const fiveYearBuyTotal = yr5?.buyCumulative ?? 0;
+    const fiveYearEquity = yr5?.equityBuilt ?? 0;
+    const fiveYearNetAdvantage = yr5?.netBuyAdvantage ?? 0;
+    const tenYearNetAdvantage = yr10?.netBuyAdvantage ?? 0;
+
+    const fmt = (n: number) => "$" + Math.round(Math.abs(n)).toLocaleString("en-US");
+
+    let verdict: RentVsBuyReport["verdict"];
+    let verdictExplanation: string;
+
+    if (fiveYearNetAdvantage > 20000) {
+      verdict = "buy_clearly";
+      verdictExplanation = `Buying is clearly the better financial move. Over 5 years, buying saves you ${fmt(fiveYearNetAdvantage)} compared to renting, even accounting for maintenance, opportunity cost of your down payment, and closing costs.`;
+    } else if (fiveYearNetAdvantage > 0) {
+      verdict = "buy_slightly";
+      verdictExplanation = `Buying has a slight financial edge. Over 5 years, buying saves you ${fmt(fiveYearNetAdvantage)} compared to renting. The advantage grows significantly over 10+ years.`;
+    } else if (fiveYearNetAdvantage > -15000) {
+      verdict = "toss_up";
+      verdictExplanation = `It's roughly a toss-up over 5 years. Renting is ${fmt(fiveYearNetAdvantage)} cheaper in the short term, but buying likely wins over 10+ years as you build equity and rent keeps rising.`;
+    } else {
+      verdict = "rent_better";
+      verdictExplanation = `Renting may be the better financial choice for now. Over 5 years, renting saves you ${fmt(fiveYearNetAdvantage)}. Consider buying when home prices drop, rates decrease, or you have a larger down payment.`;
+    }
+
+    return {
+      currentRent: rent,
+      monthlyBuyCost: buyCost,
+      monthlyCostDifference,
+      breakEvenMonth,
+      breakEvenYear: breakEvenMonth ? Math.ceil(breakEvenMonth / 12) : null,
+      fiveYearRentTotal,
+      fiveYearBuyTotal,
+      fiveYearEquity,
+      fiveYearNetAdvantage,
+      tenYearNetAdvantage,
+      yearByYear: yearByYear.slice(0, 10), // first 10 years
+      verdict,
+      verdictExplanation,
+    };
+  }
+
   // ─────────────────────────────────────────────
   // Phase 3: Single Claude call for narrative
   // ─────────────────────────────────────────────
@@ -739,8 +896,9 @@ export class OrchestratorAgent {
     }
 
     try {
-      const response = await this.client.messages.create(
-        {
+      const response = await traceGeneration({
+        client: this.client,
+        params: {
           model: config.model,
           max_tokens: 1500,
           system: PROMPTS.orchestrator,
@@ -755,8 +913,10 @@ ${JSON.stringify(data)}`,
             },
           ],
         },
-        { timeout: 15000 }
-      );
+        options: { timeout: 15000 },
+        trace: { name: "orchestrator-synthesize", traceId: this.traceId },
+        metadata: { maxHomePrice: afford.maxHomePrice, riskLevel: risk.overallRiskLevel },
+      });
 
       const textBlock = response.content.find(
         (b): b is Anthropic.TextBlock => b.type === "text"

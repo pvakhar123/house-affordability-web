@@ -1,11 +1,13 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { config } from "../config";
+import { traceGeneration } from "../langfuse";
 
 export type ToolDefinition = Anthropic.Messages.Tool;
 
 export abstract class BaseAgent<TInput, TOutput> {
   protected client: Anthropic;
   protected model: string;
+  public traceId?: string;
 
   constructor(client: Anthropic, model: string = config.model) {
     this.client = client;
@@ -32,8 +34,15 @@ export abstract class BaseAgent<TInput, TOutput> {
   ): Promise<Anthropic.Messages.Message> {
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
-        return await this.client.messages.create(params, {
-          timeout: 15000, // 15s per call — Haiku responds in 2-5s
+        return await traceGeneration({
+          client: this.client,
+          params,
+          options: { timeout: 15000 },
+          trace: {
+            name: `${this.constructor.name}-call`,
+            traceId: this.traceId,
+          },
+          metadata: { attempt: attempt + 1, agent: this.constructor.name },
         });
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
@@ -52,10 +61,16 @@ export abstract class BaseAgent<TInput, TOutput> {
           if (this.isOverloaded(err) && params.model !== config.fallbackModel) {
             console.log(`Model ${params.model} overloaded, trying fallback ${config.fallbackModel}...`);
             try {
-              return await this.client.messages.create(
-                { ...params, model: config.fallbackModel },
-                { timeout: 15000 }
-              );
+              return await traceGeneration({
+                client: this.client,
+                params: { ...params, model: config.fallbackModel },
+                options: { timeout: 15000 },
+                trace: {
+                  name: `${this.constructor.name}-fallback`,
+                  traceId: this.traceId,
+                },
+                metadata: { attempt: attempt + 1, agent: this.constructor.name, fallback: true },
+              });
             } catch {
               // fallback also failed, throw original error
             }

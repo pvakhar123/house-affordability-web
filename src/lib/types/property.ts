@@ -33,3 +33,24 @@ export interface PropertyAnalysis {
   verdict: "comfortable" | "tight" | "stretch" | "over_budget";
   verdictExplanation: string;
 }
+
+export interface MatchingProperty {
+  zpid?: string;
+  address: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  price: number;
+  bedrooms: number;
+  bathrooms: number;
+  squareFootage: number;
+  propertyType: string;
+  yearBuilt?: number;
+  estimatedMonthlyPayment?: number;
+  daysOnMarket?: number;
+  pricePerSqFt?: number;
+  highlights: string[];
+  imageUrl?: string;
+  listingUrl?: string;
+  listingStatus?: string;
+}

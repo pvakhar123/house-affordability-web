@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { config } from "@/lib/config";
 import type { DocumentExtractionResult } from "@/lib/types";
+import { traceGeneration, flushLangfuse } from "@/lib/langfuse";
 
 interface DocumentPayload {
   data: string;
@@ -131,8 +132,9 @@ export async function POST(request: Request) {
                 },
               };
 
-          const response = await client.messages.create(
-            {
+          const response = await traceGeneration({
+            client,
+            params: {
               model: config.model,
               max_tokens: 1024,
               messages: [
@@ -145,8 +147,10 @@ export async function POST(request: Request) {
                 },
               ],
             },
-            { timeout: 15000 }
-          );
+            options: { timeout: 15000 },
+            trace: { name: "extract-document" },
+            metadata: { filename: doc.filename, mediaType: doc.mediaType, isPdf },
+          });
 
           const textBlock = response.content.find(
             (b): b is Anthropic.Messages.TextBlock => b.type === "text"
@@ -200,9 +204,11 @@ export async function POST(request: Request) {
       })
     );
 
+    await flushLangfuse();
     return NextResponse.json({ results });
   } catch (error) {
     console.error("Document extraction error:", error);
+    await flushLangfuse();
     return NextResponse.json(
       {
         error:

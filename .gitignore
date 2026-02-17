@@ -40,3 +40,7 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .env*.local
+
+# mcp-server build artifacts
+mcp-server/node_modules
+mcp-server/dist

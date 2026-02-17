@@ -15,6 +15,7 @@ export interface UserProfile {
   firstTimeBuyer?: boolean;
   householdSize?: number;
   monthlyExpenses?: number;
+  currentMonthlyRent?: number;
   property?: PropertyInfo;
 }
 

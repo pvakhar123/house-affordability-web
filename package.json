@@ -10,8 +10,11 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.74.0",
+    "@modelcontextprotocol/sdk": "^1.25.2",
     "jspdf": "^4.1.0",
     "jspdf-autotable": "^5.0.7",
+    "langfuse": "^3.38.6",
+    "mcp-handler": "^1.0.7",
     "next": "16.1.6",
     "react": "19.2.3",
     "react-dom": "19.2.3",

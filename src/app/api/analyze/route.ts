@@ -3,6 +3,7 @@ import { OrchestratorAgent } from "@/lib/agents/orchestrator";
 import type { StreamPhase } from "@/lib/agents/orchestrator";
 import { config } from "@/lib/config";
 import type { UserProfile } from "@/lib/types";
+import { flushLangfuse } from "@/lib/langfuse";
 
 export const maxDuration = 300; // 5 minutes for agent processing
 
@@ -31,6 +32,7 @@ export async function POST(request: Request) {
         try {
           const orchestrator = new OrchestratorAgent();
           await orchestrator.run(userProfile, send);
+          await flushLangfuse();
           controller.close();
         } catch (error) {
           console.error("Analysis error:", error);
@@ -50,6 +52,7 @@ export async function POST(request: Request) {
           }
 
           controller.enqueue(encoder.encode(JSON.stringify({ phase: "error", error: userMessage }) + "\n"));
+          await flushLangfuse();
           controller.close();
         }
       },

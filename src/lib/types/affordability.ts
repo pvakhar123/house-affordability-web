@@ -34,3 +34,27 @@ export interface AmortizationYear {
   remainingBalance: number;
   equityPercent: number;
 }
+
+export interface RentVsBuyYear {
+  year: number;
+  rentCumulative: number;
+  buyCumulative: number;       // total out-of-pocket (mortgage + tax + ins + PMI - equity)
+  equityBuilt: number;
+  netBuyAdvantage: number;     // positive = buying is ahead
+}
+
+export interface RentVsBuyReport {
+  currentRent: number;
+  monthlyBuyCost: number;
+  monthlyCostDifference: number;  // buy - rent (positive = buying costs more)
+  breakEvenMonth: number | null;  // month when buying becomes cheaper (null = never in 30 yrs)
+  breakEvenYear: number | null;
+  fiveYearRentTotal: number;
+  fiveYearBuyTotal: number;       // net cost (payments - equity built)
+  fiveYearEquity: number;
+  fiveYearNetAdvantage: number;   // positive = buying wins at 5 years
+  tenYearNetAdvantage: number;
+  yearByYear: RentVsBuyYear[];
+  verdict: "buy_clearly" | "buy_slightly" | "toss_up" | "rent_better";
+  verdictExplanation: string;
+}
