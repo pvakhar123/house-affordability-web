@@ -10,9 +10,9 @@ interface Message {
 
 const INITIAL_SUGGESTIONS = [
   "Can I afford a $450K house?",
+  "What are today's mortgage rates?",
   "What if I save for 6 more months?",
   "Show me the 15-year loan option",
-  "What if rates drop to 5.5%?",
   "What's the difference between FHA and conventional?",
   "How can I avoid paying PMI?",
 ];
@@ -20,21 +20,21 @@ const INITIAL_SUGGESTIONS = [
 const FOLLOW_UP_PROMPTS = [
   [
     "What if I increase my down payment?",
-    "How much can I save with a better credit score?",
+    "What are today's mortgage rates?",
     "Show me FHA vs Conventional comparison",
   ],
   [
     "What if my income increases 10%?",
     "How does a 15-year compare to 30-year?",
-    "What are my closing costs?",
+    "What are property taxes in Denver?",
   ],
   [
-    "What if I pay off my debts first?",
+    "Find me homes under $400K in Austin, TX",
     "How much home can I afford at 5% rate?",
     "What's my break-even for rent vs buy?",
   ],
   [
-    "What if I wait a year to buy?",
+    "What's the cost of living in Seattle?",
     "What are first-time buyer programs?",
     "How does my credit score affect my rate?",
   ],

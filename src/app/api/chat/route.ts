@@ -37,6 +37,10 @@ import {
   calculateRentVsBuy,
 } from "@/lib/utils/financial-math";
 import { retrieve } from "@/lib/rag/retriever";
+import { FredApiClient } from "@/lib/services/fred-api";
+import { CacheService } from "@/lib/services/cache";
+import { searchProperties } from "@/lib/services/property-search";
+import { lookupAreaInfo } from "@/lib/data/area-info";
 import type { FinalReport } from "@/lib/types";
 import { createStreamTrace, flushLangfuse } from "@/lib/langfuse";
 
@@ -244,12 +248,60 @@ const tools: Anthropic.Messages.Tool[] = [
       required: ["query"],
     },
   },
+  {
+    name: "get_current_rates",
+    description:
+      "Get today's live mortgage interest rates (30-year fixed, 15-year fixed, 5/1 ARM) from the Federal Reserve. Use this when the user asks about current or today's mortgage rates.",
+    input_schema: {
+      type: "object" as const,
+      properties: {},
+      required: [],
+    },
+  },
+  {
+    name: "search_properties",
+    description:
+      "Search for homes currently for sale in a specific US city. Returns up to 5 listings with prices, beds, baths, sqft, and addresses. Use this when the user asks to find or search for homes/houses in an area.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        location: {
+          type: "string",
+          description: "City and state (e.g., 'Austin, TX')",
+        },
+        max_price: {
+          type: "number",
+          description: "Maximum listing price (optional)",
+        },
+        min_beds: {
+          type: "number",
+          description: "Minimum number of bedrooms (optional)",
+        },
+      },
+      required: ["location"],
+    },
+  },
+  {
+    name: "get_area_info",
+    description:
+      "Get property tax rates, median home prices, school ratings, and cost of living index for a US metro area. Covers top 50 US metros. Use this when the user asks about taxes, schools, or cost of living in a specific area.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        location: {
+          type: "string",
+          description: "City and state (e.g., 'Denver, CO')",
+        },
+      },
+      required: ["location"],
+    },
+  },
 ];
 
-function handleToolCall(
+async function handleToolCall(
   name: string,
   input: Record<string, unknown>
-): string {
+): Promise<string> {
   switch (name) {
     case "recalculate_affordability": {
       const result = calculateMaxHomePrice({
@@ -376,6 +428,72 @@ function handleToolCall(
           source: r.document.source,
           relevance: Math.round(r.score * 100) / 100,
         })),
+      });
+    }
+
+    case "get_current_rates": {
+      try {
+        const fred = new FredApiClient(process.env.FRED_API_KEY!, new CacheService());
+        const [thirty, fifteen, arm] = await Promise.all([
+          fred.getLatestObservation("MORTGAGE30US"),
+          fred.getLatestObservation("MORTGAGE15US"),
+          fred.getLatestObservation("MORTGAGE5US"),
+        ]);
+        return JSON.stringify({
+          asOf: thirty.date,
+          thirtyYearFixed: thirty.value,
+          fifteenYearFixed: fifteen.value,
+          fiveOneArm: arm.value,
+          source: "Federal Reserve Economic Data (FRED)",
+        });
+      } catch (error) {
+        return JSON.stringify({ error: "Unable to fetch current rates. Using report rates instead.", fallback: true });
+      }
+    }
+
+    case "search_properties": {
+      try {
+        const listings = await searchProperties({
+          location: input.location as string,
+          maxPrice: input.max_price as number | undefined,
+          minBeds: input.min_beds as number | undefined,
+        });
+        if (listings.length === 0) {
+          return JSON.stringify({ message: "No listings found matching your criteria.", results: [] });
+        }
+        return JSON.stringify({
+          location: input.location,
+          resultCount: listings.length,
+          listings,
+          source: "Zillow via RapidAPI",
+        });
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : "Property search failed";
+        return JSON.stringify({ error: msg, hint: "Property search requires a RAPIDAPI_KEY. The user can still use analyze_property to check affordability for a specific price." });
+      }
+    }
+
+    case "get_area_info": {
+      const result = lookupAreaInfo(input.location as string);
+      if (!result) {
+        return JSON.stringify({
+          error: `No data available for "${input.location}". This tool covers the top 50 US metro areas.`,
+          availableExample: "Try cities like Austin TX, Denver CO, Seattle WA, etc.",
+        });
+      }
+      const fmt = (n: number) => "$" + Math.round(n).toLocaleString("en-US");
+      return JSON.stringify({
+        location: result.city,
+        state: result.data.state,
+        propertyTaxRate: (result.data.propertyTaxRate * 100).toFixed(2) + "%",
+        estimatedAnnualTaxOn400K: fmt(400000 * result.data.propertyTaxRate),
+        medianHomePrice: fmt(result.data.medianHomePrice),
+        schoolRating: result.data.schoolRating,
+        costOfLivingIndex: result.data.costOfLivingIndex,
+        costOfLivingNote: result.data.costOfLivingIndex > 100
+          ? `${result.data.costOfLivingIndex - 100}% above national average`
+          : `${100 - result.data.costOfLivingIndex}% below national average`,
+        ...(result.data.notes ? { notes: result.data.notes } : {}),
       });
     }
 
@@ -508,7 +626,14 @@ PROPERTY ANALYZED: ${report.propertyAnalysis.property.address || "Specific prope
 - Stretch Factor: ${Math.round(report.propertyAnalysis.stretchFactor * 100)}% of max
 - Verdict: ${report.propertyAnalysis.verdict}` : ""}
 
-Use the tools to run calculations when the user asks "what if" questions. Use the analyze_property tool when a user asks about a specific property or home price. Use the lookup_mortgage_info tool when the user asks general questions about mortgage types (FHA, VA, conventional, ARM), PMI, DTI, closing costs, credit scores, first-time buyer programs, or other homebuying topics — it searches a curated knowledge base and returns relevant documents. Be specific with numbers. Keep responses concise. Do not provide legal or binding financial advice.`;
+Use the tools to run calculations when the user asks "what if" questions. Use the analyze_property tool when a user asks about a specific property or home price. Use the lookup_mortgage_info tool when the user asks general questions about mortgage types (FHA, VA, conventional, ARM), PMI, DTI, closing costs, credit scores, first-time buyer programs, or other homebuying topics — it searches a curated knowledge base and returns relevant documents.
+
+You also have live data tools:
+- get_current_rates: Fetch today's actual mortgage rates from the Federal Reserve. Use when users ask about current/today's rates.
+- search_properties: Search for real homes for sale in any US city. Use when users want to see actual listings.
+- get_area_info: Get property tax rates, school ratings, median prices, and cost of living for a metro area. Use when discussing a specific area's housing market.
+
+Be specific with numbers. Keep responses concise. Do not provide legal or binding financial advice.`;
 
     // System prompt with cache control — cached for the duration of the conversation
     const system: Anthropic.Messages.TextBlockParam[] = [
@@ -614,7 +739,7 @@ Use the tools to run calculations when the user asks "what if" questions. Use th
               });
 
               const toolResults: Anthropic.Messages.ToolResultBlockParam[] =
-                toolUseBlocks.map((toolUse) => ({
+                await Promise.all(toolUseBlocks.map(async (toolUse) => ({
                   type: "tool_result" as const,
                   tool_use_id: toolUse.id,
                   content:
@@ -623,11 +748,11 @@ Use the tools to run calculations when the user asks "what if" questions. Use th
                           toolUse.input as Record<string, unknown>,
                           report
                         )
-                      : handleToolCall(
+                      : await handleToolCall(
                           toolUse.name,
                           toolUse.input as Record<string, unknown>
                         ),
-                }));
+                })));
 
               messages.push({ role: "user", content: toolResults });
               // Loop again — next iteration streams the text response
