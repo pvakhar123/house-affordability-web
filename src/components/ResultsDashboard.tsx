@@ -306,7 +306,7 @@ export default function ResultsDashboard({ report, onReset, summaryLoading, user
 
         {/* Chat - below content on smaller screens */}
         <div className="block xl:hidden" style={{ height: "500px" }}>
-          <ChatInterface report={report} />
+          <ChatInterface report={report} userLocation={userLocation} />
         </div>
       </div>
 
@@ -315,7 +315,7 @@ export default function ResultsDashboard({ report, onReset, summaryLoading, user
         style={{ zIndex: 40 }}
         className="fixed right-0 top-0 bottom-0 w-[390px] p-4 pl-0 max-xl:hidden"
       >
-        <ChatInterface report={report} />
+        <ChatInterface report={report} userLocation={userLocation} />
       </div>
     </>
   );

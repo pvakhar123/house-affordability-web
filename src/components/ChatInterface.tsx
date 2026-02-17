@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import type { FinalReport } from "@/lib/types";
 
 interface Message {
@@ -8,37 +8,47 @@ interface Message {
   content: string;
 }
 
-const INITIAL_SUGGESTIONS = [
-  "Can I afford a $450K house?",
-  "What are today's mortgage rates?",
-  "What are property taxes in Austin, TX?",
-  "Find me homes under $400K in Denver",
-  "What's the difference between FHA and conventional?",
-  "What if rates drop to 5.5%?",
-];
+/** Format a number as $XXXk */
+function fmtPrice(n: number): string {
+  if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
+  return `$${Math.round(n / 1000)}K`;
+}
 
-const FOLLOW_UP_PROMPTS = [
-  [
+function buildInitialSuggestions(location: string, maxPrice: number, rate: number): string[] {
+  return [
+    `Can I afford a ${fmtPrice(maxPrice)} house?`,
     "What are today's mortgage rates?",
-    "What if I increase my down payment?",
-    "What are property taxes in Denver?",
-  ],
-  [
-    "Find me homes under $400K in Austin, TX",
-    "How does a 15-year compare to 30-year?",
-    "What's the cost of living in Seattle?",
-  ],
-  [
-    "What are today's mortgage rates?",
-    "What's my break-even for rent vs buy?",
-    "What are schools like in Charlotte, NC?",
-  ],
-  [
-    "Find me 3-bedroom homes in Phoenix, AZ",
-    "What are first-time buyer programs?",
-    "What are property taxes in Chicago?",
-  ],
-];
+    `What are property taxes in ${location}?`,
+    `Find me homes under ${fmtPrice(maxPrice)} in ${location}`,
+    "What's the difference between FHA and conventional?",
+    `What if rates drop to ${Math.max(rate - 1, 3).toFixed(1)}%?`,
+  ];
+}
+
+function buildFollowUpPrompts(location: string, maxPrice: number): string[][] {
+  return [
+    [
+      "What are today's mortgage rates?",
+      "What if I increase my down payment?",
+      `What are property taxes in ${location}?`,
+    ],
+    [
+      `Find me homes under ${fmtPrice(maxPrice)} in ${location}`,
+      "How does a 15-year compare to 30-year?",
+      `What's the cost of living in ${location}?`,
+    ],
+    [
+      "What are today's mortgage rates?",
+      "What's my break-even for rent vs buy?",
+      `What are schools like in ${location}?`,
+    ],
+    [
+      `Find me 3-bedroom homes in ${location}`,
+      "What are first-time buyer programs?",
+      `What are property taxes in ${location}?`,
+    ],
+  ];
+}
 
 /** Render inline formatting: **bold**, $amounts, percentages */
 function renderInline(text: string): React.ReactNode {
@@ -140,13 +150,27 @@ function renderFormattedText(text: string): React.ReactNode {
   return <>{elements}</>;
 }
 
-export default function ChatInterface({ report }: { report: FinalReport }) {
+export default function ChatInterface({ report, userLocation }: { report: FinalReport; userLocation?: string }) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Extract user context from the report
+  const location = userLocation || "your area";
+  const maxPrice = report.affordability?.recommendedHomePrice ?? 400000;
+  const currentRate = report.marketSnapshot?.mortgageRates?.thirtyYearFixed ?? 6.5;
+
+  const initialSuggestions = useMemo(
+    () => buildInitialSuggestions(location, maxPrice, currentRate),
+    [location, maxPrice, currentRate]
+  );
+  const followUpPrompts = useMemo(
+    () => buildFollowUpPrompts(location, maxPrice),
+    [location, maxPrice]
+  );
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -173,8 +197,8 @@ export default function ChatInterface({ report }: { report: FinalReport }) {
 
   // Pick follow-up prompts based on how many exchanges so far (cycle through sets)
   const exchangeCount = Math.floor(messages.length / 2);
-  const followUpIndex = exchangeCount % FOLLOW_UP_PROMPTS.length;
-  const currentFollowUps = FOLLOW_UP_PROMPTS[followUpIndex];
+  const followUpIndex = exchangeCount % followUpPrompts.length;
+  const currentFollowUps = followUpPrompts[followUpIndex];
 
   // ── STREAMING MESSAGE SENDER ───────────────────────────────
   // Instead of waiting for the full JSON response, we read an SSE stream.
@@ -332,7 +356,7 @@ export default function ChatInterface({ report }: { report: FinalReport }) {
               Try asking
             </p>
             <div className="flex flex-wrap gap-2">
-              {INITIAL_SUGGESTIONS.map((s) => (
+              {initialSuggestions.map((s) => (
                 <button
                   key={s}
                   onClick={() => sendMessage(s)}
