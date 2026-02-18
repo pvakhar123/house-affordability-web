@@ -1,8 +1,19 @@
+export interface HistoricalDataPoint {
+  date: string;
+  value: number;
+}
+
+export interface HistoricalData {
+  medianHomePrices: HistoricalDataPoint[];
+  mortgageRates?: HistoricalDataPoint[];
+}
+
 export interface MarketDataResult {
   mortgageRates: MortgageRates;
   medianHomePrices: MedianHomePrices;
   marketTrends: MarketTrend[];
   inflationData: InflationData;
+  historicalData?: HistoricalData;
   fetchedAt: string;
 }
 

@@ -30,6 +30,7 @@ import type {
   RiskFlag,
   PreApprovalReadinessScore,
   ReadinessActionItem,
+  HistoricalData,
 } from "../types/index";
 import { getNeighborhoodInfo, type NeighborhoodInfo } from "../data/area-info";
 
@@ -143,7 +144,7 @@ export class OrchestratorAgent {
       : null;
 
     // Fire all API calls in parallel
-    const [ratesResult, pricesResult, inflationResult, regionalResult] =
+    const [ratesResult, pricesResult, inflationResult, regionalResult, historicalResult] =
       await Promise.allSettled([
         // Mortgage rates
         Promise.all([
@@ -166,6 +167,11 @@ export class OrchestratorAgent {
         location && housingClient
           ? housingClient.getRegionalData(location)
           : Promise.resolve(null),
+        // Historical trends (10 years)
+        Promise.all([
+          fredClient.getHistoricalMedianHomePrice(10),
+          fredClient.getHistoricalMortgageRate(10),
+        ]),
       ]);
 
     // Assemble with fallbacks
@@ -220,11 +226,24 @@ export class OrchestratorAgent {
       medianHomePrices.regional = regional;
     }
 
+    // Historical data (optional — chart enhancement)
+    let historicalData: HistoricalData | undefined;
+    if (historicalResult.status === "fulfilled") {
+      const [priceHistory, rateHistory] = historicalResult.value;
+      historicalData = {
+        medianHomePrices: priceHistory.map((p) => ({ date: p.date, value: p.value * 1000 })),
+        mortgageRates: rateHistory,
+      };
+    } else {
+      console.log("      Warning: Historical data fetch failed, chart will be hidden");
+    }
+
     return {
       mortgageRates,
       medianHomePrices,
       marketTrends: [],
       inflationData,
+      historicalData,
       fetchedAt: new Date().toISOString(),
     };
   }
