@@ -24,70 +24,6 @@ interface Props {
   userLocation?: string;
 }
 
-function fmt(n: number): string {
-  return "$" + Math.round(n).toLocaleString("en-US");
-}
-
-function SummaryHero({ report }: { report: FinalReport }) {
-  const a = report.affordability;
-  const m = report.marketSnapshot;
-  const r = report.riskAssessment;
-  const mp = a.monthlyPayment;
-
-  const riskStyle: Record<string, { bg: string; text: string; dot: string }> = {
-    low: { bg: "bg-green-50", text: "text-green-700", dot: "bg-green-500" },
-    moderate: { bg: "bg-yellow-50", text: "text-yellow-700", dot: "bg-yellow-500" },
-    high: { bg: "bg-red-50", text: "text-red-700", dot: "bg-red-500" },
-    very_high: { bg: "bg-red-100", text: "text-red-800", dot: "bg-red-600" },
-  };
-  const risk = riskStyle[r.overallRiskLevel] ?? riskStyle.moderate;
-
-  return (
-    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-      {/* Top accent bar */}
-      <div className="h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500" />
-
-      <div className="p-6 sm:p-8">
-        {/* Key numbers row */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
-          <div className="text-center p-4 bg-blue-50 rounded-xl">
-            <p className="text-xs font-medium text-blue-600 uppercase tracking-wide mb-1">Max Price</p>
-            <p className="text-xl sm:text-2xl font-bold text-blue-900">{fmt(a.maxHomePrice)}</p>
-          </div>
-          <div className="text-center p-4 bg-green-50 rounded-xl">
-            <p className="text-xs font-medium text-green-600 uppercase tracking-wide mb-1">Max Loan Amount</p>
-            <p className="text-xl sm:text-2xl font-bold text-green-900">{fmt(a.loanAmount)}</p>
-          </div>
-          <div className="text-center p-4 bg-indigo-50 rounded-xl">
-            <p className="text-xs font-medium text-indigo-600 uppercase tracking-wide mb-1">Monthly</p>
-            <p className="text-xl sm:text-2xl font-bold text-indigo-900">{fmt(mp.totalMonthly)}</p>
-          </div>
-          <div className={`text-center p-4 rounded-xl ${risk.bg}`}>
-            <p className={`text-xs font-medium uppercase tracking-wide mb-1 ${risk.text}`}>Risk</p>
-            <div className="flex items-center justify-center gap-2">
-              <span className={`w-2.5 h-2.5 rounded-full ${risk.dot}`} />
-              <p className={`text-xl sm:text-2xl font-bold ${risk.text}`}>
-                {r.overallRiskLevel.replace("_", " ")}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Quick stats row */}
-        <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-gray-600 justify-center">
-          <span>Down: <strong className="text-gray-900">{fmt(a.downPaymentAmount)}</strong> ({a.downPaymentPercent}%)</span>
-          <span className="hidden sm:inline text-gray-300">|</span>
-          <span>Loan: <strong className="text-gray-900">{fmt(a.loanAmount)}</strong></span>
-          <span className="hidden sm:inline text-gray-300">|</span>
-          <span>30yr Rate: <strong className="text-gray-900">{m.mortgageRates.thirtyYearFixed}%</strong></span>
-          <span className="hidden sm:inline text-gray-300">|</span>
-          <span>DTI: <strong className="text-gray-900">{a.dtiAnalysis.backEndRatio}%</strong> ({a.dtiAnalysis.backEndStatus})</span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function ExpandableSection({
   title,
   defaultOpen = false,
@@ -207,21 +143,20 @@ export default function ResultsDashboard({ report, onReset, summaryLoading, user
           </StreamFadeIn>
         )}
 
-        {/* Summary Hero */}
+        {/* Affordability Overview */}
         {hasCore && (
           <StreamFadeIn delay={report.propertyAnalysis ? 200 : 100}>
-            <SummaryHero report={report} />
+            <AffordabilityCard
+              data={report.affordability}
+              risk={report.riskAssessment}
+              mortgageRate={report.marketSnapshot.mortgageRates.thirtyYearFixed}
+            />
           </StreamFadeIn>
         )}
 
         {/* Data Cards */}
         {hasCore && (
           <div className="space-y-4">
-            <StreamFadeIn delay={200}>
-              <ExpandableSection title="Affordability Details" defaultOpen>
-                <AffordabilityCard data={report.affordability} />
-              </ExpandableSection>
-            </StreamFadeIn>
 
             {report.preApprovalReadiness && (
               <StreamFadeIn delay={300}>
