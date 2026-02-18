@@ -13,7 +13,6 @@ import AISummaryCard from "./AISummaryCard";
 import PropertyAffordabilityCard from "./PropertyAffordabilityCard";
 import RentVsBuyCard from "./RentVsBuyCard";
 import MatchingPropertiesCard from "./MatchingPropertiesCard";
-import PreApprovalReadinessCard from "./PreApprovalReadinessCard";
 import NeighborhoodInfoCard from "./NeighborhoodInfoCard";
 import BudgetSimulatorCard from "./BudgetSimulatorCard";
 
@@ -110,7 +109,13 @@ export default function ResultsDashboard({ report, onReset, summaryLoading, user
         <StreamFadeIn>
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-2xl font-bold text-gray-900">Your Affordability Report</h2>
+              <h2 className="text-2xl font-bold text-gray-900">
+                {report.propertyAnalysis?.property.address
+                  ? `Report for ${report.propertyAnalysis.property.address}`
+                  : userLocation
+                    ? `Report for ${userLocation}`
+                    : "Your Affordability Report"}
+              </h2>
               {report.generatedAt && (
                 <p className="text-sm text-gray-500">
                   Generated {new Date(report.generatedAt).toLocaleString()}
@@ -158,20 +163,13 @@ export default function ResultsDashboard({ report, onReset, summaryLoading, user
         {hasCore && (
           <div className="space-y-4">
 
-            {report.preApprovalReadiness && (
-              <StreamFadeIn delay={300}>
-                <ExpandableSection title="Pre-Approval Readiness" defaultOpen>
-                  <PreApprovalReadinessCard data={report.preApprovalReadiness} />
-                </ExpandableSection>
-              </StreamFadeIn>
-            )}
-
-            <StreamFadeIn delay={350}>
-              <ExpandableSection title="Budget Simulator & Recommendations" defaultOpen>
+            <StreamFadeIn delay={300}>
+              <ExpandableSection title="Financial Readiness & Simulator" defaultOpen>
                 <BudgetSimulatorCard
                   affordability={report.affordability}
                   marketSnapshot={report.marketSnapshot}
                   recommendations={report.recommendations}
+                  preApprovalReadiness={report.preApprovalReadiness}
                 />
               </ExpandableSection>
             </StreamFadeIn>
