@@ -88,6 +88,7 @@ export class OrchestratorAgent {
 
     // Pre-approval readiness score
     const preApprovalReadiness = this.computePreApprovalReadiness(userProfile, affordability, riskReport);
+    console.log(`      Pre-approval readiness: score=${preApprovalReadiness.overallScore}, level=${preApprovalReadiness.level}`);
 
     console.log(`      Done (${((Date.now() - t2) / 1000).toFixed(1)}s)`);
     onProgress?.({ phase: "analysis", affordability, riskAssessment: riskReport, recommendations, propertyAnalysis, rentVsBuy, preApprovalReadiness });
