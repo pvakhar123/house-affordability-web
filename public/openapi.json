@@ -1,0 +1,671 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Home Affordability Calculator",
+    "description": "Mortgage calculation tools for home buyers. Calculate affordability, analyze properties, compare loan scenarios, stress-test finances, and get live market data.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://aicalculator.homes"
+    }
+  ],
+  "paths": {
+    "/api/gpt/calculate-affordability": {
+      "post": {
+        "operationId": "calculateAffordability",
+        "summary": "Calculate max affordable home price based on income, debts, and savings",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["annual_gross_income", "down_payment_amount"],
+                "properties": {
+                  "annual_gross_income": {
+                    "type": "number",
+                    "description": "Annual gross income in dollars (e.g., 120000)"
+                  },
+                  "down_payment_amount": {
+                    "type": "number",
+                    "description": "Total down payment savings in dollars (e.g., 60000)"
+                  },
+                  "monthly_debt_payments": {
+                    "type": "number",
+                    "description": "Total monthly debt payments — student loans, car, credit cards (default: 0)",
+                    "default": 0
+                  },
+                  "interest_rate": {
+                    "type": "number",
+                    "description": "Annual mortgage interest rate as a decimal (e.g., 0.065 for 6.5%). Default: 0.0675",
+                    "default": 0.0675
+                  },
+                  "loan_term_years": {
+                    "type": "integer",
+                    "description": "Loan term in years (15, 20, or 30). Default: 30",
+                    "default": 30,
+                    "enum": [15, 20, 30]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Affordability analysis with max price, monthly payment breakdown, DTI, and amortization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "maxHomePrice": { "type": "number" },
+                    "recommendedHomePrice": { "type": "number" },
+                    "maxLoanAmount": { "type": "number" },
+                    "downPayment": {
+                      "type": "object",
+                      "properties": {
+                        "amount": { "type": "number" },
+                        "percentOfMaxPrice": { "type": "number" }
+                      }
+                    },
+                    "limitingFactor": { "type": "string" },
+                    "monthlyPayment": {
+                      "type": "object",
+                      "properties": {
+                        "principalAndInterest": { "type": "number" },
+                        "propertyTax": { "type": "number" },
+                        "homeInsurance": { "type": "number" },
+                        "pmi": { "type": "number" },
+                        "totalMonthly": { "type": "number" }
+                      }
+                    },
+                    "dtiAnalysis": {
+                      "type": "object",
+                      "properties": {
+                        "frontEndDTI": { "type": "number" },
+                        "backEndDTI": { "type": "number" },
+                        "frontEndVerdict": { "type": "string" },
+                        "backEndVerdict": { "type": "string" }
+                      }
+                    },
+                    "amortizationSummary": {
+                      "type": "object",
+                      "properties": {
+                        "totalInterest": { "type": "number" },
+                        "totalPaid": { "type": "number" },
+                        "payoffDate": { "type": "string" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/gpt/analyze-property": {
+      "post": {
+        "operationId": "analyzeProperty",
+        "summary": "Analyze whether a specific home price is affordable for the user",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["home_price", "annual_gross_income", "down_payment_amount"],
+                "properties": {
+                  "home_price": {
+                    "type": "number",
+                    "description": "Asking price of the property in dollars"
+                  },
+                  "annual_gross_income": {
+                    "type": "number",
+                    "description": "Annual gross income in dollars"
+                  },
+                  "down_payment_amount": {
+                    "type": "number",
+                    "description": "Down payment amount in dollars"
+                  },
+                  "monthly_debt_payments": {
+                    "type": "number",
+                    "description": "Total monthly debt payments (default: 0)",
+                    "default": 0
+                  },
+                  "interest_rate": {
+                    "type": "number",
+                    "description": "Annual mortgage rate as decimal (default: 0.0675)",
+                    "default": 0.0675
+                  },
+                  "loan_term_years": {
+                    "type": "integer",
+                    "description": "Loan term in years (default: 30)",
+                    "default": 30
+                  },
+                  "hoa_monthly": {
+                    "type": "number",
+                    "description": "Monthly HOA fees (default: 0)",
+                    "default": 0
+                  },
+                  "property_tax_annual": {
+                    "type": "number",
+                    "description": "Annual property tax in dollars (if known; otherwise estimated at 1.1%)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Property affordability analysis with verdict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "property": {
+                      "type": "object",
+                      "properties": {
+                        "askingPrice": { "type": "number" },
+                        "hoaMonthly": { "type": "number" }
+                      }
+                    },
+                    "monthlyPayment": {
+                      "type": "object",
+                      "properties": {
+                        "principalAndInterest": { "type": "number" },
+                        "propertyTax": { "type": "number" },
+                        "homeInsurance": { "type": "number" },
+                        "pmi": { "type": "number" },
+                        "totalMonthly": { "type": "number" },
+                        "hoa": { "type": "number" },
+                        "totalWithHoa": { "type": "number" }
+                      }
+                    },
+                    "dtiAnalysis": { "type": "object" },
+                    "comparison": {
+                      "type": "object",
+                      "properties": {
+                        "maxAffordablePrice": { "type": "number" },
+                        "recommendedPrice": { "type": "number" },
+                        "percentOfMax": { "type": "integer" },
+                        "differenceFromRecommended": { "type": "number" }
+                      }
+                    },
+                    "verdict": {
+                      "type": "string",
+                      "enum": ["comfortable", "tight but affordable", "stretch - over budget", "significantly over budget"]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/gpt/compare-scenarios": {
+      "post": {
+        "operationId": "compareScenarios",
+        "summary": "Compare two loan scenarios side-by-side (e.g., 15yr vs 30yr, different rates)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["home_price", "down_payment_amount", "scenario_a", "scenario_b"],
+                "properties": {
+                  "home_price": {
+                    "type": "number",
+                    "description": "Home price in dollars"
+                  },
+                  "down_payment_amount": {
+                    "type": "number",
+                    "description": "Down payment in dollars"
+                  },
+                  "scenario_a": {
+                    "type": "object",
+                    "required": ["interest_rate", "loan_term_years"],
+                    "properties": {
+                      "label": { "type": "string", "description": "Label for this scenario (e.g., '30-Year Fixed')" },
+                      "interest_rate": { "type": "number", "description": "Annual rate as decimal" },
+                      "loan_term_years": { "type": "integer", "description": "Loan term in years" }
+                    }
+                  },
+                  "scenario_b": {
+                    "type": "object",
+                    "required": ["interest_rate", "loan_term_years"],
+                    "properties": {
+                      "label": { "type": "string" },
+                      "interest_rate": { "type": "number" },
+                      "loan_term_years": { "type": "integer" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Side-by-side comparison of two loan scenarios",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "homePrice": { "type": "number" },
+                    "downPayment": { "type": "number" },
+                    "loanAmount": { "type": "number" },
+                    "scenarioA": {
+                      "type": "object",
+                      "properties": {
+                        "label": { "type": "string" },
+                        "rate": { "type": "number" },
+                        "termYears": { "type": "integer" },
+                        "monthlyPayment": { "type": "object" },
+                        "totalCost": { "type": "number" },
+                        "totalInterest": { "type": "number" }
+                      }
+                    },
+                    "scenarioB": { "type": "object" },
+                    "comparison": {
+                      "type": "object",
+                      "properties": {
+                        "monthlyDifference": { "type": "number" },
+                        "totalCostDifference": { "type": "number" },
+                        "totalInterestDifference": { "type": "number" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/gpt/stress-test": {
+      "post": {
+        "operationId": "stressTest",
+        "summary": "Stress-test finances: what happens if rates rise or income drops?",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["test_type", "loan_amount", "current_rate", "gross_monthly_income"],
+                "properties": {
+                  "test_type": {
+                    "type": "string",
+                    "enum": ["rate_hike", "income_loss", "both"],
+                    "description": "Type of stress test to run"
+                  },
+                  "loan_amount": {
+                    "type": "number",
+                    "description": "Loan amount in dollars"
+                  },
+                  "current_rate": {
+                    "type": "number",
+                    "description": "Current interest rate as decimal (e.g., 0.065)"
+                  },
+                  "loan_term_years": {
+                    "type": "integer",
+                    "default": 30
+                  },
+                  "gross_monthly_income": {
+                    "type": "number",
+                    "description": "Gross monthly income in dollars"
+                  },
+                  "existing_monthly_debts": {
+                    "type": "number",
+                    "default": 0
+                  },
+                  "property_tax_monthly": {
+                    "type": "number",
+                    "default": 0
+                  },
+                  "insurance_monthly": {
+                    "type": "number",
+                    "default": 125
+                  },
+                  "rate_increase": {
+                    "type": "number",
+                    "description": "Rate increase to test (default: 0.02 = 2 percentage points)",
+                    "default": 0.02
+                  },
+                  "income_reduction_percent": {
+                    "type": "number",
+                    "description": "Percentage of income to lose (default: 20)",
+                    "default": 20
+                  },
+                  "monthly_housing_payment": {
+                    "type": "number",
+                    "description": "Current total monthly housing payment (if known)"
+                  },
+                  "remaining_savings": {
+                    "type": "number",
+                    "default": 10000
+                  },
+                  "monthly_expenses": {
+                    "type": "number",
+                    "default": 2000
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Stress test results showing impact of rate hike and/or income loss",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "rateHike": {
+                      "type": "object",
+                      "description": "Results of rate hike stress test (present if test_type is rate_hike or both)"
+                    },
+                    "incomeLoss": {
+                      "type": "object",
+                      "description": "Results of income loss stress test (present if test_type is income_loss or both)"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/gpt/rent-vs-buy": {
+      "post": {
+        "operationId": "rentVsBuy",
+        "summary": "Compare the total cost of renting vs buying over a given number of years",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["home_price", "down_payment_amount", "monthly_rent"],
+                "properties": {
+                  "home_price": {
+                    "type": "number",
+                    "description": "Purchase price of the home"
+                  },
+                  "down_payment_amount": {
+                    "type": "number",
+                    "description": "Down payment in dollars"
+                  },
+                  "monthly_rent": {
+                    "type": "number",
+                    "description": "Current monthly rent in dollars"
+                  },
+                  "interest_rate": {
+                    "type": "number",
+                    "default": 0.0675
+                  },
+                  "loan_term_years": {
+                    "type": "integer",
+                    "default": 30
+                  },
+                  "years": {
+                    "type": "integer",
+                    "description": "Number of years to compare (default: 7)",
+                    "default": 7
+                  },
+                  "rent_growth_rate": {
+                    "type": "number",
+                    "description": "Annual rent increase rate (default: 0.03 = 3%)",
+                    "default": 0.03
+                  },
+                  "home_appreciation_rate": {
+                    "type": "number",
+                    "description": "Annual home appreciation rate (default: 0.03 = 3%)",
+                    "default": 0.03
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Rent vs buy comparison with total costs and verdict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "comparison": {
+                      "type": "object",
+                      "properties": {
+                        "years": { "type": "integer" },
+                        "homePrice": { "type": "number" },
+                        "downPayment": { "type": "number" },
+                        "monthlyRent": { "type": "number" }
+                      }
+                    },
+                    "results": {
+                      "type": "object",
+                      "properties": {
+                        "totalRentCost": { "type": "number" },
+                        "totalBuyCost": { "type": "number" },
+                        "equityBuilt": { "type": "number" },
+                        "netBuyCost": { "type": "number" }
+                      }
+                    },
+                    "verdict": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/gpt/lookup-mortgage-info": {
+      "post": {
+        "operationId": "lookupMortgageInfo",
+        "summary": "Search the mortgage knowledge base for info on FHA, VA, PMI, closing costs, etc.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["question"],
+                "properties": {
+                  "question": {
+                    "type": "string",
+                    "description": "A natural language question about mortgages (e.g., 'What is PMI and how do I avoid it?')"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Relevant documents from the mortgage knowledge base",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "documentsFound": { "type": "integer" },
+                    "results": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "title": { "type": "string" },
+                          "source": { "type": "string" },
+                          "relevanceScore": { "type": "number" },
+                          "content": { "type": "string" }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/gpt/current-rates": {
+      "post": {
+        "operationId": "getCurrentRates",
+        "summary": "Get today's live mortgage rates from the Federal Reserve (FRED)",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Current mortgage rates",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "asOf": { "type": "string", "description": "Date of the rate data" },
+                    "thirtyYearFixed": { "type": "number" },
+                    "fifteenYearFixed": { "type": "number" },
+                    "fiveOneArm": { "type": "number" },
+                    "source": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/gpt/search-properties": {
+      "post": {
+        "operationId": "searchProperties",
+        "summary": "Search for homes currently for sale in a US city",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["location"],
+                "properties": {
+                  "location": {
+                    "type": "string",
+                    "description": "City and state (e.g., 'Austin, TX')"
+                  },
+                  "max_price": {
+                    "type": "number",
+                    "description": "Maximum listing price filter"
+                  },
+                  "min_beds": {
+                    "type": "integer",
+                    "description": "Minimum number of bedrooms"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Property listings from Zillow",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "location": { "type": "string" },
+                    "resultCount": { "type": "integer" },
+                    "listings": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "address": { "type": "string" },
+                          "price": { "type": "number" },
+                          "beds": { "type": "integer" },
+                          "baths": { "type": "number" },
+                          "sqft": { "type": "number" },
+                          "homeType": { "type": "string" },
+                          "listingUrl": { "type": "string" }
+                        }
+                      }
+                    },
+                    "source": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/gpt/area-info": {
+      "post": {
+        "operationId": "getAreaInfo",
+        "summary": "Get property taxes, school ratings, and cost of living for a US metro area",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["location"],
+                "properties": {
+                  "location": {
+                    "type": "string",
+                    "description": "City and state (e.g., 'Denver, CO'). Covers top 50+ US metro areas."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Area information including taxes, schools, and cost of living",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "location": { "type": "string" },
+                    "state": { "type": "string" },
+                    "propertyTaxRate": { "type": "string" },
+                    "estimatedAnnualTaxOn400K": { "type": "string" },
+                    "medianHomePrice": { "type": "string" },
+                    "schoolRating": { "type": "string" },
+                    "costOfLivingIndex": { "type": "number" },
+                    "costOfLivingNote": { "type": "string" },
+                    "notes": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
