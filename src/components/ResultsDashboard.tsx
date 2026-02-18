@@ -16,6 +16,7 @@ import RentVsBuyCard from "./RentVsBuyCard";
 import MatchingPropertiesCard from "./MatchingPropertiesCard";
 import PreApprovalReadinessCard from "./PreApprovalReadinessCard";
 import NeighborhoodInfoCard from "./NeighborhoodInfoCard";
+import BudgetSimulatorCard from "./BudgetSimulatorCard";
 
 interface Props {
   report: FinalReport;
@@ -220,6 +221,15 @@ export default function ResultsDashboard({ report, onReset, summaryLoading, user
             <StreamFadeIn delay={200}>
               <ExpandableSection title="Affordability Details" defaultOpen>
                 <AffordabilityCard data={report.affordability} />
+              </ExpandableSection>
+            </StreamFadeIn>
+
+            <StreamFadeIn delay={250}>
+              <ExpandableSection title="Budget Simulator">
+                <BudgetSimulatorCard
+                  affordability={report.affordability}
+                  marketSnapshot={report.marketSnapshot}
+                />
               </ExpandableSection>
             </StreamFadeIn>
 
