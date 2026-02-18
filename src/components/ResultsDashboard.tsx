@@ -222,25 +222,31 @@ export default function ResultsDashboard({ report, onReset, summaryLoading, user
               </ExpandableSection>
             </StreamFadeIn>
 
-            <StreamFadeIn delay={300}>
-              <ExpandableSection title="Market Snapshot">
-                <MarketSnapshotCard data={report.marketSnapshot} />
-              </ExpandableSection>
-            </StreamFadeIn>
-
-            <StreamFadeIn delay={400}>
-              <ExpandableSection title="Risk Assessment">
-                <RiskAssessmentCard data={report.riskAssessment} />
-              </ExpandableSection>
-            </StreamFadeIn>
-
             {report.preApprovalReadiness && (
-              <StreamFadeIn delay={450}>
+              <StreamFadeIn delay={300}>
                 <ExpandableSection title="Pre-Approval Readiness" defaultOpen>
                   <PreApprovalReadinessCard data={report.preApprovalReadiness} />
                 </ExpandableSection>
               </StreamFadeIn>
             )}
+
+            <StreamFadeIn delay={350}>
+              <ExpandableSection title="Recommendations" defaultOpen>
+                <RecommendationsCard data={report.recommendations} />
+              </ExpandableSection>
+            </StreamFadeIn>
+
+            <StreamFadeIn delay={400}>
+              <ExpandableSection title="Market Snapshot">
+                <MarketSnapshotCard data={report.marketSnapshot} />
+              </ExpandableSection>
+            </StreamFadeIn>
+
+            <StreamFadeIn delay={450}>
+              <ExpandableSection title="Risk Assessment">
+                <RiskAssessmentCard data={report.riskAssessment} />
+              </ExpandableSection>
+            </StreamFadeIn>
 
             {report.rentVsBuy && (
               <StreamFadeIn delay={500}>
@@ -250,21 +256,15 @@ export default function ResultsDashboard({ report, onReset, summaryLoading, user
               </StreamFadeIn>
             )}
 
-            <StreamFadeIn delay={550}>
-              <ExpandableSection title="Recommendations" defaultOpen>
-                <RecommendationsCard data={report.recommendations} />
-              </ExpandableSection>
-            </StreamFadeIn>
-
             {report.recommendations.loanOptions?.length > 0 && (
-              <StreamFadeIn delay={600}>
+              <StreamFadeIn delay={550}>
                 <ExpandableSection title="Loan Programs">
                   <LoanProgramsCard data={report.recommendations.loanOptions} />
                 </ExpandableSection>
               </StreamFadeIn>
             )}
 
-            <StreamFadeIn delay={650}>
+            <StreamFadeIn delay={600}>
               <ExpandableSection title="5-Year Equity Buildup">
                 <AmortizationTable data={report.affordability.amortizationSummary} />
               </ExpandableSection>
