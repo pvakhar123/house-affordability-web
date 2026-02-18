@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import type { AffordabilityResult, MarketDataResult } from "@/lib/types";
+import type { AffordabilityResult, MarketDataResult, RecommendationsResult } from "@/lib/types";
 import {
   calculateMaxHomePrice,
   calculateMonthlyPayment,
@@ -11,6 +11,7 @@ import {
 interface Props {
   affordability: AffordabilityResult;
   marketSnapshot: MarketDataResult;
+  recommendations: RecommendationsResult;
 }
 
 /* ── Constants matching the orchestrator ── */
@@ -112,7 +113,212 @@ function SliderRow({
   );
 }
 
-export default function BudgetSimulatorCard({ affordability: a, marketSnapshot: m }: Props) {
+interface Tip {
+  icon: string;
+  color: string;
+  bg: string;
+  text: string;
+}
+
+function generateDynamicTips(
+  originals: { annualIncome: number; monthlyDebt: number; downPayment: number },
+  simulated: {
+    maxHomePrice: number;
+    maxLoanAmount: number;
+    payment: { totalMonthly: number; pmi: number };
+    dti: { backEndRatio: number; frontEndRatio: number };
+  },
+  original: AffordabilityResult,
+  income: number,
+  debt: number,
+  downPayment: number,
+  recommendations: RecommendationsResult,
+): Tip[] {
+  const tips: Tip[] = [];
+  const origPmi = original.monthlyPayment.pmi;
+  const simPmi = simulated.payment.pmi;
+  const dpPercent = simulated.maxHomePrice > 0 ? (downPayment / simulated.maxHomePrice) * 100 : 0;
+  const origDpPercent = original.maxHomePrice > 0 ? (original.downPaymentAmount / original.maxHomePrice) * 100 : 0;
+
+  // PMI elimination
+  if (origPmi > 0 && simPmi === 0) {
+    tips.push({
+      icon: "check",
+      color: "text-green-700",
+      bg: "bg-green-50 border-green-200",
+      text: `PMI eliminated! You save ${fmt(origPmi)}/mo (${fmt(origPmi * 12)}/yr) by reaching 20% down.`,
+    });
+  } else if (origPmi === 0 && simPmi > 0) {
+    tips.push({
+      icon: "warn",
+      color: "text-amber-700",
+      bg: "bg-amber-50 border-amber-200",
+      text: `PMI now required at ${fmt(simPmi)}/mo (${fmt(simPmi * 12)}/yr). Increase down payment to 20% to avoid it.`,
+    });
+  } else if (simPmi > 0 && dpPercent < 20) {
+    const neededDp = Math.ceil(simulated.maxHomePrice * 0.2);
+    const gap = neededDp - downPayment;
+    if (gap > 0) {
+      tips.push({
+        icon: "target",
+        color: "text-blue-700",
+        bg: "bg-blue-50 border-blue-200",
+        text: `Save ${fmt(gap)} more for a 20% down payment to eliminate ${fmt(simPmi)}/mo in PMI.`,
+      });
+    }
+  }
+
+  // DTI warnings
+  if (simulated.dti.backEndRatio > 43) {
+    tips.push({
+      icon: "alert",
+      color: "text-red-700",
+      bg: "bg-red-50 border-red-200",
+      text: `Back-end DTI of ${simulated.dti.backEndRatio}% exceeds the 43% qualified mortgage limit. Most lenders will not approve this.`,
+    });
+  } else if (simulated.dti.backEndRatio > 36) {
+    tips.push({
+      icon: "warn",
+      color: "text-amber-700",
+      bg: "bg-amber-50 border-amber-200",
+      text: `Back-end DTI of ${simulated.dti.backEndRatio}% is above the ideal 36% threshold. You may face higher rates or stricter underwriting.`,
+    });
+  } else if (original.dtiAnalysis.backEndRatio > 36 && simulated.dti.backEndRatio <= 36) {
+    tips.push({
+      icon: "check",
+      color: "text-green-700",
+      bg: "bg-green-50 border-green-200",
+      text: `DTI improved to ${simulated.dti.backEndRatio}% — now in the safe zone under 36%. This significantly improves your approval odds.`,
+    });
+  }
+
+  // Debt payoff impact
+  if (debt < originals.monthlyDebt && originals.monthlyDebt > 0) {
+    const debtReduction = originals.monthlyDebt - debt;
+    const priceGain = simulated.maxHomePrice - original.maxHomePrice;
+    if (priceGain > 1000) {
+      tips.push({
+        icon: "up",
+        color: "text-emerald-700",
+        bg: "bg-emerald-50 border-emerald-200",
+        text: `Reducing debt by ${fmt(debtReduction)}/mo unlocks ${fmt(priceGain)} more in home buying power.`,
+      });
+    }
+  }
+
+  // Income increase impact
+  if (income > originals.annualIncome) {
+    const incomeGain = income - originals.annualIncome;
+    const priceGain = simulated.maxHomePrice - original.maxHomePrice;
+    if (priceGain > 1000 && debt === originals.monthlyDebt && downPayment === originals.downPayment) {
+      tips.push({
+        icon: "up",
+        color: "text-emerald-700",
+        bg: "bg-emerald-50 border-emerald-200",
+        text: `A ${fmt(incomeGain)} income increase adds ${fmt(priceGain)} to your max home price.`,
+      });
+    }
+  }
+
+  // Down payment as percentage insight
+  if (dpPercent >= 20 && origDpPercent < 20) {
+    tips.push({
+      icon: "check",
+      color: "text-green-700",
+      bg: "bg-green-50 border-green-200",
+      text: `Down payment is now ${dpPercent.toFixed(0)}% of the home price — no PMI and stronger offer positioning.`,
+    });
+  }
+
+  // Closing cost estimate
+  const closingLow = Math.round(simulated.maxHomePrice * 0.02);
+  const closingHigh = Math.round(simulated.maxHomePrice * 0.05);
+  tips.push({
+    icon: "info",
+    color: "text-gray-600",
+    bg: "bg-gray-50 border-gray-200",
+    text: `Estimated closing costs: ${fmt(closingLow)} – ${fmt(closingHigh)} (2-5% of ${fmt(simulated.maxHomePrice)}).`,
+  });
+
+  // Loan program eligibility hints
+  if (dpPercent < 3.5) {
+    tips.push({
+      icon: "info",
+      color: "text-gray-600",
+      bg: "bg-gray-50 border-gray-200",
+      text: `With ${dpPercent.toFixed(1)}% down, FHA loans (3.5% min) may not be available. Increase down payment to ${fmt(Math.ceil(simulated.maxHomePrice * 0.035))}.`,
+    });
+  } else if (dpPercent >= 3.5 && dpPercent < 5) {
+    tips.push({
+      icon: "info",
+      color: "text-blue-600",
+      bg: "bg-blue-50 border-blue-200",
+      text: `FHA loans available at ${dpPercent.toFixed(1)}% down. Conventional loans typically require 5%+ (${fmt(Math.ceil(simulated.maxHomePrice * 0.05))}).`,
+    });
+  }
+
+  // Savings strategies from original report (contextually relevant ones)
+  if (recommendations.savingsStrategies?.length > 0 && simPmi > 0) {
+    const topStrategy = recommendations.savingsStrategies[0];
+    tips.push({
+      icon: "bulb",
+      color: "text-purple-700",
+      bg: "bg-purple-50 border-purple-200",
+      text: `${topStrategy.title}: ${topStrategy.description}`,
+    });
+  }
+
+  return tips;
+}
+
+function TipIcon({ type }: { type: string }) {
+  switch (type) {
+    case "check":
+      return (
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      );
+    case "warn":
+      return (
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+        </svg>
+      );
+    case "alert":
+      return (
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m0 3.75h.007v.008H12v-.008zm9.303-3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126z" />
+        </svg>
+      );
+    case "up":
+      return (
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" />
+        </svg>
+      );
+    case "target":
+      return (
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      );
+    case "bulb":
+      return (
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.517 0c.85.493 1.509 1.333 1.509 2.316V18" />
+        </svg>
+      );
+    default:
+      return (
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+        </svg>
+      );
+  }
+}
+
+export default function BudgetSimulatorCard({ affordability: a, marketSnapshot: m, recommendations }: Props) {
   /* ── Reverse-engineer original inputs from the report ── */
   const originals = useMemo(() => {
     const grossMonthlyIncome =
@@ -169,6 +375,12 @@ export default function BudgetSimulatorCard({ affordability: a, marketSnapshot: 
 
   const priceChanged = Math.abs(simulated.maxHomePrice - a.maxHomePrice) > 100;
 
+  /* ── Dynamic recommendations ── */
+  const tips = useMemo(
+    () => generateDynamicTips(originals, simulated, a, income, debt, downPayment, recommendations),
+    [originals, simulated, a, income, debt, downPayment, recommendations]
+  );
+
   /* ── Visual comparison bar ── */
   const barMax = Math.max(a.maxHomePrice, simulated.maxHomePrice) * 1.1;
   const origWidth = (a.maxHomePrice / barMax) * 100;
@@ -188,7 +400,7 @@ export default function BudgetSimulatorCard({ affordability: a, marketSnapshot: 
   return (
     <div>
       <p className="text-sm text-gray-500 mb-4">
-        Adjust income, debt, or down payment to see how it affects your affordability in real-time.
+        Adjust income, debt, or down payment to see how it affects your affordability and recommendations in real-time.
       </p>
 
       {/* Sliders */}
@@ -266,7 +478,7 @@ export default function BudgetSimulatorCard({ affordability: a, marketSnapshot: 
 
       {/* Comparison bar */}
       {priceChanged && (
-        <div className="space-y-2">
+        <div className="space-y-2 mb-5">
           <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
             Max Price Comparison
           </p>
@@ -293,6 +505,28 @@ export default function BudgetSimulatorCard({ affordability: a, marketSnapshot: 
               </div>
               <span className="text-xs font-medium text-blue-700 w-24 text-right">{fmt(simulated.maxHomePrice)}</span>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Dynamic Recommendations */}
+      {tips.length > 0 && (
+        <div>
+          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">
+            Recommendations
+          </p>
+          <div className="space-y-2">
+            {tips.map((tip, i) => (
+              <div
+                key={i}
+                className={`flex items-start gap-2.5 p-3 rounded-lg border ${tip.bg} transition-all duration-200`}
+              >
+                <span className={`mt-0.5 shrink-0 ${tip.color}`}>
+                  <TipIcon type={tip.icon} />
+                </span>
+                <p className={`text-sm ${tip.color}`}>{tip.text}</p>
+              </div>
+            ))}
           </div>
         </div>
       )}

@@ -224,15 +224,6 @@ export default function ResultsDashboard({ report, onReset, summaryLoading, user
               </ExpandableSection>
             </StreamFadeIn>
 
-            <StreamFadeIn delay={250}>
-              <ExpandableSection title="Budget Simulator">
-                <BudgetSimulatorCard
-                  affordability={report.affordability}
-                  marketSnapshot={report.marketSnapshot}
-                />
-              </ExpandableSection>
-            </StreamFadeIn>
-
             {report.preApprovalReadiness && (
               <StreamFadeIn delay={300}>
                 <ExpandableSection title="Pre-Approval Readiness" defaultOpen>
@@ -244,6 +235,16 @@ export default function ResultsDashboard({ report, onReset, summaryLoading, user
             <StreamFadeIn delay={350}>
               <ExpandableSection title="Recommendations" defaultOpen>
                 <RecommendationsCard data={report.recommendations} />
+              </ExpandableSection>
+            </StreamFadeIn>
+
+            <StreamFadeIn delay={375}>
+              <ExpandableSection title="Budget Simulator">
+                <BudgetSimulatorCard
+                  affordability={report.affordability}
+                  marketSnapshot={report.marketSnapshot}
+                  recommendations={report.recommendations}
+                />
               </ExpandableSection>
             </StreamFadeIn>
 
