@@ -24,6 +24,7 @@ const handler = createMcpHandler(
         interest_rate: z.number().default(0.0675).describe("Annual interest rate as decimal (e.g., 0.0675 for 6.75%)"),
         loan_term_years: z.number().default(30).describe("Loan term in years (15 or 30)"),
       },
+      { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
       async (params) => {
         const propertyTaxRate = 0.011;
         const insuranceAnnual = 1500;
@@ -101,6 +102,7 @@ const handler = createMcpHandler(
         hoa_monthly: z.number().default(0).describe("Monthly HOA fees"),
         property_tax_annual: z.number().optional().describe("Annual property tax (defaults to 1.1% of price)"),
       },
+      { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
       async (params) => {
         const propertyTaxRate = params.property_tax_annual
           ? params.property_tax_annual / params.home_price
@@ -191,6 +193,7 @@ const handler = createMcpHandler(
           label: z.string().optional().describe("Label for this scenario"),
         }),
       },
+      { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
       async (params) => {
         const propertyTaxRate = 0.011;
         const insuranceAnnual = 1500;
@@ -275,6 +278,7 @@ const handler = createMcpHandler(
         remaining_savings: z.number().default(10000).describe("Remaining savings after purchase"),
         monthly_expenses: z.number().default(2000).describe("Monthly non-housing, non-debt expenses"),
       },
+      { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
       async (params) => {
         const results: Record<string, unknown> = {};
 
@@ -333,6 +337,7 @@ const handler = createMcpHandler(
         rent_growth_rate: z.number().default(0.03).describe("Annual rent increase rate (e.g., 0.03 for 3%)"),
         home_appreciation_rate: z.number().default(0.03).describe("Annual home price appreciation rate"),
       },
+      { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
       async (params) => {
         const result = calculateRentVsBuy({
           homePrice: params.home_price,
@@ -378,6 +383,7 @@ const handler = createMcpHandler(
       {
         question: z.string().describe("Question about mortgages, loan types, homebuying, etc."),
       },
+      { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
       async (params) => {
         const results = retrieve(params.question, 3);
 
