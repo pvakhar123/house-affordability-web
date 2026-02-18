@@ -15,6 +15,7 @@ import PropertyAffordabilityCard from "./PropertyAffordabilityCard";
 import RentVsBuyCard from "./RentVsBuyCard";
 import MatchingPropertiesCard from "./MatchingPropertiesCard";
 import PreApprovalReadinessCard from "./PreApprovalReadinessCard";
+import NeighborhoodInfoCard from "./NeighborhoodInfoCard";
 
 interface Props {
   report: FinalReport;
@@ -241,6 +242,14 @@ export default function ResultsDashboard({ report, onReset, summaryLoading, user
                 <MarketSnapshotCard data={report.marketSnapshot} />
               </ExpandableSection>
             </StreamFadeIn>
+
+            {report.neighborhoodInfo && (
+              <StreamFadeIn delay={420}>
+                <ExpandableSection title="Neighborhood Info">
+                  <NeighborhoodInfoCard data={report.neighborhoodInfo} />
+                </ExpandableSection>
+              </StreamFadeIn>
+            )}
 
             <StreamFadeIn delay={450}>
               <ExpandableSection title="Risk Assessment">

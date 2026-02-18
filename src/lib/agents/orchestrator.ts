@@ -31,12 +31,13 @@ import type {
   PreApprovalReadinessScore,
   ReadinessActionItem,
 } from "../types/index";
+import { getNeighborhoodInfo, type NeighborhoodInfo } from "../data/area-info";
 
 const cache = new CacheService();
 
 export type StreamPhase =
   | { phase: "market_data"; marketSnapshot: MarketDataResult }
-  | { phase: "analysis"; affordability: AffordabilityResult; riskAssessment: RiskReport; recommendations: RecommendationsResult; propertyAnalysis?: PropertyAnalysis; rentVsBuy?: RentVsBuyReport; preApprovalReadiness?: PreApprovalReadinessScore }
+  | { phase: "analysis"; affordability: AffordabilityResult; riskAssessment: RiskReport; recommendations: RecommendationsResult; propertyAnalysis?: PropertyAnalysis; rentVsBuy?: RentVsBuyReport; preApprovalReadiness?: PreApprovalReadinessScore; neighborhoodInfo?: NeighborhoodInfo }
   | { phase: "summary"; summary: string }
   | { phase: "complete"; disclaimers: string[]; generatedAt: string };
 
@@ -90,8 +91,13 @@ export class OrchestratorAgent {
     const preApprovalReadiness = this.computePreApprovalReadiness(userProfile, affordability, riskReport);
     console.log(`      Pre-approval readiness: score=${preApprovalReadiness.overallScore}, level=${preApprovalReadiness.level}`);
 
+    // Neighborhood info (instant curated data lookup)
+    const neighborhoodInfo = userProfile.targetLocation
+      ? getNeighborhoodInfo(userProfile.targetLocation) ?? undefined
+      : undefined;
+
     console.log(`      Done (${((Date.now() - t2) / 1000).toFixed(1)}s)`);
-    onProgress?.({ phase: "analysis", affordability, riskAssessment: riskReport, recommendations, propertyAnalysis, rentVsBuy, preApprovalReadiness });
+    onProgress?.({ phase: "analysis", affordability, riskAssessment: riskReport, recommendations, propertyAnalysis, rentVsBuy, preApprovalReadiness, neighborhoodInfo });
 
     // ── Phase 3: Single Claude call for narrative summary (~3-5s) ──
     console.log("[3/3] Generating AI summary...");
@@ -119,6 +125,7 @@ export class OrchestratorAgent {
       propertyAnalysis,
       rentVsBuy,
       preApprovalReadiness,
+      neighborhoodInfo,
       disclaimers,
       generatedAt,
     };

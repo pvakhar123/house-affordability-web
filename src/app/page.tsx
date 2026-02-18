@@ -111,6 +111,7 @@ function HomeContent() {
               propertyAnalysis: event.propertyAnalysis,
               rentVsBuy: event.rentVsBuy,
               preApprovalReadiness: event.preApprovalReadiness,
+              neighborhoodInfo: event.neighborhoodInfo,
               _summaryLoading: true,
             }));
             // Transition to results view once we have the core data

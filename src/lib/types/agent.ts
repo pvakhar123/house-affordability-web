@@ -4,6 +4,7 @@ import type { PropertyAnalysis } from "./property";
 import type { RecommendationsResult } from "./recommendations";
 import type { RiskReport } from "./risk-assessment";
 import type { UserProfile } from "./user-profile";
+import type { NeighborhoodInfo } from "../data/area-info";
 
 export interface OrchestratorState {
   userProfile: UserProfile;
@@ -57,6 +58,7 @@ export interface FinalReport {
   propertyAnalysis?: PropertyAnalysis;
   rentVsBuy?: RentVsBuyReport;
   preApprovalReadiness?: PreApprovalReadinessScore;
+  neighborhoodInfo?: NeighborhoodInfo;
   disclaimers: string[];
   generatedAt: string;
 }
