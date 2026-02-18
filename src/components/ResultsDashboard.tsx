@@ -237,7 +237,6 @@ export default function ResultsDashboard({ report, onReset, summaryLoading, user
                   affordability={report.affordability}
                   marketSnapshot={report.marketSnapshot}
                   recommendations={report.recommendations}
-                  actionItems={report.preApprovalReadiness?.actionItems}
                 />
               </ExpandableSection>
             </StreamFadeIn>
