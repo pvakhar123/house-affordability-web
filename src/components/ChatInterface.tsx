@@ -9,6 +9,39 @@ interface Message {
   content: string;
 }
 
+type Rating = "up" | "down" | null;
+
+function ThumbButton({
+  type,
+  active,
+  onClick,
+}: {
+  type: "up" | "down";
+  active: boolean;
+  onClick: () => void;
+}) {
+  const isUp = type === "up";
+  return (
+    <button
+      onClick={onClick}
+      className={`p-1 rounded transition-colors ${
+        active
+          ? isUp
+            ? "text-green-600 bg-green-50"
+            : "text-red-500 bg-red-50"
+          : "text-gray-300 hover:text-gray-500 hover:bg-gray-100"
+      }`}
+      title={isUp ? "Helpful" : "Not helpful"}
+    >
+      <svg width="14" height="14" viewBox="0 0 24 24" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+        className={isUp ? "" : "rotate-180"}
+      >
+        <path d="M7 10v12M15 5.88L14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2h0a3.13 3.13 0 0 1 3 3.88Z" />
+      </svg>
+    </button>
+  );
+}
+
 /** Format a number as $XXXk */
 function fmtPrice(n: number): string {
   if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
@@ -157,6 +190,7 @@ export default function ChatInterface({ report, userLocation }: { report: FinalR
   const [isLoading, setIsLoading] = useState(false);
   const [conversationSummary, setConversationSummary] = useState<string | null>(null);
   const [sessionMemory, setSessionMemory] = useState<SessionMemory | null>(null);
+  const [ratings, setRatings] = useState<Record<number, Rating>>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -202,6 +236,20 @@ export default function ChatInterface({ report, userLocation }: { report: FinalR
   const exchangeCount = Math.floor(messages.length / 2);
   const followUpIndex = exchangeCount % followUpPrompts.length;
   const currentFollowUps = followUpPrompts[followUpIndex];
+
+  const rateChatMessage = useCallback((messageIndex: number, rating: "up" | "down") => {
+    setRatings((prev) => {
+      const current = prev[messageIndex];
+      const next = current === rating ? null : rating;
+      // Fire-and-forget POST
+      fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "chat", rating: next ?? "retracted", messageIndex }),
+      }).catch(() => {});
+      return { ...prev, [messageIndex]: next };
+    });
+  }, []);
 
   // ── STREAMING MESSAGE SENDER ───────────────────────────────
   // Instead of waiting for the full JSON response, we read an SSE stream.
@@ -399,8 +447,17 @@ export default function ChatInterface({ report, userLocation }: { report: FinalR
                     <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
                   </div>
                 ) : (
-                  <div className="max-w-[90%] rounded-2xl px-4 py-3 bg-gray-50 border border-gray-200 text-gray-700">
-                    {renderFormattedText(msg.content)}
+                  <div className="max-w-[90%]">
+                    <div className="rounded-2xl px-4 py-3 bg-gray-50 border border-gray-200 text-gray-700">
+                      {renderFormattedText(msg.content)}
+                    </div>
+                    {/* Thumbs up/down — only for completed responses (not while streaming) */}
+                    {!(isLoading && i === messages.length - 1) && (
+                      <div className="flex gap-1 mt-1 ml-2">
+                        <ThumbButton type="up" active={ratings[i] === "up"} onClick={() => rateChatMessage(i, "up")} />
+                        <ThumbButton type="down" active={ratings[i] === "down"} onClick={() => rateChatMessage(i, "down")} />
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

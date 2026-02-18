@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import type { FinalReport } from "@/lib/types";
 import AffordabilityCard from "./AffordabilityCard";
 import MarketSnapshotCard from "./MarketSnapshotCard";
@@ -93,6 +93,58 @@ function SummaryLoadingSkeleton() {
         <div className="h-4 bg-gray-100 rounded-full animate-pulse w-full" />
         <div className="h-4 bg-gray-100 rounded-full animate-pulse w-3/4" />
       </div>
+    </div>
+  );
+}
+
+function ReportFeedback() {
+  const [rating, setRating] = useState<"up" | "down" | null>(null);
+  const [showThanks, setShowThanks] = useState(false);
+
+  const submit = useCallback((value: "up" | "down") => {
+    const next = rating === value ? null : value;
+    setRating(next);
+    setShowThanks(!!next);
+    fetch("/api/feedback", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "report", rating: next ?? "retracted" }),
+    }).catch(() => {});
+    if (next) setTimeout(() => setShowThanks(false), 2000);
+  }, [rating]);
+
+  return (
+    <div className="flex items-center justify-center gap-3 py-4">
+      <span className="text-sm text-gray-500">Was this report helpful?</span>
+      <div className="flex gap-1">
+        {(["up", "down"] as const).map((type) => {
+          const active = rating === type;
+          const isUp = type === "up";
+          return (
+            <button
+              key={type}
+              onClick={() => submit(type)}
+              className={`p-1.5 rounded-lg transition-colors ${
+                active
+                  ? isUp
+                    ? "text-green-600 bg-green-50"
+                    : "text-red-500 bg-red-50"
+                  : "text-gray-300 hover:text-gray-500 hover:bg-gray-100"
+              }`}
+              title={isUp ? "Yes, helpful" : "Not helpful"}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                className={isUp ? "" : "rotate-180"}
+              >
+                <path d="M7 10v12M15 5.88L14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2h0a3.13 3.13 0 0 1 3 3.88Z" />
+              </svg>
+            </button>
+          );
+        })}
+      </div>
+      {showThanks && (
+        <span className="text-xs text-green-600 animate-[streamFadeIn_0.3s_ease-out_both]">Thanks for your feedback!</span>
+      )}
     </div>
   );
 }
@@ -256,6 +308,13 @@ export default function ResultsDashboard({ report, onReset, summaryLoading, user
                 ))}
               </ul>
             </div>
+          </StreamFadeIn>
+        )}
+
+        {/* Report Feedback */}
+        {hasCore && (
+          <StreamFadeIn delay={100}>
+            <ReportFeedback />
           </StreamFadeIn>
         )}
 
