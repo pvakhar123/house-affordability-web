@@ -110,6 +110,7 @@ function HomeContent() {
               recommendations: event.recommendations,
               propertyAnalysis: event.propertyAnalysis,
               rentVsBuy: event.rentVsBuy,
+              preApprovalReadiness: event.preApprovalReadiness,
               _summaryLoading: true,
             }));
             // Transition to results view once we have the core data

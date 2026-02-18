@@ -36,7 +36,7 @@ const cache = new CacheService();
 
 export type StreamPhase =
   | { phase: "market_data"; marketSnapshot: MarketDataResult }
-  | { phase: "analysis"; affordability: AffordabilityResult; riskAssessment: RiskReport; recommendations: RecommendationsResult; propertyAnalysis?: PropertyAnalysis; rentVsBuy?: RentVsBuyReport }
+  | { phase: "analysis"; affordability: AffordabilityResult; riskAssessment: RiskReport; recommendations: RecommendationsResult; propertyAnalysis?: PropertyAnalysis; rentVsBuy?: RentVsBuyReport; preApprovalReadiness?: PreApprovalReadinessScore }
   | { phase: "summary"; summary: string }
   | { phase: "complete"; disclaimers: string[]; generatedAt: string };
 
@@ -90,7 +90,7 @@ export class OrchestratorAgent {
     const preApprovalReadiness = this.computePreApprovalReadiness(userProfile, affordability, riskReport);
 
     console.log(`      Done (${((Date.now() - t2) / 1000).toFixed(1)}s)`);
-    onProgress?.({ phase: "analysis", affordability, riskAssessment: riskReport, recommendations, propertyAnalysis, rentVsBuy });
+    onProgress?.({ phase: "analysis", affordability, riskAssessment: riskReport, recommendations, propertyAnalysis, rentVsBuy, preApprovalReadiness });
 
     // ── Phase 3: Single Claude call for narrative summary (~3-5s) ──
     console.log("[3/3] Generating AI summary...");
