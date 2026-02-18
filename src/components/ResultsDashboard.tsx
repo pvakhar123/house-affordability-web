@@ -14,6 +14,7 @@ import AISummaryCard from "./AISummaryCard";
 import PropertyAffordabilityCard from "./PropertyAffordabilityCard";
 import RentVsBuyCard from "./RentVsBuyCard";
 import MatchingPropertiesCard from "./MatchingPropertiesCard";
+import PreApprovalReadinessCard from "./PreApprovalReadinessCard";
 
 interface Props {
   report: FinalReport;
@@ -233,29 +234,37 @@ export default function ResultsDashboard({ report, onReset, summaryLoading, user
               </ExpandableSection>
             </StreamFadeIn>
 
-            {report.rentVsBuy && (
+            {report.preApprovalReadiness && (
               <StreamFadeIn delay={450}>
+                <ExpandableSection title="Pre-Approval Readiness" defaultOpen>
+                  <PreApprovalReadinessCard data={report.preApprovalReadiness} />
+                </ExpandableSection>
+              </StreamFadeIn>
+            )}
+
+            {report.rentVsBuy && (
+              <StreamFadeIn delay={500}>
                 <ExpandableSection title="Rent vs. Buy Analysis">
                   <RentVsBuyCard data={report.rentVsBuy} />
                 </ExpandableSection>
               </StreamFadeIn>
             )}
 
-            <StreamFadeIn delay={500}>
+            <StreamFadeIn delay={550}>
               <ExpandableSection title="Recommendations" defaultOpen>
                 <RecommendationsCard data={report.recommendations} />
               </ExpandableSection>
             </StreamFadeIn>
 
             {report.recommendations.loanOptions?.length > 0 && (
-              <StreamFadeIn delay={550}>
+              <StreamFadeIn delay={600}>
                 <ExpandableSection title="Loan Programs">
                   <LoanProgramsCard data={report.recommendations.loanOptions} />
                 </ExpandableSection>
               </StreamFadeIn>
             )}
 
-            <StreamFadeIn delay={600}>
+            <StreamFadeIn delay={650}>
               <ExpandableSection title="5-Year Equity Buildup">
                 <AmortizationTable data={report.affordability.amortizationSummary} />
               </ExpandableSection>

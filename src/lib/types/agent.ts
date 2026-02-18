@@ -29,6 +29,25 @@ export interface ExecutionLogEntry {
   timestamp: string;
 }
 
+export interface ReadinessActionItem {
+  category: "dti" | "credit" | "down_payment" | "debt_health" | "emergency_fund";
+  priority: "high" | "medium" | "low";
+  action: string;
+  impact: string;
+}
+
+export interface PreApprovalReadinessScore {
+  overallScore: number;
+  level: "not_ready" | "needs_work" | "ready" | "highly_prepared";
+  components: {
+    dtiScore: number;
+    creditScore: number;
+    downPaymentScore: number;
+    debtHealthScore: number;
+  };
+  actionItems: ReadinessActionItem[];
+}
+
 export interface FinalReport {
   summary: string;
   affordability: AffordabilityResult;
@@ -37,6 +56,7 @@ export interface FinalReport {
   recommendations: RecommendationsResult;
   propertyAnalysis?: PropertyAnalysis;
   rentVsBuy?: RentVsBuyReport;
+  preApprovalReadiness?: PreApprovalReadinessScore;
   disclaimers: string[];
   generatedAt: string;
 }

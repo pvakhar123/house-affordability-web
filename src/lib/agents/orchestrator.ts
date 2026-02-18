@@ -28,6 +28,8 @@ import type {
   RentVsBuyReport,
   StressTestResult,
   RiskFlag,
+  PreApprovalReadinessScore,
+  ReadinessActionItem,
 } from "../types/index";
 
 const cache = new CacheService();
@@ -84,6 +86,9 @@ export class OrchestratorAgent {
       rentVsBuy = this.computeRentVsBuy(userProfile, marketData, affordability);
     }
 
+    // Pre-approval readiness score
+    const preApprovalReadiness = this.computePreApprovalReadiness(userProfile, affordability, riskReport);
+
     console.log(`      Done (${((Date.now() - t2) / 1000).toFixed(1)}s)`);
     onProgress?.({ phase: "analysis", affordability, riskAssessment: riskReport, recommendations, propertyAnalysis, rentVsBuy });
 
@@ -112,6 +117,7 @@ export class OrchestratorAgent {
       recommendations,
       propertyAnalysis,
       rentVsBuy,
+      preApprovalReadiness,
       disclaimers,
       generatedAt,
     };
@@ -843,6 +849,142 @@ export class OrchestratorAgent {
       yearByYear: yearByYear.slice(0, 10), // first 10 years
       verdict,
       verdictExplanation,
+    };
+  }
+
+  // ─────────────────────────────────────────────
+  // Phase 2e: Pre-approval readiness score
+  // ─────────────────────────────────────────────
+
+  private computePreApprovalReadiness(
+    profile: UserProfile,
+    afford: AffordabilityResult,
+    risk: RiskReport
+  ): PreApprovalReadinessScore {
+    const totalIncome = profile.annualGrossIncome + (profile.additionalIncome ?? 0);
+    const grossMonthly = totalIncome / 12;
+    const totalSavings = profile.downPaymentSavings + (profile.additionalSavings ?? 0);
+    const emergencyMonths = risk.emergencyFundAnalysis.monthsCovered;
+
+    // ── DTI Score (0-25) ──
+    const backEndDTI = afford.dtiAnalysis.backEndRatio;
+    let dtiScore: number;
+    if (backEndDTI <= 28) dtiScore = 25;
+    else if (backEndDTI <= 36) dtiScore = 20;
+    else if (backEndDTI <= 43) dtiScore = 12;
+    else if (backEndDTI <= 50) dtiScore = 5;
+    else dtiScore = 0;
+
+    // ── Credit Score (0-25) ──
+    const credit = profile.creditScore;
+    let creditScore: number;
+    if (credit >= 760) creditScore = 25;
+    else if (credit >= 700) creditScore = 20;
+    else if (credit >= 660) creditScore = 15;
+    else if (credit >= 620) creditScore = 8;
+    else creditScore = 0;
+
+    // ── Down Payment Score (0-25) ──
+    const dpPercent = afford.maxHomePrice > 0
+      ? (afford.downPaymentAmount / afford.maxHomePrice) * 100
+      : 0;
+    let downPaymentScore: number;
+    if (dpPercent >= 20) downPaymentScore = 25;
+    else if (dpPercent >= 10) downPaymentScore = 18;
+    else if (dpPercent >= 5) downPaymentScore = 12;
+    else if (dpPercent >= 3) downPaymentScore = 6;
+    else downPaymentScore = 0;
+
+    // ── Debt Health Score (0-25) ──
+    const debtToIncomeRaw = grossMonthly > 0
+      ? (profile.monthlyDebtPayments / grossMonthly) * 100
+      : 100;
+    let debtHealthScore: number;
+    if (debtToIncomeRaw <= 10 && emergencyMonths >= 6) debtHealthScore = 25;
+    else if (debtToIncomeRaw <= 15 && emergencyMonths >= 3) debtHealthScore = 18;
+    else if (debtToIncomeRaw <= 20 && emergencyMonths >= 1) debtHealthScore = 12;
+    else if (debtToIncomeRaw <= 30 || emergencyMonths >= 1) debtHealthScore = 5;
+    else debtHealthScore = 0;
+
+    const overallScore = dtiScore + creditScore + downPaymentScore + debtHealthScore;
+
+    const level: PreApprovalReadinessScore["level"] =
+      overallScore >= 80 ? "highly_prepared"
+        : overallScore >= 60 ? "ready"
+        : overallScore >= 40 ? "needs_work"
+        : "not_ready";
+
+    // ── Generate action items for weak areas ──
+    const actionItems: ReadinessActionItem[] = [];
+
+    if (dtiScore < 20) {
+      actionItems.push({
+        category: "dti",
+        priority: dtiScore < 12 ? "high" : "medium",
+        action: `Reduce monthly debts by $${Math.round(profile.monthlyDebtPayments * 0.3).toLocaleString()}/mo to lower your DTI from ${backEndDTI.toFixed(1)}% toward 36%`,
+        impact: `Could improve score by ~${20 - dtiScore} points`,
+      });
+    }
+
+    if (creditScore < 20) {
+      const targetScore = credit < 620 ? 620 : credit < 660 ? 700 : 760;
+      actionItems.push({
+        category: "credit",
+        priority: creditScore < 8 ? "high" : "medium",
+        action: `Improve credit score from ${credit} toward ${targetScore}. Pay down credit card balances below 30% utilization and avoid new hard inquiries`,
+        impact: `Could improve score by ~${20 - creditScore} points and unlock better rates`,
+      });
+    }
+
+    if (downPaymentScore < 25) {
+      const neededFor20 = Math.round(afford.maxHomePrice * 0.2) - afford.downPaymentAmount;
+      if (neededFor20 > 0) {
+        actionItems.push({
+          category: "down_payment",
+          priority: downPaymentScore < 12 ? "high" : "low",
+          action: `Save an additional $${neededFor20.toLocaleString()} to reach 20% down payment and eliminate PMI`,
+          impact: `Could improve score by ~${25 - downPaymentScore} points and save $${Math.round(afford.monthlyPayment.pmi)}/mo on PMI`,
+        });
+      }
+    }
+
+    if (debtHealthScore < 18) {
+      if (emergencyMonths < 6) {
+        const monthlyNeed = risk.emergencyFundAnalysis.monthlyExpenses;
+        const deficit = Math.round(monthlyNeed * 6 - risk.emergencyFundAnalysis.postPurchaseEmergencyFund);
+        if (deficit > 0) {
+          actionItems.push({
+            category: "emergency_fund",
+            priority: emergencyMonths < 3 ? "high" : "medium",
+            action: `Build emergency fund by $${deficit.toLocaleString()} to reach 6 months of reserves after purchase`,
+            impact: `Could improve score by ~${18 - debtHealthScore} points`,
+          });
+        }
+      }
+      if (debtToIncomeRaw > 15) {
+        actionItems.push({
+          category: "debt_health",
+          priority: debtToIncomeRaw > 25 ? "high" : "medium",
+          action: `Pay off smallest debts first to reduce debt-to-income from ${debtToIncomeRaw.toFixed(0)}% toward 15%`,
+          impact: "Improves both readiness score and mortgage approval odds",
+        });
+      }
+    }
+
+    // Sort by priority
+    const priorityOrder = { high: 0, medium: 1, low: 2 };
+    actionItems.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
+
+    return {
+      overallScore,
+      level,
+      components: {
+        dtiScore,
+        creditScore,
+        downPaymentScore,
+        debtHealthScore,
+      },
+      actionItems,
     };
   }
 
