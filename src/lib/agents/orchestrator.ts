@@ -2,7 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { config } from "../config";
 import { PROMPTS } from "../utils/prompts";
 import { traceGeneration, getLangfuse } from "../langfuse";
-import { FredApiClient } from "../services/fred-api";
+import { FredApiClient, matchCaseShillerMetro } from "../services/fred-api";
 import { BlsApiClient } from "../services/bls-api";
 import { HousingApiClient } from "../services/housing-api";
 import { CacheService } from "../services/cache";
@@ -32,7 +32,7 @@ import type {
   ReadinessActionItem,
   HistoricalData,
 } from "../types/index";
-import { getNeighborhoodInfo, type NeighborhoodInfo } from "../data/area-info";
+import { getNeighborhoodInfo, lookupAreaInfo, type NeighborhoodInfo } from "../data/area-info";
 
 const cache = new CacheService();
 
@@ -65,7 +65,7 @@ export class OrchestratorAgent {
 
     // ── Phase 1: Fetch market data directly (parallel APIs, ~2-5s) ──
     console.log("\n[1/3] Fetching market data...");
-    const marketData = await this.fetchMarketData(userProfile.targetLocation);
+    const marketData = await this.fetchMarketData(userProfile.targetLocation, userProfile.property?.address);
     console.log(`      Done (${((Date.now() - t0) / 1000).toFixed(1)}s)`);
     onProgress?.({ phase: "market_data", marketSnapshot: marketData });
 
@@ -136,15 +136,18 @@ export class OrchestratorAgent {
   // Phase 1: Direct market data fetching
   // ─────────────────────────────────────────────
 
-  private async fetchMarketData(location?: string): Promise<MarketDataResult> {
+  private async fetchMarketData(location?: string, propertyAddress?: string): Promise<MarketDataResult> {
     const fredClient = new FredApiClient(config.fredApiKey, cache);
     const blsClient = new BlsApiClient(config.blsApiKey);
     const housingClient = config.rapidApiKey
       ? new HousingApiClient(config.rapidApiKey, cache)
       : null;
 
+    // Try to match location to a Case-Shiller metro for local price trends
+    const metroMatch = matchCaseShillerMetro(propertyAddress || location || "");
+
     // Fire all API calls in parallel
-    const [ratesResult, pricesResult, inflationResult, regionalResult, historicalResult] =
+    const [ratesResult, pricesResult, inflationResult, regionalResult, historicalResult, metroResult] =
       await Promise.allSettled([
         // Mortgage rates
         Promise.all([
@@ -172,6 +175,10 @@ export class OrchestratorAgent {
           fredClient.getHistoricalMedianHomePrice(10),
           fredClient.getHistoricalMortgageRate(10),
         ]),
+        // Metro-level Case-Shiller index (if location matches)
+        metroMatch
+          ? fredClient.getHistoricalMetroIndex(metroMatch.seriesId, 10)
+          : Promise.resolve(null),
       ]);
 
     // Assemble with fallbacks
@@ -234,6 +241,28 @@ export class OrchestratorAgent {
         medianHomePrices: priceHistory.map((p) => ({ date: p.date, value: p.value * 1000 })),
         mortgageRates: rateHistory,
       };
+
+      // Add metro-level Case-Shiller index if available
+      // Convert index values to estimated local prices using current area median
+      if (metroResult.status === "fulfilled" && metroResult.value && metroResult.value.length > 0 && metroMatch) {
+        const indexData = metroResult.value;
+        const currentIndex = indexData[indexData.length - 1].value;
+        // Get local median price from area-info or property address
+        const areaLookup = lookupAreaInfo(propertyAddress || location || "");
+        const localMedian = areaLookup?.data.medianHomePrice;
+
+        if (localMedian && currentIndex > 0) {
+          // Convert each index point to estimated dollar price
+          historicalData.localPriceIndex = indexData.map((p) => ({
+            date: p.date,
+            value: Math.round((p.value / currentIndex) * localMedian),
+          }));
+        } else {
+          // Fall back to raw index values
+          historicalData.localPriceIndex = indexData;
+        }
+        historicalData.localLabel = metroMatch.label;
+      }
     } else {
       console.log("      Warning: Historical data fetch failed, chart will be hidden");
     }

@@ -6,6 +6,8 @@ export interface HistoricalDataPoint {
 export interface HistoricalData {
   medianHomePrices: HistoricalDataPoint[];
   mortgageRates?: HistoricalDataPoint[];
+  localPriceIndex?: HistoricalDataPoint[];
+  localLabel?: string;
 }
 
 export interface MarketDataResult {

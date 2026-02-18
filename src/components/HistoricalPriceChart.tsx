@@ -10,6 +10,7 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
+  Legend,
 } from "recharts";
 import type { HistoricalData } from "@/lib/types";
 
@@ -23,12 +24,37 @@ function mergeTimelines(data: HistoricalData) {
     rateMap.set(d.date.substring(0, 7), d.value);
   }
 
+  const localMap = new Map<string, number>();
+  for (const d of data.localPriceIndex ?? []) {
+    localMap.set(d.date.substring(0, 7), d.value);
+  }
+
   return data.medianHomePrices.map((d) => {
     const ym = d.date.substring(0, 7);
+    // Find closest local value (Case-Shiller is monthly, prices are quarterly)
+    let localVal: number | null = localMap.get(ym) ?? null;
+    if (!localVal) {
+      // Try nearby months within the quarter
+      const [y, m] = ym.split("-").map(Number);
+      for (const offset of [1, -1, 2, -2]) {
+        const tryM = m + offset;
+        const tryKey = tryM > 12
+          ? `${y + 1}-${String(tryM - 12).padStart(2, "0")}`
+          : tryM < 1
+          ? `${y - 1}-${String(tryM + 12).padStart(2, "0")}`
+          : `${y}-${String(tryM).padStart(2, "0")}`;
+        if (localMap.has(tryKey)) {
+          localVal = localMap.get(tryKey)!;
+          break;
+        }
+      }
+    }
+
     return {
       date: d.date,
       label: formatQuarter(d.date),
       price: d.value,
+      localPrice: localVal,
       rate: rateMap.get(ym) ?? null,
     };
   });
@@ -52,9 +78,9 @@ function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: 
       <p className="font-semibold text-gray-900 mb-1">{label}</p>
       {payload.map((entry) => (
         <p key={entry.name} style={{ color: entry.color }}>
-          {entry.name === "Median Home Price"
-            ? `${entry.name}: $${Math.round(entry.value).toLocaleString()}`
-            : `${entry.name}: ${entry.value.toFixed(2)}%`}
+          {entry.name.includes("Rate")
+            ? `${entry.name}: ${entry.value.toFixed(2)}%`
+            : `${entry.name}: $${Math.round(entry.value).toLocaleString()}`}
         </p>
       ))}
     </div>
@@ -65,17 +91,29 @@ export default function HistoricalPriceChart({ data }: Props) {
   const [showRates, setShowRates] = useState(true);
   const chartData = mergeTimelines(data);
   const hasRates = data.mortgageRates && data.mortgageRates.length > 0;
+  const hasLocal = data.localPriceIndex && data.localPriceIndex.length > 0;
+  const localLabel = data.localLabel || "Local";
 
   if (chartData.length < 2) return null;
 
   const first = chartData[0];
   const last = chartData[chartData.length - 1];
-  const totalChange = ((last.price - first.price) / first.price) * 100;
+
+  // National stats
+  const nationalChange = ((last.price - first.price) / first.price) * 100;
+
+  // Local stats (if available)
+  const firstLocal = chartData.find((d) => d.localPrice != null);
+  const lastLocal = [...chartData].reverse().find((d) => d.localPrice != null);
+  const localChange =
+    firstLocal?.localPrice && lastLocal?.localPrice
+      ? ((lastLocal.localPrice - firstLocal.localPrice) / firstLocal.localPrice) * 100
+      : null;
 
   return (
     <div>
-      {hasRates && (
-        <div className="flex items-center gap-4 mb-3">
+      <div className="flex flex-wrap items-center gap-4 mb-3">
+        {hasRates && (
           <label className="flex items-center gap-1.5 text-xs text-gray-500 cursor-pointer select-none">
             <input
               type="checkbox"
@@ -83,18 +121,28 @@ export default function HistoricalPriceChart({ data }: Props) {
               onChange={(e) => setShowRates(e.target.checked)}
               className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
             />
-            Show Mortgage Rates
+            Mortgage Rates
           </label>
-        </div>
-      )}
+        )}
+        {hasLocal && (
+          <span className="flex items-center gap-1.5 text-xs text-gray-500">
+            <span className="w-3 h-0.5 bg-emerald-500 rounded" />
+            {localLabel} (estimated)
+          </span>
+        )}
+      </div>
 
       <div className="w-full h-64 sm:h-72">
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart data={chartData} margin={{ top: 5, right: showRates && hasRates ? 10 : 5, left: 0, bottom: 5 }}>
             <defs>
               <linearGradient id="priceGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.15} />
+                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.1} />
                 <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+              </linearGradient>
+              <linearGradient id="localGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#10b981" stopOpacity={0.1} />
+                <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -125,21 +173,39 @@ export default function HistoricalPriceChart({ data }: Props) {
               />
             )}
             <Tooltip content={<ChartTooltip />} />
+            {(hasLocal || hasRates) && (
+              <Legend
+                wrapperStyle={{ fontSize: 11, color: "#6b7280" }}
+                iconSize={10}
+              />
+            )}
             <Area
               yAxisId="price"
               type="monotone"
               dataKey="price"
-              name="Median Home Price"
+              name="National Median"
               stroke="#3b82f6"
               strokeWidth={2}
               fill="url(#priceGrad)"
             />
+            {hasLocal && (
+              <Area
+                yAxisId="price"
+                type="monotone"
+                dataKey="localPrice"
+                name={`${localLabel} Median`}
+                stroke="#10b981"
+                strokeWidth={2}
+                fill="url(#localGrad)"
+                connectNulls
+              />
+            )}
             {showRates && hasRates && (
               <Line
                 yAxisId="rate"
                 type="monotone"
                 dataKey="rate"
-                name="30-Yr Mortgage Rate"
+                name="30-Yr Rate"
                 stroke="#f59e0b"
                 strokeWidth={1.5}
                 dot={false}
@@ -150,20 +216,45 @@ export default function HistoricalPriceChart({ data }: Props) {
         </ResponsiveContainer>
       </div>
 
-      <div className="flex flex-wrap gap-x-4 gap-y-1 mt-3 text-xs text-gray-500">
-        <span>
-          {first.label}: <strong className="text-gray-700">${Math.round(first.price).toLocaleString()}</strong>
-        </span>
-        <span className="text-gray-300">&rarr;</span>
-        <span>
-          {last.label}: <strong className="text-gray-700">${Math.round(last.price).toLocaleString()}</strong>
-        </span>
-        <span className="ml-auto">
-          <span className={totalChange >= 0 ? "text-green-600 font-semibold" : "text-red-600 font-semibold"}>
-            {totalChange >= 0 ? "+" : ""}{totalChange.toFixed(1)}%
-          </span>{" "}
-          over {chartData.length > 4 ? Math.round(chartData.length / 4) : chartData.length} years
-        </span>
+      <div className="flex flex-col gap-1 mt-3 text-xs text-gray-500">
+        <div className="flex flex-wrap gap-x-4 gap-y-1 items-center">
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-blue-500" />
+            National:
+          </span>
+          <span>
+            {first.label}: <strong className="text-gray-700">${Math.round(first.price).toLocaleString()}</strong>
+          </span>
+          <span className="text-gray-300">&rarr;</span>
+          <span>
+            {last.label}: <strong className="text-gray-700">${Math.round(last.price).toLocaleString()}</strong>
+          </span>
+          <span className="ml-auto">
+            <span className={nationalChange >= 0 ? "text-green-600 font-semibold" : "text-red-600 font-semibold"}>
+              {nationalChange >= 0 ? "+" : ""}{nationalChange.toFixed(1)}%
+            </span>
+          </span>
+        </div>
+        {hasLocal && firstLocal?.localPrice && lastLocal?.localPrice && localChange !== null && (
+          <div className="flex flex-wrap gap-x-4 gap-y-1 items-center">
+            <span className="flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              {localLabel}:
+            </span>
+            <span>
+              {firstLocal.label}: <strong className="text-gray-700">${Math.round(firstLocal.localPrice).toLocaleString()}</strong>
+            </span>
+            <span className="text-gray-300">&rarr;</span>
+            <span>
+              {lastLocal.label}: <strong className="text-gray-700">${Math.round(lastLocal.localPrice).toLocaleString()}</strong>
+            </span>
+            <span className="ml-auto">
+              <span className={localChange >= 0 ? "text-green-600 font-semibold" : "text-red-600 font-semibold"}>
+                {localChange >= 0 ? "+" : ""}{localChange.toFixed(1)}%
+              </span>
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );

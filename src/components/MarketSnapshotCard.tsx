@@ -25,6 +25,9 @@ export default function MarketSnapshotCard({ data }: { data: MarketDataResult })
         <div className="mb-4 p-3 bg-gray-50 rounded-lg">
           <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
             10-Year Price & Rate Trends
+            {data.historicalData.localLabel && (
+              <span className="text-emerald-600"> — {data.historicalData.localLabel} vs National</span>
+            )}
           </p>
           <HistoricalPriceChart data={data.historicalData} />
         </div>
