@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import type { AffordabilityResult, MarketDataResult, RecommendationsResult } from "@/lib/types";
+import type { AffordabilityResult, MarketDataResult, RecommendationsResult, ReadinessActionItem } from "@/lib/types";
 import {
   calculateMaxHomePrice,
   calculateMonthlyPayment,
@@ -12,6 +12,7 @@ interface Props {
   affordability: AffordabilityResult;
   marketSnapshot: MarketDataResult;
   recommendations: RecommendationsResult;
+  actionItems?: ReadinessActionItem[];
 }
 
 /* ── Constants matching the orchestrator ── */
@@ -318,7 +319,23 @@ function TipIcon({ type }: { type: string }) {
   }
 }
 
-export default function BudgetSimulatorCard({ affordability: a, marketSnapshot: m, recommendations }: Props) {
+const priorityIcon: Record<string, string> = {
+  high: "alert",
+  medium: "warn",
+  low: "info",
+};
+
+const priorityColor: Record<string, { color: string; bg: string }> = {
+  high: { color: "text-red-700", bg: "bg-red-50 border-red-200" },
+  medium: { color: "text-amber-700", bg: "bg-amber-50 border-amber-200" },
+  low: { color: "text-blue-700", bg: "bg-blue-50 border-blue-200" },
+};
+
+function fmt2(n: number): string {
+  return "$" + Math.round(n).toLocaleString("en-US");
+}
+
+export default function BudgetSimulatorCard({ affordability: a, marketSnapshot: m, recommendations, actionItems = [] }: Props) {
   /* ── Reverse-engineer original inputs from the report ── */
   const originals = useMemo(() => {
     const grossMonthlyIncome =
@@ -509,27 +526,123 @@ export default function BudgetSimulatorCard({ affordability: a, marketSnapshot: 
         </div>
       )}
 
-      {/* Dynamic Recommendations */}
-      {tips.length > 0 && (
-        <div>
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">
-            Recommendations
-          </p>
-          <div className="space-y-2">
-            {tips.map((tip, i) => (
-              <div
-                key={i}
-                className={`flex items-start gap-2.5 p-3 rounded-lg border ${tip.bg} transition-all duration-200`}
-              >
-                <span className={`mt-0.5 shrink-0 ${tip.color}`}>
-                  <TipIcon type={tip.icon} />
-                </span>
-                <p className={`text-sm ${tip.color}`}>{tip.text}</p>
-              </div>
-            ))}
+      {/* ── Unified Recommendations ── */}
+      <div className="space-y-5">
+        {/* Dynamic simulator tips */}
+        {tips.length > 0 && (
+          <div>
+            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">
+              Simulator Insights
+            </p>
+            <div className="space-y-2">
+              {tips.map((tip, i) => (
+                <div
+                  key={i}
+                  className={`flex items-start gap-2.5 p-3 rounded-lg border ${tip.bg} transition-all duration-200`}
+                >
+                  <span className={`mt-0.5 shrink-0 ${tip.color}`}>
+                    <TipIcon type={tip.icon} />
+                  </span>
+                  <p className={`text-sm ${tip.color}`}>{tip.text}</p>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+
+        {/* Action Items from Pre-Approval Readiness */}
+        {actionItems.length > 0 && (
+          <div>
+            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">
+              Action Items to Improve Your Score
+            </p>
+            <div className="space-y-2">
+              {actionItems.map((item, i) => {
+                const pc = priorityColor[item.priority] ?? priorityColor.low;
+                return (
+                  <div
+                    key={i}
+                    className={`flex items-start gap-2.5 p-3 rounded-lg border ${pc.bg}`}
+                  >
+                    <span className={`mt-0.5 shrink-0 ${pc.color}`}>
+                      <TipIcon type={priorityIcon[item.priority] ?? "info"} />
+                    </span>
+                    <div>
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <span className={`text-xs font-semibold px-1.5 py-0.5 rounded-full ${
+                          item.priority === "high" ? "bg-red-100 text-red-700"
+                            : item.priority === "medium" ? "bg-yellow-100 text-yellow-700"
+                            : "bg-blue-100 text-blue-700"
+                        }`}>
+                          {item.priority}
+                        </span>
+                        <span className="text-xs text-gray-400 uppercase">{item.category.replace("_", " ")}</span>
+                      </div>
+                      <p className={`text-sm ${pc.color}`}>{item.action}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">{item.impact}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Savings Strategies */}
+        {recommendations.savingsStrategies?.length > 0 && (
+          <div>
+            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">
+              Savings Strategies
+            </p>
+            <div className="space-y-2">
+              {recommendations.savingsStrategies.map((strategy, i) => (
+                <div key={i} className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-medium text-gray-800">{strategy.title}</p>
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${
+                      strategy.difficulty === "easy"
+                        ? "bg-green-100 text-green-700"
+                        : strategy.difficulty === "moderate"
+                          ? "bg-yellow-100 text-yellow-700"
+                          : "bg-red-100 text-red-700"
+                    }`}>
+                      {strategy.difficulty}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">{strategy.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Closing Costs */}
+        {recommendations.closingCostEstimate && recommendations.closingCostEstimate.lowEstimate > 0 && (
+          <div className="p-4 bg-amber-50 rounded-lg border border-amber-200">
+            <p className="text-sm font-medium text-amber-800 mb-1">Estimated Closing Costs</p>
+            <p className="text-lg font-bold text-amber-900">
+              {fmt2(recommendations.closingCostEstimate.lowEstimate)} - {fmt2(recommendations.closingCostEstimate.highEstimate)}
+            </p>
+          </div>
+        )}
+
+        {/* General Advice */}
+        {recommendations.generalAdvice?.length > 0 && (
+          <div>
+            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">
+              General Advice
+            </p>
+            <ul className="space-y-1">
+              {recommendations.generalAdvice.map((advice, i) => (
+                <li key={i} className="text-sm text-gray-600 flex items-start gap-2">
+                  <span className="text-blue-500 mt-0.5">&#8226;</span>
+                  {advice}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

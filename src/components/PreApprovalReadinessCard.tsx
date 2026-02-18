@@ -94,27 +94,6 @@ export default function PreApprovalReadinessCard({ data }: { data: PreApprovalRe
         ))}
       </div>
 
-      {/* Action Items */}
-      {data.actionItems.length > 0 && (
-        <div>
-          <p className="text-sm font-medium text-gray-700 mb-2">Action Items to Improve Your Score</p>
-          <div className="space-y-2">
-            {data.actionItems.map((item, i) => (
-              <div key={i} className="p-3 bg-gray-50 rounded-lg">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${priorityBadge[item.priority]}`}>
-                    {item.priority}
-                  </span>
-                  <span className="text-xs text-gray-400 uppercase">{item.category.replace("_", " ")}</span>
-                </div>
-                <p className="text-sm text-gray-800">{item.action}</p>
-                <p className="text-xs text-gray-500 mt-1">{item.impact}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
       {data.actionItems.length === 0 && (
         <div className="p-3 bg-green-50 rounded-lg">
           <p className="text-sm text-green-800 font-medium">Excellent! Your financial profile is well-positioned for mortgage pre-approval.</p>

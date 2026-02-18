@@ -5,7 +5,6 @@ import type { FinalReport } from "@/lib/types";
 import AffordabilityCard from "./AffordabilityCard";
 import MarketSnapshotCard from "./MarketSnapshotCard";
 import RiskAssessmentCard from "./RiskAssessmentCard";
-import RecommendationsCard from "./RecommendationsCard";
 import LoanProgramsCard from "./LoanProgramsCard";
 import AmortizationTable from "./AmortizationTable";
 import ChatInterface from "./ChatInterface";
@@ -233,17 +232,12 @@ export default function ResultsDashboard({ report, onReset, summaryLoading, user
             )}
 
             <StreamFadeIn delay={350}>
-              <ExpandableSection title="Recommendations" defaultOpen>
-                <RecommendationsCard data={report.recommendations} />
-              </ExpandableSection>
-            </StreamFadeIn>
-
-            <StreamFadeIn delay={375}>
-              <ExpandableSection title="Budget Simulator">
+              <ExpandableSection title="Budget Simulator & Recommendations" defaultOpen>
                 <BudgetSimulatorCard
                   affordability={report.affordability}
                   marketSnapshot={report.marketSnapshot}
                   recommendations={report.recommendations}
+                  actionItems={report.preApprovalReadiness?.actionItems}
                 />
               </ExpandableSection>
             </StreamFadeIn>
