@@ -43,16 +43,33 @@ import { searchProperties } from "@/lib/services/property-search";
 import { lookupAreaInfo } from "@/lib/data/area-info";
 import type { FinalReport } from "@/lib/types";
 import { createStreamTrace, flushLangfuse } from "@/lib/langfuse";
-
-interface ChatMessage {
-  role: "user" | "assistant";
-  content: string;
-}
+import {
+  type ChatMessage,
+  type SessionMemory,
+  estimateTokens,
+  truncateToFitBudget,
+  splitForSummarization,
+  summarizeOlderMessages,
+  buildPersonaHints,
+  extractFactsFromToolResult,
+  formatMemoryForPrompt,
+  buildToolCacheKey,
+  getToolTTL,
+  toolCache,
+} from "@/lib/chat-context";
+import {
+  validateInput,
+  validateToolParams,
+  checkOutputNumbers,
+  GUARDRAIL_SYSTEM_PROMPT_SUFFIX,
+} from "@/lib/guardrails";
 
 interface ChatRequest {
   message: string;
   report: FinalReport;
   history: ChatMessage[];
+  conversationSummary?: string;
+  sessionMemory?: SessionMemory;
 }
 
 const tools: Anthropic.Messages.Tool[] = [
@@ -585,9 +602,73 @@ function handleAnalyzeProperty(
 export async function POST(request: Request) {
   try {
     config.validate();
-    const { message, report, history } = (await request.json()) as ChatRequest;
+    const {
+      message,
+      report,
+      history,
+      conversationSummary: existingSummary = null,
+      sessionMemory: existingMemory = null,
+    } = (await request.json()) as ChatRequest;
+
+    // ── INPUT GUARDRAIL ──────────────────────────────────────
+    // Fast check: length → injection regex → Haiku topic classifier.
+    // If blocked, return a canned response without hitting the main model.
+    const inputCheck = await validateInput(message);
+    if (!inputCheck.allowed) {
+      console.log(`[guardrail] Input blocked: ${inputCheck.reason}`);
+      const enc = new TextEncoder();
+      return new Response(
+        new ReadableStream({
+          start(controller) {
+            controller.enqueue(
+              enc.encode(`data: ${JSON.stringify({ text: inputCheck.cannedResponse })}\n\n`)
+            );
+            controller.enqueue(enc.encode(`data: [DONE]\n\n`));
+            controller.close();
+          },
+        }),
+        {
+          headers: {
+            "Content-Type": "text/event-stream",
+            "Cache-Control": "no-cache",
+            Connection: "keep-alive",
+          },
+        }
+      );
+    }
 
     const client = new Anthropic();
+
+    // ── CONTEXT ENGINEERING ───────────────────────────────────
+    // Five layers compose the context sent to Claude:
+    // 1. Token-aware truncation (drop oldest messages if over budget)
+    // 2. Conversation summarization (compress old messages via Haiku)
+    // 3. Adaptive persona hints (tailor advice based on report profile)
+    // 4. Session memory (facts from previous tool calls)
+    // 5. Tool result caching (skip re-execution on cache hit)
+
+    // Feature 3: Adaptive persona hints from report profile
+    const personaHints = buildPersonaHints(report);
+
+    // Feature 2: Conversation summarization
+    const { recentMessages, messagesToSummarize } = splitForSummarization(
+      history,
+      existingSummary
+    );
+    let updatedSummary = existingSummary;
+    if (messagesToSummarize) {
+      updatedSummary = await summarizeOlderMessages(
+        messagesToSummarize,
+        existingSummary
+      );
+    }
+
+    // Feature 4: Restore session memory
+    const memory: SessionMemory = existingMemory ?? {
+      facts: {},
+      toolsUsed: [],
+    };
+    const memoryPrompt = formatMemoryForPrompt(memory);
 
     // ── PROMPT CACHING ────────────────────────────────────────
     // The system prompt contains the full report — identical across all
@@ -625,6 +706,7 @@ PROPERTY ANALYZED: ${report.propertyAnalysis.property.address || "Specific prope
 - Monthly Payment: $${report.propertyAnalysis.totalMonthlyWithHoa.toLocaleString()}/mo
 - Stretch Factor: ${Math.round(report.propertyAnalysis.stretchFactor * 100)}% of max
 - Verdict: ${report.propertyAnalysis.verdict}` : ""}
+${updatedSummary ? `\n\nCONVERSATION SUMMARY (older messages compressed):\n${updatedSummary}` : ""}${personaHints}${memoryPrompt}
 
 Use the tools to run calculations when the user asks "what if" questions. Use the analyze_property tool when a user asks about a specific property or home price. Use the lookup_mortgage_info tool when the user asks general questions about mortgage types (FHA, VA, conventional, ARM), PMI, DTI, closing costs, credit scores, first-time buyer programs, or other homebuying topics — it searches a curated knowledge base and returns relevant documents.
 
@@ -633,7 +715,7 @@ You also have live data tools:
 - search_properties: Search for real homes for sale in any US city. Use when users want to see actual listings.
 - get_area_info: Get property tax rates, school ratings, median prices, and cost of living for a metro area. Use when discussing a specific area's housing market.
 
-Be specific with numbers. Keep responses concise. Do not provide legal or binding financial advice.`;
+Be specific with numbers. Keep responses concise. Do not provide legal or binding financial advice.${GUARDRAIL_SYSTEM_PROMPT_SUFFIX}`;
 
     // System prompt with cache control — cached for the duration of the conversation
     const system: Anthropic.Messages.TextBlockParam[] = [
@@ -651,14 +733,24 @@ Be specific with numbers. Keep responses concise. Do not provide legal or bindin
         : tool
     );
 
-    // Build messages from history + new message
-    const messages: Anthropic.Messages.MessageParam[] = [
-      ...history.map((m) => ({
+    // Build messages from recent history + new message
+    // Feature 1: Token-aware truncation — drop oldest pairs if over budget
+    const systemTokens = estimateTokens(systemPromptText);
+    const allMessages: ChatMessage[] = [
+      ...recentMessages,
+      { role: "user", content: message },
+    ];
+    const { messages: fittedMessages, wasTruncated } = truncateToFitBudget(
+      systemTokens,
+      allMessages
+    );
+
+    const messages: Anthropic.Messages.MessageParam[] = fittedMessages.map(
+      (m) => ({
         role: m.role as "user" | "assistant",
         content: m.content,
-      })),
-      { role: "user" as const, content: message },
-    ];
+      })
+    );
 
     // ── STREAMING (SSE) ───────────────────────────────────────
     // Instead of waiting for the full response, we stream tokens
@@ -690,11 +782,17 @@ Be specific with numbers. Keep responses concise. Do not provide legal or bindin
               model: config.model,
               maxTokens: 2048,
               sessionId: `chat-${Date.now()}`,
-              metadata: { messageCount: history.length + 1 },
+              metadata: {
+                messageCount: history.length + 1,
+                wasTruncated,
+                hasSummary: !!updatedSummary,
+                memoryFactCount: Object.keys(memory.facts).length,
+              },
             });
 
             while (iterations < maxIterations) {
               iterations++;
+              let accumulatedText = "";
 
               const gen = chatTrace.createGeneration(`chat-turn-${iterations}`, {
                 toolCount: cachedTools.length,
@@ -712,6 +810,7 @@ Be specific with numbers. Keep responses concise. Do not provide legal or bindin
 
               // Stream text deltas to the client as they arrive
               stream.on("text", (text) => {
+                accumulatedText += text;
                 send(JSON.stringify({ text }));
               });
 
@@ -725,7 +824,24 @@ Be specific with numbers. Keep responses concise. Do not provide legal or bindin
               );
 
               if (toolUseBlocks.length === 0) {
-                // Pure text response — already streamed via on('text')
+                // ── OUTPUT GUARDRAIL ─────────────────────────────
+                // Non-blocking: check numerical accuracy against report
+                const outputCheck = checkOutputNumbers(accumulatedText, report);
+                if (outputCheck.flagged) {
+                  console.warn(
+                    `[guardrail] Output numerical discrepancy:`,
+                    outputCheck.discrepancies
+                  );
+                  send(JSON.stringify({ text: outputCheck.correctionNote }));
+                }
+
+                // Send context meta (summary + memory) for client to persist
+                send(JSON.stringify({
+                  meta: {
+                    ...(updatedSummary ? { conversationSummary: updatedSummary } : {}),
+                    sessionMemory: memory,
+                  },
+                }));
                 send("[DONE]");
                 await flushLangfuse();
                 controller.close();
@@ -738,21 +854,61 @@ Be specific with numbers. Keep responses concise. Do not provide legal or bindin
                 content: finalMessage.content,
               });
 
+              // Feature 5: Tool result caching + Feature 4: Memory extraction
               const toolResults: Anthropic.Messages.ToolResultBlockParam[] =
-                await Promise.all(toolUseBlocks.map(async (toolUse) => ({
-                  type: "tool_result" as const,
-                  tool_use_id: toolUse.id,
-                  content:
-                    toolUse.name === "analyze_property"
-                      ? handleAnalyzeProperty(
-                          toolUse.input as Record<string, unknown>,
-                          report
-                        )
-                      : await handleToolCall(
-                          toolUse.name,
-                          toolUse.input as Record<string, unknown>
-                        ),
-                })));
+                await Promise.all(toolUseBlocks.map(async (toolUse) => {
+                  const toolInput = toolUse.input as Record<string, unknown>;
+
+                  // ── TOOL PARAMETER GUARDRAIL ─────────────────
+                  const validation = validateToolParams(toolUse.name, toolInput);
+                  if (!validation.valid) {
+                    console.log(
+                      `[guardrail] Tool validation failed: ${toolUse.name}`,
+                      validation.errors
+                    );
+                    return {
+                      type: "tool_result" as const,
+                      tool_use_id: toolUse.id,
+                      content: JSON.stringify({
+                        error: "Parameter validation failed",
+                        details: validation.errors,
+                        hint: "Please adjust the parameters and try again.",
+                      }),
+                      is_error: true,
+                    };
+                  }
+
+                  const cacheKey = buildToolCacheKey(toolUse.name, toolInput);
+
+                  // Check cache first
+                  const cached = toolCache.get<string>(cacheKey);
+                  let result: string;
+
+                  if (cached) {
+                    result = cached;
+                  } else if (toolUse.name === "analyze_property") {
+                    result = handleAnalyzeProperty(toolInput, report);
+                    toolCache.set(cacheKey, result, getToolTTL(toolUse.name));
+                  } else {
+                    result = await handleToolCall(toolUse.name, toolInput);
+                    toolCache.set(cacheKey, result, getToolTTL(toolUse.name));
+                  }
+
+                  // Extract facts into session memory
+                  const facts = extractFactsFromToolResult(toolUse.name, toolInput, result);
+                  if (facts) {
+                    Object.assign(memory.facts, facts);
+                  }
+                  if (!memory.toolsUsed.includes(toolUse.name)) {
+                    memory.toolsUsed.push(toolUse.name);
+                  }
+
+                  return {
+                    type: "tool_result" as const,
+                    tool_use_id: toolUse.id,
+                    content: result,
+                  };
+                }));
 
               messages.push({ role: "user", content: toolResults });
               // Loop again — next iteration streams the text response

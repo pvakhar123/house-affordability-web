@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState, useRef, useEffect, useMemo } from "react";
+import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import type { FinalReport } from "@/lib/types";
+import type { SessionMemory } from "@/lib/chat-context";
 
 interface Message {
   role: "user" | "assistant";
@@ -154,6 +155,8 @@ export default function ChatInterface({ report, userLocation }: { report: FinalR
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [conversationSummary, setConversationSummary] = useState<string | null>(null);
+  const [sessionMemory, setSessionMemory] = useState<SessionMemory | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -228,6 +231,8 @@ export default function ChatInterface({ report, userLocation }: { report: FinalR
           message: text.trim(),
           report,
           history: messages,
+          conversationSummary,
+          sessionMemory,
         }),
       });
 
@@ -265,6 +270,17 @@ export default function ChatInterface({ report, userLocation }: { report: FinalR
 
             if (parsed.error) {
               throw new Error(parsed.error);
+            }
+
+            // Handle context meta events (summary + memory from server)
+            if (parsed.meta) {
+              if (parsed.meta.conversationSummary) {
+                setConversationSummary(parsed.meta.conversationSummary);
+              }
+              if (parsed.meta.sessionMemory) {
+                setSessionMemory(parsed.meta.sessionMemory);
+              }
+              continue;
             }
 
             if (parsed.text) {
