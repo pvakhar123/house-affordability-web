@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { config } from "@/lib/config";
 import type { MatchingProperty } from "@/lib/types";
+import { withTracking } from "@/lib/db/track";
 
 interface RequestBody {
   location: string;
@@ -45,7 +46,7 @@ interface V3Result {
 
 const REALTOR_HOST = "realty-in-us.p.rapidapi.com";
 
-export async function POST(request: Request) {
+async function _POST(request: Request) {
   try {
     const body: RequestBody = await request.json();
     const { location, maxPrice, recommendedPrice, downPaymentPercent, interestRate } = body;
@@ -279,3 +280,5 @@ function formatPropertyType(type?: string, subType?: string): string {
   };
   return map[t.toLowerCase()] || t.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
+
+export const POST = withTracking("/api/matching-properties", _POST);

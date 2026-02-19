@@ -43,6 +43,7 @@ import { searchProperties } from "@/lib/services/property-search";
 import { lookupAreaInfo } from "@/lib/data/area-info";
 import type { FinalReport } from "@/lib/types";
 import { createStreamTrace, flushLangfuse } from "@/lib/langfuse";
+import { logApiError, logUsageEvent } from "@/lib/db/track";
 import {
   type ChatMessage,
   type SessionMemory,
@@ -769,6 +770,7 @@ Be specific with numbers. Keep responses concise. Do not provide legal or bindin
     return new Response(
       new ReadableStream({
         async start(controller) {
+          const chatStart = Date.now();
           const send = (data: string) => {
             controller.enqueue(encoder.encode(`data: ${data}\n\n`));
           };
@@ -845,6 +847,7 @@ Be specific with numbers. Keep responses concise. Do not provide legal or bindin
                   },
                 }));
                 send("[DONE]");
+                logUsageEvent("/api/chat", "POST", 200, Date.now() - chatStart);
                 await flushLangfuse();
                 controller.close();
 
@@ -935,6 +938,8 @@ Be specific with numbers. Keep responses concise. Do not provide legal or bindin
             controller.close();
           } catch (error) {
             console.error("Chat streaming error:", error);
+            logApiError("/api/chat", "POST", error);
+            logUsageEvent("/api/chat", "POST", 500, Date.now() - chatStart);
             send(
               JSON.stringify({
                 error:
@@ -957,6 +962,7 @@ Be specific with numbers. Keep responses concise. Do not provide legal or bindin
     );
   } catch (error) {
     console.error("Chat error:", error);
+    logApiError("/api/chat", "POST", error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Chat failed" },
       { status: 500 }

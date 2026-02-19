@@ -294,3 +294,184 @@ export async function queryFeedback() {
 
   return { entries, stats };
 }
+
+// ── Usage Events ────────────────────────────────────────────
+
+export async function insertUsageEvent(event: {
+  route: string;
+  method: string;
+  statusCode: number;
+  durationMs: number;
+  metadata?: Record<string, unknown>;
+}) {
+  const db = getDb();
+  await db.insert(schema.usageEvents).values({
+    route: event.route,
+    method: event.method,
+    statusCode: event.statusCode,
+    durationMs: event.durationMs,
+    metadata: event.metadata ?? null,
+  });
+}
+
+export async function queryUsageStats(opts?: {
+  since?: string;
+  route?: string;
+  limit?: number;
+}) {
+  const db = getDb();
+  const limit = opts?.limit ?? 100;
+
+  // Build conditions
+  const conditions = [];
+  if (opts?.route) conditions.push(eq(schema.usageEvents.route, opts.route));
+  if (opts?.since) conditions.push(gte(schema.usageEvents.timestamp, new Date(opts.since)));
+
+  const where = conditions.length > 0
+    ? conditions.length === 1
+      ? conditions[0]
+      : sql`${conditions[0]} AND ${conditions[1]}`
+    : undefined;
+
+  // Recent events
+  const events = await db
+    .select()
+    .from(schema.usageEvents)
+    .where(where)
+    .orderBy(desc(schema.usageEvents.timestamp))
+    .limit(limit);
+
+  // By route
+  const byRoute = await db
+    .select({
+      route: schema.usageEvents.route,
+      count: count(),
+    })
+    .from(schema.usageEvents)
+    .where(where)
+    .groupBy(schema.usageEvents.route)
+    .orderBy(desc(count()));
+
+  // By status code
+  const byStatus = await db
+    .select({
+      statusCode: schema.usageEvents.statusCode,
+      count: count(),
+    })
+    .from(schema.usageEvents)
+    .where(where)
+    .groupBy(schema.usageEvents.statusCode);
+
+  // By day (time series)
+  const byDay = await db
+    .select({
+      day: sql<string>`DATE_TRUNC('day', ${schema.usageEvents.timestamp})::text`,
+      count: count(),
+    })
+    .from(schema.usageEvents)
+    .where(where)
+    .groupBy(sql`DATE_TRUNC('day', ${schema.usageEvents.timestamp})`)
+    .orderBy(sql`DATE_TRUNC('day', ${schema.usageEvents.timestamp})`);
+
+  // Totals
+  const [totals] = await db
+    .select({
+      total: count(),
+      avgDurationMs: avg(schema.usageEvents.durationMs),
+    })
+    .from(schema.usageEvents)
+    .where(where);
+
+  return {
+    events: events.map((e) => ({
+      id: e.id,
+      route: e.route,
+      method: e.method,
+      statusCode: e.statusCode,
+      durationMs: e.durationMs,
+      timestamp: e.timestamp.toISOString(),
+      metadata: e.metadata,
+    })),
+    byRoute: byRoute.map((r) => ({ route: r.route, count: r.count })),
+    byStatus: byStatus.map((s) => ({ statusCode: s.statusCode, count: s.count })),
+    byDay: byDay.map((d) => ({ day: d.day, count: d.count })),
+    totals: {
+      total: totals.total,
+      avgDurationMs: Number(totals.avgDurationMs) || 0,
+    },
+  };
+}
+
+// ── Error Logs ──────────────────────────────────────────────
+
+export async function insertErrorLog(entry: {
+  route: string;
+  method: string;
+  message: string;
+  stack?: string;
+  metadata?: Record<string, unknown>;
+}) {
+  const db = getDb();
+  await db.insert(schema.errorLogs).values({
+    route: entry.route,
+    method: entry.method,
+    message: entry.message,
+    stack: entry.stack ?? null,
+    metadata: entry.metadata ?? null,
+  });
+}
+
+export async function queryErrorLogs(opts?: {
+  since?: string;
+  route?: string;
+  limit?: number;
+}) {
+  const db = getDb();
+  const limit = opts?.limit ?? 50;
+
+  const conditions = [];
+  if (opts?.route) conditions.push(eq(schema.errorLogs.route, opts.route));
+  if (opts?.since) conditions.push(gte(schema.errorLogs.timestamp, new Date(opts.since)));
+
+  const where = conditions.length > 0
+    ? conditions.length === 1
+      ? conditions[0]
+      : sql`${conditions[0]} AND ${conditions[1]}`
+    : undefined;
+
+  const errors = await db
+    .select()
+    .from(schema.errorLogs)
+    .where(where)
+    .orderBy(desc(schema.errorLogs.timestamp))
+    .limit(limit);
+
+  const byRoute = await db
+    .select({
+      route: schema.errorLogs.route,
+      count: count(),
+    })
+    .from(schema.errorLogs)
+    .where(where)
+    .groupBy(schema.errorLogs.route)
+    .orderBy(desc(count()));
+
+  const [totals] = await db
+    .select({ total: count() })
+    .from(schema.errorLogs)
+    .where(where);
+
+  return {
+    errors: errors.map((e) => ({
+      id: e.id,
+      route: e.route,
+      method: e.method,
+      message: e.message,
+      stack: e.stack,
+      timestamp: e.timestamp.toISOString(),
+      metadata: e.metadata,
+    })),
+    byRoute: byRoute.map((r) => ({ route: r.route, count: r.count })),
+    total: totals.total,
+  };
+}

@@ -3,6 +3,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { config } from "@/lib/config";
 import type { DocumentExtractionResult } from "@/lib/types";
 import { traceGeneration, flushLangfuse } from "@/lib/langfuse";
+import { withTracking } from "@/lib/db/track";
 
 interface DocumentPayload {
   data: string;
@@ -60,7 +61,7 @@ const ALLOWED_TYPES = [
   "application/pdf",
 ];
 
-export async function POST(request: Request) {
+async function _POST(request: Request) {
   try {
     config.validate();
 
@@ -218,3 +219,5 @@ export async function POST(request: Request) {
     );
   }
 }
+
+export const POST = withTracking("/api/extract-document", _POST);

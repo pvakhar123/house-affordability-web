@@ -3,6 +3,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { config } from "@/lib/config";
 import type { PropertyInfo } from "@/lib/types";
 import { traceGeneration, flushLangfuse } from "@/lib/langfuse";
+import { withTracking } from "@/lib/db/track";
 
 const EXTRACTION_PROMPT = `Extract property listing details from the following page content. Return ONLY valid JSON (no markdown, no explanation) with these fields:
 
@@ -26,7 +27,7 @@ Rules:
 - Set any field to null if it cannot be found in the content
 - listingPrice is the most important field - try your hardest to find it`;
 
-export async function POST(request: Request) {
+async function _POST(request: Request) {
   try {
     config.validate();
 
@@ -214,3 +215,5 @@ export async function POST(request: Request) {
     );
   }
 }
+
+export const POST = withTracking("/api/extract-property", _POST);

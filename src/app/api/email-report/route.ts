@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import type { FinalReport } from "@/lib/types";
+import { withTracking } from "@/lib/db/track";
 
 function fmt(n: number): string {
   return "$" + Math.round(n).toLocaleString("en-US");
@@ -88,7 +89,7 @@ function buildEmailHTML(report: FinalReport): string {
   `;
 }
 
-export async function POST(request: Request) {
+async function _POST(request: Request) {
   try {
     const { email, report } = (await request.json()) as {
       email: string;
@@ -130,3 +131,5 @@ export async function POST(request: Request) {
     );
   }
 }
+
+export const POST = withTracking("/api/email-report", _POST);

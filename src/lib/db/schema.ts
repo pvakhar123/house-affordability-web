@@ -61,3 +61,29 @@ export const feedback = pgTable("feedback", {
   timestamp: timestamp("timestamp", { withTimezone: true }).notNull().defaultNow(),
   userAgent: text("user_agent"),
 });
+
+// ── usage_events ────────────────────────────────────────────
+// Tracks every API call for usage analytics
+
+export const usageEvents = pgTable("usage_events", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  route: text("route").notNull(),
+  method: text("method").notNull(),
+  statusCode: integer("status_code").notNull(),
+  durationMs: integer("duration_ms").notNull(),
+  timestamp: timestamp("timestamp", { withTimezone: true }).notNull().defaultNow(),
+  metadata: jsonb("metadata").$type<Record<string, unknown>>(),
+});
+
+// ── error_logs ──────────────────────────────────────────────
+// Persists API route errors for operational visibility
+
+export const errorLogs = pgTable("error_logs", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  route: text("route").notNull(),
+  method: text("method").notNull(),
+  message: text("message").notNull(),
+  stack: text("stack"),
+  timestamp: timestamp("timestamp", { withTimezone: true }).notNull().defaultNow(),
+  metadata: jsonb("metadata").$type<Record<string, unknown>>(),
+});

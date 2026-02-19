@@ -4,6 +4,7 @@ import type { StreamPhase } from "@/lib/agents/orchestrator";
 import { config } from "@/lib/config";
 import type { UserProfile } from "@/lib/types";
 import { flushLangfuse } from "@/lib/langfuse";
+import { logApiError, logUsageEvent } from "@/lib/db/track";
 
 export const maxDuration = 300; // 5 minutes for agent processing
 
@@ -25,6 +26,7 @@ export async function POST(request: Request) {
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
       async start(controller) {
+        const streamStart = Date.now();
         const send = (event: StreamPhase) => {
           controller.enqueue(encoder.encode(JSON.stringify(event) + "\n"));
         };
@@ -45,9 +47,12 @@ export async function POST(request: Request) {
             }
           }
 
+          logUsageEvent("/api/analyze", "POST", 200, Date.now() - streamStart, { location: userProfile.targetLocation });
           controller.close();
         } catch (error) {
           console.error("Analysis error:", error);
+          logApiError("/api/analyze", "POST", error);
+          logUsageEvent("/api/analyze", "POST", 500, Date.now() - streamStart);
           const msg = error instanceof Error ? error.message : String(error);
           let userMessage = "Analysis failed. Please try again.";
 
@@ -79,6 +84,7 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error("Request error:", error);
+    logApiError("/api/analyze", "POST", error);
     return NextResponse.json(
       { error: "Analysis failed. Please try again." },
       { status: 500 }

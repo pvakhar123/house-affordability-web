@@ -1,10 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { appendFile, mkdir, readFile } from "fs/promises";
 import { paths } from "@/lib/eval/paths";
 import { isDbAvailable } from "@/lib/db";
 import { insertFeedback, queryFeedback } from "@/lib/db/queries";
+import { withTracking } from "@/lib/db/track";
 
-export async function GET() {
+async function _GET() {
   try {
     if (isDbAvailable) {
       const data = await queryFeedback();
@@ -38,7 +39,7 @@ export async function GET() {
   }
 }
 
-export async function POST(req: NextRequest) {
+async function _POST(req: Request) {
   try {
     const body = await req.json();
     const { type, rating, messageIndex, comment, timestamp } = body;
@@ -87,3 +88,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Failed to save feedback" }, { status: 500 });
   }
 }
+
+export const GET = withTracking("/api/feedback", _GET);
+export const POST = withTracking("/api/feedback", _POST);
