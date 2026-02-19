@@ -5,7 +5,7 @@ import { getCachedJudgeScores } from "@/lib/eval/client-cache";
 
 interface JudgeScores { accuracy: number; relevance: number; helpfulness: number; safety: number; overall: number; reasons: Record<string, string> }
 interface ScoreEntry {
-  id: string; timestamp: string; source: "realtime" | "batch";
+  id: string; timestamp: string; source: "realtime" | "batch" | "report";
   question: string; responsePreview: string; scores: JudgeScores;
   testCaseId?: string; evalRunId?: string;
 }
@@ -28,10 +28,11 @@ export default function QualityDashboard() {
   const [aggregates, setAggregates] = useState<Aggregates | null>(null);
   const [realtimeCount, setRealtimeCount] = useState(0);
   const [batchCount, setBatchCount] = useState(0);
-  const [filter, setFilter] = useState<"all" | "realtime" | "batch">("all");
+  const [reportCount, setReportCount] = useState(0);
+  const [filter, setFilter] = useState<"all" | "realtime" | "batch" | "report">("all");
   const [error, setError] = useState<string | null>(null);
 
-  const buildFromCache = (allEntries: ScoreEntry[], sourceFilter: "all" | "realtime" | "batch") => {
+  const buildFromCache = (allEntries: ScoreEntry[], sourceFilter: "all" | "realtime" | "batch" | "report") => {
     const filtered = sourceFilter === "all" ? allEntries : allEntries.filter((e) => e.source === sourceFilter);
     const valid = filtered.filter((e) => e.scores.overall > 0);
     const avg = (nums: number[]) => nums.length > 0 ? nums.reduce((s, n) => s + n, 0) / nums.length : 0;
@@ -46,6 +47,7 @@ export default function QualityDashboard() {
     });
     setRealtimeCount(allEntries.filter((e) => e.source === "realtime").length);
     setBatchCount(allEntries.filter((e) => e.source === "batch").length);
+    setReportCount(allEntries.filter((e) => e.source === "report").length);
   };
 
   useEffect(() => {
@@ -59,6 +61,7 @@ export default function QualityDashboard() {
           setAggregates(data.aggregates ?? null);
           setRealtimeCount(data.realtimeCount ?? 0);
           setBatchCount(data.batchCount ?? 0);
+          setReportCount(data.reportCount ?? 0);
         } else {
           // API returned empty (Vercel /tmp lost) — fall back to localStorage
           const cached = getCachedJudgeScores() as ScoreEntry[];
@@ -78,13 +81,13 @@ export default function QualityDashboard() {
 
   return (
     <div className="max-w-4xl mx-auto p-8">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Chat Quality Metrics</h1>
+      <h1 className="text-2xl font-bold text-gray-900 mb-6">Quality Metrics</h1>
 
       {/* Score cards */}
       <div className="grid grid-cols-4 gap-3 mb-6">
         <ScoreCard label="Accuracy" value={aggregates.avgAccuracy} />
-        <ScoreCard label="Relevance" value={aggregates.avgRelevance} />
-        <ScoreCard label="Helpfulness" value={aggregates.avgHelpfulness} />
+        <ScoreCard label={filter === "report" ? "Completeness" : "Relevance"} value={aggregates.avgRelevance} />
+        <ScoreCard label={filter === "report" ? "Clarity" : "Helpfulness"} value={aggregates.avgHelpfulness} />
         <ScoreCard label="Safety" value={aggregates.avgSafety} />
       </div>
 
@@ -94,9 +97,10 @@ export default function QualityDashboard() {
           <span>{aggregates.total} scored</span>
           <span>{realtimeCount} realtime</span>
           <span>{batchCount} batch</span>
+          <span>{reportCount} report</span>
         </div>
         <div className="flex gap-1">
-          {(["all", "realtime", "batch"] as const).map((f) => (
+          {(["all", "realtime", "batch", "report"] as const).map((f) => (
             <button
               key={f}
               onClick={() => setFilter(f)}
@@ -121,8 +125,8 @@ export default function QualityDashboard() {
                 <th className="px-4 py-2 text-left">Time</th>
                 <th className="px-4 py-2 text-left">Question</th>
                 <th className="px-3 py-2 text-center">Acc</th>
-                <th className="px-3 py-2 text-center">Rel</th>
-                <th className="px-3 py-2 text-center">Help</th>
+                <th className="px-3 py-2 text-center">{filter === "report" ? "Comp" : "Rel"}</th>
+                <th className="px-3 py-2 text-center">{filter === "report" ? "Clar" : "Help"}</th>
                 <th className="px-3 py-2 text-center">Safe</th>
                 <th className="px-3 py-2 text-center">Avg</th>
                 <th className="px-4 py-2 text-center">Source</th>
@@ -146,7 +150,7 @@ export default function QualityDashboard() {
                     <td className={`px-3 py-2 text-center font-bold ${scoreColor(e.scores.overall)}`}>{e.scores.overall.toFixed(1)}</td>
                     <td className="px-4 py-2 text-center">
                       <span className={`text-xs px-2 py-0.5 rounded-full ${
-                        e.source === "realtime" ? "bg-blue-50 text-blue-600" : "bg-purple-50 text-purple-600"
+                        e.source === "realtime" ? "bg-blue-50 text-blue-600" : e.source === "report" ? "bg-green-50 text-green-600" : "bg-purple-50 text-purple-600"
                       }`}>
                         {e.source}
                       </span>

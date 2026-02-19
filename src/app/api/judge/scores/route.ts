@@ -18,6 +18,7 @@ export async function GET(req: NextRequest) {
         aggregates: { total: 0, avgAccuracy: 0, avgRelevance: 0, avgHelpfulness: 0, avgSafety: 0, avgOverall: 0 },
         realtimeCount: 0,
         batchCount: 0,
+        reportCount: 0,
       });
     }
 
@@ -25,7 +26,7 @@ export async function GET(req: NextRequest) {
     const allEntries: JudgeScoreEntry[] = lines.map((l) => JSON.parse(l));
 
     // Filters
-    const source = req.nextUrl.searchParams.get("source") as "realtime" | "batch" | null;
+    const source = req.nextUrl.searchParams.get("source") as "realtime" | "batch" | "report" | null;
     const since = req.nextUrl.searchParams.get("since");
     const limit = parseInt(req.nextUrl.searchParams.get("limit") || "100", 10);
 
@@ -35,6 +36,7 @@ export async function GET(req: NextRequest) {
 
     const realtimeCount = allEntries.filter((e) => e.source === "realtime").length;
     const batchCount = allEntries.filter((e) => e.source === "batch").length;
+    const reportCount = allEntries.filter((e) => e.source === "report").length;
 
     // Aggregates over filtered set
     const validScores = filtered.filter((e) => e.scores.overall > 0);
@@ -52,6 +54,7 @@ export async function GET(req: NextRequest) {
       aggregates,
       realtimeCount,
       batchCount,
+      reportCount,
     });
   } catch (err) {
     console.error("Judge scores read error:", err);
