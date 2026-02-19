@@ -18,6 +18,15 @@ interface RunSummary {
 }
 interface TestCaseInfo { id: string; category: string; question: string }
 
+interface ReportScoreEntry {
+  id: string; timestamp: string; source: string;
+  question: string; responsePreview: string;
+  scores: JudgeScores;
+}
+interface ReportAggregates {
+  total: number; avgAccuracy: number; avgRelevance: number; avgHelpfulness: number; avgSafety: number; avgOverall: number;
+}
+
 function avg(nums: number[]): number {
   return nums.length > 0 ? nums.reduce((s, n) => s + n, 0) / nums.length : 0;
 }
@@ -41,6 +50,8 @@ export default function EvalDashboard() {
   const [progress, setProgress] = useState<{ current: number; total: number; currentCase: string } | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [reportScores, setReportScores] = useState<ReportScoreEntry[]>([]);
+  const [reportAggregates, setReportAggregates] = useState<ReportAggregates | null>(null);
 
   const fetchResults = useCallback(() => {
     setLoading(true);
@@ -67,6 +78,17 @@ export default function EvalDashboard() {
   }, []);
 
   useEffect(fetchResults, [fetchResults]);
+
+  // Fetch report quality scores
+  useEffect(() => {
+    fetch("/api/judge/scores?source=report")
+      .then((r) => r.json())
+      .then((data) => {
+        setReportScores(data.entries ?? []);
+        setReportAggregates(data.aggregates ?? null);
+      })
+      .catch(() => {});
+  }, []);
 
   // Run eval cases one-by-one to stay within Vercel function timeout
   const runEval = useCallback(async () => {
@@ -329,6 +351,60 @@ export default function EvalDashboard() {
           </div>
         </div>
       )}
+
+      {/* Report Quality Section */}
+      <div className="mt-10 pt-8 border-t border-gray-200">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Report Quality</h2>
+
+        {reportAggregates && reportAggregates.total > 0 ? (
+          <>
+            <div className="grid grid-cols-4 gap-3 mb-4">
+              <ScoreCard label="Accuracy" value={reportAggregates.avgAccuracy} max={5} />
+              <ScoreCard label="Completeness" value={reportAggregates.avgRelevance} max={5} />
+              <ScoreCard label="Clarity" value={reportAggregates.avgHelpfulness} max={5} />
+              <ScoreCard label="Safety" value={reportAggregates.avgSafety} max={5} />
+            </div>
+
+            <p className="text-sm text-gray-500 mb-3">{reportAggregates.total} report{reportAggregates.total !== 1 ? "s" : ""} scored &middot; {reportAggregates.avgOverall.toFixed(1)}/5 avg</p>
+
+            <div className="border border-gray-200 rounded-xl overflow-hidden">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
+                  <tr>
+                    <th className="px-4 py-2 text-left">Time</th>
+                    <th className="px-3 py-2 text-center">Acc</th>
+                    <th className="px-3 py-2 text-center">Comp</th>
+                    <th className="px-3 py-2 text-center">Clar</th>
+                    <th className="px-3 py-2 text-center">Safe</th>
+                    <th className="px-3 py-2 text-center">Avg</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {reportScores.map((e) => {
+                    const scoreColor = (s: number) => s >= 4 ? "text-green-600" : s >= 3 ? "text-yellow-600" : "text-red-500";
+                    return (
+                      <tr key={e.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-2 text-gray-500 whitespace-nowrap text-xs">
+                          {new Date(e.timestamp).toLocaleString()}
+                        </td>
+                        <td className={`px-3 py-2 text-center font-medium ${scoreColor(e.scores.accuracy)}`}>{e.scores.accuracy}</td>
+                        <td className={`px-3 py-2 text-center font-medium ${scoreColor(e.scores.relevance)}`}>{e.scores.relevance}</td>
+                        <td className={`px-3 py-2 text-center font-medium ${scoreColor(e.scores.helpfulness)}`}>{e.scores.helpfulness}</td>
+                        <td className={`px-3 py-2 text-center font-medium ${scoreColor(e.scores.safety)}`}>{e.scores.safety}</td>
+                        <td className={`px-3 py-2 text-center font-bold ${scoreColor(e.scores.overall)}`}>{e.scores.overall.toFixed(1)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
+        ) : (
+          <p className="text-center py-8 text-gray-400 text-sm">
+            No report quality scores yet. Generate a report with ENABLE_REALTIME_JUDGE=true to see scores here.
+          </p>
+        )}
+      </div>
     </div>
   );
 }
