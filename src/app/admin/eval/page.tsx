@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { cacheEvalRun, cacheJudgeEntries, getCachedEvalData } from "@/lib/eval/client-cache";
 
 interface PatternCheck { pattern: string; passed: boolean }
@@ -14,6 +14,12 @@ interface EvalResult {
 interface RunSummary {
   evalRunId: string; timestamp: string; totalTests: number; passed: number; failed: number;
   avgPatternScore: number; avgJudgeScores: { accuracy: number; relevance: number; helpfulness: number; safety: number; overall: number };
+  durationMs?: number;
+}
+interface TestCaseInfo { id: string; category: string; question: string }
+
+function avg(nums: number[]): number {
+  return nums.length > 0 ? nums.reduce((s, n) => s + n, 0) / nums.length : 0;
 }
 
 function ScoreCard({ label, value, max }: { label: string; value: number; max: number }) {
@@ -32,17 +38,17 @@ export default function EvalDashboard() {
   const [results, setResults] = useState<EvalResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [running, setRunning] = useState(false);
+  const [progress, setProgress] = useState<{ current: number; total: number; currentCase: string } | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchResults = () => {
+  const fetchResults = useCallback(() => {
     setLoading(true);
     fetch("/api/eval/results")
       .then((r) => r.json())
       .then((data) => {
         const apiRuns = data.runs ?? [];
         const apiResults = data.results ?? [];
-        // If API returned empty (Vercel /tmp lost), fall back to localStorage cache
         if (apiRuns.length === 0) {
           const cached = getCachedEvalData();
           setRuns(cached.runs as unknown as RunSummary[]);
@@ -53,58 +59,101 @@ export default function EvalDashboard() {
         }
       })
       .catch(() => {
-        // API failed — try localStorage
         const cached = getCachedEvalData();
         setRuns(cached.runs as unknown as RunSummary[]);
         setResults(cached.results as unknown as EvalResult[]);
       })
       .finally(() => setLoading(false));
-  };
+  }, []);
 
-  useEffect(fetchResults, []);
+  useEffect(fetchResults, [fetchResults]);
 
-  const runEval = () => {
+  // Run eval cases one-by-one to stay within Vercel function timeout
+  const runEval = useCallback(async () => {
     setRunning(true);
     setError(null);
-    fetch("/api/eval/run", { method: "POST" })
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.error) {
-          setError(data.error);
-        } else {
-          // Use the POST response directly — JSONL in /tmp doesn't persist across Vercel invocations
-          const runSummary: RunSummary = {
-            evalRunId: data.evalRunId,
-            timestamp: data.timestamp,
-            totalTests: data.totalTests,
-            passed: data.passed,
-            failed: data.failed,
-            avgPatternScore: data.avgPatternScore,
-            avgJudgeScores: data.avgJudgeScores,
-          };
-          setRuns((prev) => [runSummary, ...prev]);
-          setResults((prev) => [...(data.results ?? []), ...prev]);
-          // Cache to localStorage for quality page + persistence across Vercel invocations
-          cacheEvalRun(runSummary, data.results ?? []);
-          // Also cache judge entries so the quality page can read them
-          const judgeEntries = (data.results ?? [])
-            .filter((r: EvalResult) => r.judgeScores.overall > 0)
-            .map((r: EvalResult) => ({
-              id: `${r.evalRunId}-${r.testCaseId}`,
-              timestamp: r.timestamp ?? new Date().toISOString(),
-              source: "batch" as const,
-              question: r.question,
-              responsePreview: r.response.slice(0, 200),
-              scores: r.judgeScores,
-              testCaseId: r.testCaseId,
-              evalRunId: r.evalRunId,
-            }));
-          cacheJudgeEntries(judgeEntries);
+    setProgress(null);
+
+    try {
+      // Step 1: Fetch test case IDs
+      const casesRes = await fetch("/api/eval/cases");
+      const casesData = await casesRes.json();
+      if (casesData.error) { setError(casesData.error); setRunning(false); return; }
+      const cases: TestCaseInfo[] = casesData.cases ?? [];
+      if (cases.length === 0) { setError("No test cases found"); setRunning(false); return; }
+
+      // Step 2: Run each case individually
+      const allResults: EvalResult[] = [];
+      for (let i = 0; i < cases.length; i++) {
+        const tc = cases[i];
+        setProgress({ current: i + 1, total: cases.length, currentCase: tc.id });
+
+        try {
+          const res = await fetch("/api/eval/run", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ testCaseIds: [tc.id] }),
+          });
+          const data = await res.json();
+          if (data.results?.length > 0) {
+            allResults.push(...data.results);
+          } else if (data.error) {
+            console.warn(`[eval] ${tc.id} failed:`, data.error);
+          }
+        } catch (err) {
+          console.warn(`[eval] ${tc.id} fetch failed:`, err);
         }
-      })
-      .catch(() => setError("Eval run failed"))
-      .finally(() => setRunning(false));
-  };
+      }
+
+      // Step 3: Build run summary from collected results
+      if (allResults.length > 0) {
+        const passed = allResults.filter((r) => r.overallPass).length;
+        const evalRunId = allResults[0].evalRunId;
+        const runSummary: RunSummary = {
+          evalRunId,
+          timestamp: new Date().toISOString(),
+          totalTests: allResults.length,
+          passed,
+          failed: allResults.length - passed,
+          avgPatternScore: avg(allResults.map((r) => r.patternScore)),
+          avgJudgeScores: {
+            accuracy: avg(allResults.map((r) => r.judgeScores.accuracy)),
+            relevance: avg(allResults.map((r) => r.judgeScores.relevance)),
+            helpfulness: avg(allResults.map((r) => r.judgeScores.helpfulness)),
+            safety: avg(allResults.map((r) => r.judgeScores.safety)),
+            overall: avg(allResults.map((r) => r.judgeScores.overall)),
+          },
+          durationMs: allResults.reduce((s, r) => s + r.durationMs, 0),
+        };
+
+        setRuns((prev) => [runSummary, ...prev]);
+        setResults((prev) => [...allResults, ...prev]);
+
+        // Cache for persistence + quality page
+        cacheEvalRun(runSummary, allResults);
+        const judgeEntries = allResults
+          .filter((r) => r.judgeScores.overall > 0)
+          .map((r) => ({
+            id: `${r.evalRunId}-${r.testCaseId}`,
+            timestamp: r.timestamp ?? new Date().toISOString(),
+            source: "batch" as const,
+            question: r.question,
+            responsePreview: r.response.slice(0, 200),
+            scores: r.judgeScores,
+            testCaseId: r.testCaseId,
+            evalRunId: r.evalRunId,
+          }));
+        cacheJudgeEntries(judgeEntries);
+      } else {
+        setError("All test cases failed to execute");
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Eval run failed");
+    } finally {
+      setRunning(false);
+      setProgress(null);
+    }
+  }, []);
 
   const latestRun = runs[0];
   const latestResults = latestRun ? results.filter((r) => r.evalRunId === latestRun.evalRunId) : [];
@@ -123,6 +172,24 @@ export default function EvalDashboard() {
       </div>
 
       {error && <div className="mb-4 p-3 bg-red-50 text-red-700 text-sm rounded-lg">{error}</div>}
+
+      {/* Progress bar during eval run */}
+      {progress && (
+        <div className="mb-4 p-3 bg-blue-50 border border-blue-100 rounded-lg">
+          <div className="flex items-center justify-between mb-1.5">
+            <p className="text-sm font-medium text-blue-700">
+              Running: <span className="font-mono">{progress.currentCase}</span>
+            </p>
+            <p className="text-xs text-blue-500">{progress.current}/{progress.total}</p>
+          </div>
+          <div className="w-full bg-blue-100 rounded-full h-2">
+            <div
+              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+              style={{ width: `${(progress.current / progress.total) * 100}%` }}
+            />
+          </div>
+        </div>
+      )}
 
       {loading && <p className="text-gray-400">Loading...</p>}
 
@@ -237,7 +304,7 @@ export default function EvalDashboard() {
         </>
       )}
 
-      {!loading && runs.length === 0 && (
+      {!loading && !running && runs.length === 0 && (
         <div className="text-center py-12 text-gray-400">
           <p>No evaluation runs yet.</p>
           <p className="text-sm mt-1">Click &quot;Run Evaluation&quot; to test your golden dataset.</p>
