@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import type { FinalReport } from "@/lib/types";
 import type { SessionMemory } from "@/lib/chat-context";
+import { cacheFeedbackEntry } from "@/lib/eval/client-cache";
 
 interface Message {
   role: "user" | "assistant";
@@ -241,12 +242,14 @@ export default function ChatInterface({ report, userLocation }: { report: FinalR
     setRatings((prev) => {
       const current = prev[messageIndex];
       const next = current === rating ? null : rating;
-      // Fire-and-forget POST
+      const entry = { type: "chat", rating: next ?? "retracted", messageIndex, timestamp: new Date().toISOString() };
+      // Fire-and-forget POST + cache client-side for admin dashboard
       fetch("/api/feedback", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "chat", rating: next ?? "retracted", messageIndex }),
+        body: JSON.stringify(entry),
       }).catch(() => {});
+      if (next) cacheFeedbackEntry(entry);
       return { ...prev, [messageIndex]: next };
     });
   }, []);

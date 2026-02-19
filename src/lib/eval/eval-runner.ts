@@ -125,7 +125,7 @@ export async function runEvaluation(options?: {
   testCaseIds?: string[];
   skipJudge?: boolean;
   baseUrl?: string;
-}): Promise<EvalRunSummary> {
+}): Promise<EvalRunSummary & { results: EvalResult[] }> {
   const dataset = await loadGoldenDataset();
   const cases = options?.testCaseIds
     ? dataset.testCases.filter((tc) => options.testCaseIds!.includes(tc.id))
@@ -226,5 +226,6 @@ export async function runEvaluation(options?: {
       overall: avg(results.map((r) => r.judgeScores.overall)),
     },
     durationMs: results.reduce((s, r) => s + r.durationMs, 0),
+    results,
   };
 }

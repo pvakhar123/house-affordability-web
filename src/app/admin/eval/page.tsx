@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { cacheEvalRun, cacheJudgeEntries, getCachedEvalData } from "@/lib/eval/client-cache";
 
 interface PatternCheck { pattern: string; passed: boolean }
 interface JudgeScores { accuracy: number; relevance: number; helpfulness: number; safety: number; overall: number; reasons: Record<string, string> }
 interface EvalResult {
-  evalRunId: string; testCaseId: string; category: string; question: string; response: string;
+  evalRunId: string; timestamp: string; testCaseId: string; category: string; question: string; response: string;
   toolsCalled: string[]; mustIncludeResults: PatternCheck[]; mustNotIncludeResults: PatternCheck[];
   patternResults: PatternCheck[]; toolCallResults: PatternCheck[];
   patternScore: number; judgeScores: JudgeScores; overallPass: boolean; durationMs: number;
@@ -38,8 +39,25 @@ export default function EvalDashboard() {
     setLoading(true);
     fetch("/api/eval/results")
       .then((r) => r.json())
-      .then((data) => { setRuns(data.runs ?? []); setResults(data.results ?? []); })
-      .catch(() => setError("Failed to load results"))
+      .then((data) => {
+        const apiRuns = data.runs ?? [];
+        const apiResults = data.results ?? [];
+        // If API returned empty (Vercel /tmp lost), fall back to localStorage cache
+        if (apiRuns.length === 0) {
+          const cached = getCachedEvalData();
+          setRuns(cached.runs as unknown as RunSummary[]);
+          setResults(cached.results as unknown as EvalResult[]);
+        } else {
+          setRuns(apiRuns);
+          setResults(apiResults);
+        }
+      })
+      .catch(() => {
+        // API failed — try localStorage
+        const cached = getCachedEvalData();
+        setRuns(cached.runs as unknown as RunSummary[]);
+        setResults(cached.results as unknown as EvalResult[]);
+      })
       .finally(() => setLoading(false));
   };
 
@@ -51,8 +69,38 @@ export default function EvalDashboard() {
     fetch("/api/eval/run", { method: "POST" })
       .then((r) => r.json())
       .then((data) => {
-        if (data.error) setError(data.error);
-        else fetchResults();
+        if (data.error) {
+          setError(data.error);
+        } else {
+          // Use the POST response directly — JSONL in /tmp doesn't persist across Vercel invocations
+          const runSummary: RunSummary = {
+            evalRunId: data.evalRunId,
+            timestamp: data.timestamp,
+            totalTests: data.totalTests,
+            passed: data.passed,
+            failed: data.failed,
+            avgPatternScore: data.avgPatternScore,
+            avgJudgeScores: data.avgJudgeScores,
+          };
+          setRuns((prev) => [runSummary, ...prev]);
+          setResults((prev) => [...(data.results ?? []), ...prev]);
+          // Cache to localStorage for quality page + persistence across Vercel invocations
+          cacheEvalRun(runSummary, data.results ?? []);
+          // Also cache judge entries so the quality page can read them
+          const judgeEntries = (data.results ?? [])
+            .filter((r: EvalResult) => r.judgeScores.overall > 0)
+            .map((r: EvalResult) => ({
+              id: `${r.evalRunId}-${r.testCaseId}`,
+              timestamp: r.timestamp ?? new Date().toISOString(),
+              source: "batch" as const,
+              question: r.question,
+              responsePreview: r.response.slice(0, 200),
+              scores: r.judgeScores,
+              testCaseId: r.testCaseId,
+              evalRunId: r.evalRunId,
+            }));
+          cacheJudgeEntries(judgeEntries);
+        }
       })
       .catch(() => setError("Eval run failed"))
       .finally(() => setRunning(false));

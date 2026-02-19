@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { getCachedFeedback } from "@/lib/eval/client-cache";
 
 interface Entry {
   type: string;
@@ -21,14 +22,40 @@ export default function FeedbackAdmin() {
   const [entries, setEntries] = useState<Entry[]>([]);
   const [error, setError] = useState<string | null>(null);
 
+  const buildStatsFromEntries = (items: Entry[]): Stats => {
+    const s = { chat: { up: 0, down: 0 }, report: { up: 0, down: 0 }, total: items.length };
+    for (const e of items) {
+      const t = e.type as "chat" | "report";
+      const r = e.rating as "up" | "down";
+      if ((t === "chat" || t === "report") && (r === "up" || r === "down")) s[t][r]++;
+    }
+    return s;
+  };
+
   useEffect(() => {
     fetch("/api/feedback")
       .then((r) => r.json())
       .then((data) => {
-        setStats(data.stats);
-        setEntries(data.entries ?? []);
+        const apiEntries = data.entries ?? [];
+        if (apiEntries.length > 0) {
+          setStats(data.stats);
+          setEntries(apiEntries);
+        } else {
+          // API returned empty (Vercel /tmp lost) — fall back to localStorage
+          const cached = getCachedFeedback() as Entry[];
+          setEntries(cached.slice(0, 50));
+          setStats(buildStatsFromEntries(cached));
+        }
       })
-      .catch(() => setError("Failed to load feedback data"));
+      .catch(() => {
+        const cached = getCachedFeedback() as Entry[];
+        if (cached.length > 0) {
+          setEntries(cached.slice(0, 50));
+          setStats(buildStatsFromEntries(cached));
+        } else {
+          setError("Failed to load feedback data");
+        }
+      });
   }, []);
 
   if (error) return <div className="p-8 text-red-600">{error}</div>;

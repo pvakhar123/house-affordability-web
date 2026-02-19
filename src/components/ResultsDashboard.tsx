@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react";
 import type { FinalReport } from "@/lib/types";
+import { cacheFeedbackEntry } from "@/lib/eval/client-cache";
 import AffordabilityCard from "./AffordabilityCard";
 import MarketSnapshotCard from "./MarketSnapshotCard";
 import RiskAssessmentCard from "./RiskAssessmentCard";
@@ -105,11 +106,13 @@ function ReportFeedback() {
     const next = rating === value ? null : value;
     setRating(next);
     setShowThanks(!!next);
+    const entry = { type: "report", rating: next ?? "retracted", timestamp: new Date().toISOString() };
     fetch("/api/feedback", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type: "report", rating: next ?? "retracted" }),
+      body: JSON.stringify(entry),
     }).catch(() => {});
+    if (next) cacheFeedbackEntry(entry);
     if (next) setTimeout(() => setShowThanks(false), 2000);
   }, [rating]);
 

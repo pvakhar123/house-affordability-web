@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { getCachedJudgeScores } from "@/lib/eval/client-cache";
 
 interface JudgeScores { accuracy: number; relevance: number; helpfulness: number; safety: number; overall: number; reasons: Record<string, string> }
 interface ScoreEntry {
@@ -30,17 +31,46 @@ export default function QualityDashboard() {
   const [filter, setFilter] = useState<"all" | "realtime" | "batch">("all");
   const [error, setError] = useState<string | null>(null);
 
+  const buildFromCache = (allEntries: ScoreEntry[], sourceFilter: "all" | "realtime" | "batch") => {
+    const filtered = sourceFilter === "all" ? allEntries : allEntries.filter((e) => e.source === sourceFilter);
+    const valid = filtered.filter((e) => e.scores.overall > 0);
+    const avg = (nums: number[]) => nums.length > 0 ? nums.reduce((s, n) => s + n, 0) / nums.length : 0;
+    setEntries(filtered.slice(0, 100));
+    setAggregates({
+      total: filtered.length,
+      avgAccuracy: avg(valid.map((e) => e.scores.accuracy)),
+      avgRelevance: avg(valid.map((e) => e.scores.relevance)),
+      avgHelpfulness: avg(valid.map((e) => e.scores.helpfulness)),
+      avgSafety: avg(valid.map((e) => e.scores.safety)),
+      avgOverall: avg(valid.map((e) => e.scores.overall)),
+    });
+    setRealtimeCount(allEntries.filter((e) => e.source === "realtime").length);
+    setBatchCount(allEntries.filter((e) => e.source === "batch").length);
+  };
+
   useEffect(() => {
     const params = filter !== "all" ? `?source=${filter}` : "";
     fetch(`/api/judge/scores${params}`)
       .then((r) => r.json())
       .then((data) => {
-        setEntries(data.entries ?? []);
-        setAggregates(data.aggregates ?? null);
-        setRealtimeCount(data.realtimeCount ?? 0);
-        setBatchCount(data.batchCount ?? 0);
+        const apiEntries = data.entries ?? [];
+        if (apiEntries.length > 0) {
+          setEntries(apiEntries);
+          setAggregates(data.aggregates ?? null);
+          setRealtimeCount(data.realtimeCount ?? 0);
+          setBatchCount(data.batchCount ?? 0);
+        } else {
+          // API returned empty (Vercel /tmp lost) — fall back to localStorage
+          const cached = getCachedJudgeScores() as ScoreEntry[];
+          if (cached.length > 0) buildFromCache(cached, filter);
+          else setAggregates({ total: 0, avgAccuracy: 0, avgRelevance: 0, avgHelpfulness: 0, avgSafety: 0, avgOverall: 0 });
+        }
       })
-      .catch(() => setError("Failed to load quality data"));
+      .catch(() => {
+        const cached = getCachedJudgeScores() as ScoreEntry[];
+        if (cached.length > 0) buildFromCache(cached, filter);
+        else setError("Failed to load quality data");
+      });
   }, [filter]);
 
   if (error) return <div className="max-w-4xl mx-auto p-8 text-red-600">{error}</div>;
