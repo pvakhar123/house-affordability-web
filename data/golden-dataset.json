@@ -1,0 +1,260 @@
+{
+  "version": "1.0",
+  "fixtureReport": {
+    "summary": "Based on your financial profile, you can afford a home priced up to $425,000 with a recommended comfortable purchase price of $380,000.",
+    "affordability": {
+      "maxHomePrice": 425000,
+      "recommendedHomePrice": 380000,
+      "downPaymentAmount": 60000,
+      "downPaymentPercent": 15,
+      "loanAmount": 365000,
+      "monthlyPayment": {
+        "principal": 1150,
+        "interest": 1050,
+        "propertyTax": 390,
+        "homeInsurance": 125,
+        "pmi": 152,
+        "totalMonthly": 2867
+      },
+      "dtiAnalysis": {
+        "frontEndRatio": 28.7,
+        "backEndRatio": 36.7,
+        "frontEndStatus": "moderate",
+        "backEndStatus": "moderate",
+        "maxFrontEnd": 28,
+        "maxBackEnd": 36
+      },
+      "amortizationSummary": [
+        { "year": 1, "principalPaid": 13800, "interestPaid": 12600, "remainingBalance": 351200, "equityPercent": 17.4 },
+        { "year": 2, "principalPaid": 14700, "interestPaid": 11700, "remainingBalance": 336500, "equityPercent": 20.8 },
+        { "year": 3, "principalPaid": 15600, "interestPaid": 10800, "remainingBalance": 320900, "equityPercent": 24.5 },
+        { "year": 4, "principalPaid": 16600, "interestPaid": 9800, "remainingBalance": 304300, "equityPercent": 28.4 },
+        { "year": 5, "principalPaid": 17700, "interestPaid": 8700, "remainingBalance": 286600, "equityPercent": 32.6 }
+      ]
+    },
+    "marketSnapshot": {
+      "mortgageRates": {
+        "thirtyYearFixed": 6.75,
+        "fifteenYearFixed": 5.95,
+        "federalFundsRate": 5.33,
+        "dataDate": "2025-01-15",
+        "source": "FRED"
+      },
+      "medianHomePrices": {
+        "national": 416000,
+        "nationalNew": 420000,
+        "caseShillerIndex": 318.5,
+        "dataDate": "2025-01-15"
+      },
+      "marketTrends": [
+        { "metric": "30-Year Mortgage Rate", "currentValue": 6.75, "previousValue": 7.08, "changePercent": -4.7, "direction": "down", "period": "3 months" },
+        { "metric": "Median Home Price", "currentValue": 416000, "previousValue": 405000, "changePercent": 2.7, "direction": "up", "period": "1 year" }
+      ],
+      "inflationData": {
+        "shelterCpiCurrent": 328.5,
+        "shelterCpiYearAgo": 315.2,
+        "shelterInflationRate": 4.2,
+        "generalInflationRate": 3.1
+      },
+      "fetchedAt": "2025-01-15T12:00:00Z"
+    },
+    "riskAssessment": {
+      "overallRiskLevel": "moderate",
+      "overallScore": 58,
+      "stressTests": [
+        { "scenario": "Rate increase +2%", "description": "If rates rise to 8.75%", "newMonthlyPayment": 3250, "newDTI": 40.5, "canAfford": true, "severity": "strained" },
+        { "scenario": "Income loss 20%", "description": "If income drops to $96,000", "newDTI": 45.8, "canAfford": false, "monthsOfRunway": 8, "severity": "unsustainable" }
+      ],
+      "riskFlags": [
+        { "category": "debt", "severity": "warning", "message": "Back-end DTI of 36.7% is above the ideal 36% threshold", "recommendation": "Consider paying down existing debt before purchasing" },
+        { "category": "savings", "severity": "info", "message": "Down payment of 15% will require PMI", "recommendation": "Save an additional $25,000 to reach 20% and eliminate PMI" }
+      ],
+      "emergencyFundAnalysis": {
+        "currentEmergencyFund": 25000,
+        "postPurchaseEmergencyFund": 15000,
+        "monthlyExpenses": 4200,
+        "monthsCovered": 3.6,
+        "adequate": false,
+        "recommendation": "Build emergency fund to cover 6 months of expenses ($25,200)"
+      },
+      "rentVsBuy": {
+        "fiveYear": { "buyTotalCost": 172000, "rentTotalCost": 108000, "buyEquity": 78400, "verdict": "Buying slightly better after 5 years" },
+        "tenYear": { "buyTotalCost": 344000, "rentTotalCost": 234000, "buyEquity": 191000, "verdict": "Buying clearly better after 10 years" },
+        "breakEvenYears": 4.2
+      }
+    },
+    "recommendations": {
+      "loanOptions": [
+        {
+          "type": "conventional",
+          "eligible": true,
+          "minDownPaymentPercent": 5,
+          "estimatedRate": 6.75,
+          "monthlyPayment": 2867,
+          "pmiRequired": true,
+          "pmiMonthlyEstimate": 152,
+          "totalCostOver30Years": 1032120,
+          "pros": ["Lower PMI than FHA", "PMI removable at 20% equity", "No upfront mortgage insurance"],
+          "cons": ["Higher credit score required", "PMI until 20% equity"]
+        },
+        {
+          "type": "fha",
+          "eligible": true,
+          "eligibilityReason": "Credit score and down payment meet FHA requirements",
+          "minDownPaymentPercent": 3.5,
+          "estimatedRate": 6.5,
+          "monthlyPayment": 2950,
+          "pmiRequired": true,
+          "pmiMonthlyEstimate": 210,
+          "totalCostOver30Years": 1062000,
+          "pros": ["Lower credit score accepted", "Lower down payment option"],
+          "cons": ["Mortgage insurance for life of loan", "Higher total cost"]
+        },
+        {
+          "type": "va",
+          "eligible": false,
+          "eligibilityReason": "Not a veteran or active-duty service member",
+          "minDownPaymentPercent": 0,
+          "estimatedRate": 6.25,
+          "monthlyPayment": 0,
+          "pmiRequired": false,
+          "pmiMonthlyEstimate": 0,
+          "totalCostOver30Years": 0,
+          "pros": [],
+          "cons": []
+        },
+        {
+          "type": "usda",
+          "eligible": false,
+          "eligibilityReason": "Property location not in USDA-eligible rural area",
+          "minDownPaymentPercent": 0,
+          "estimatedRate": 6.5,
+          "monthlyPayment": 0,
+          "pmiRequired": false,
+          "pmiMonthlyEstimate": 0,
+          "totalCostOver30Years": 0,
+          "pros": [],
+          "cons": []
+        }
+      ],
+      "savingsStrategies": [
+        { "title": "Reduce dining out", "description": "Cut restaurant spending by 50%", "potentialSavings": 3600, "timeframeMonths": 12, "difficulty": "easy" }
+      ],
+      "closingCostEstimate": {
+        "lowEstimate": 8500,
+        "highEstimate": 12750,
+        "breakdown": [
+          { "item": "Loan origination", "amount": 3650 },
+          { "item": "Appraisal", "amount": 500 },
+          { "item": "Title insurance", "amount": 2000 },
+          { "item": "Inspection", "amount": 450 },
+          { "item": "Recording fees", "amount": 250 },
+          { "item": "Prepaid taxes & insurance", "amount": 3900 }
+        ]
+      },
+      "generalAdvice": [
+        "Consider paying down existing debt to lower your DTI ratio",
+        "Save an additional $25,000 for a 20% down payment to eliminate PMI",
+        "Build your emergency fund to cover 6 months of expenses"
+      ]
+    },
+    "disclaimers": [
+      "This report is for informational purposes only and does not constitute financial advice.",
+      "Actual mortgage rates and terms may vary based on your specific financial situation.",
+      "Consult with a licensed mortgage professional before making any decisions."
+    ],
+    "generatedAt": "2025-01-15T12:00:00Z"
+  },
+  "testCases": [
+    {
+      "id": "max-price",
+      "category": "affordability",
+      "question": "What is the maximum home price I can afford?",
+      "mustInclude": ["425,000"],
+      "mustNotInclude": [],
+      "expectedPatterns": ["\\$425,?000"],
+      "expectedToolCalls": []
+    },
+    {
+      "id": "recommended-price",
+      "category": "affordability",
+      "question": "What home price do you recommend for me?",
+      "mustInclude": ["380,000"],
+      "mustNotInclude": [],
+      "expectedPatterns": ["\\$380,?000"],
+      "expectedToolCalls": []
+    },
+    {
+      "id": "monthly-payment",
+      "category": "affordability",
+      "question": "What would my monthly mortgage payment be?",
+      "mustInclude": ["2,867"],
+      "mustNotInclude": [],
+      "expectedPatterns": ["\\$2,?8[0-9]{2}"],
+      "expectedToolCalls": []
+    },
+    {
+      "id": "dti-analysis",
+      "category": "affordability",
+      "question": "What is my debt-to-income ratio and is it okay?",
+      "mustInclude": ["36.7"],
+      "mustNotInclude": [],
+      "expectedPatterns": ["front.?end|back.?end|DTI", "28\\.7|36\\.7"],
+      "expectedToolCalls": []
+    },
+    {
+      "id": "current-rates",
+      "category": "rates",
+      "question": "What are today's mortgage rates?",
+      "mustInclude": [],
+      "mustNotInclude": [],
+      "expectedPatterns": ["\\d+\\.\\d+%"],
+      "expectedToolCalls": ["get_current_rates"]
+    },
+    {
+      "id": "rate-drop-scenario",
+      "category": "comparison",
+      "question": "What if interest rates drop to 5.5%? How much more could I afford?",
+      "mustInclude": [],
+      "mustNotInclude": [],
+      "expectedPatterns": ["\\$\\d{3},?\\d{3}"],
+      "expectedToolCalls": ["recalculate_affordability"]
+    },
+    {
+      "id": "property-tax",
+      "category": "area_info",
+      "question": "What are property taxes like in Austin, TX?",
+      "mustInclude": ["Austin"],
+      "mustNotInclude": [],
+      "expectedPatterns": ["\\d+\\.\\d+%|property\\s+tax"],
+      "expectedToolCalls": ["get_area_info"]
+    },
+    {
+      "id": "fha-vs-conventional",
+      "category": "loan_programs",
+      "question": "Should I go with an FHA loan or conventional? What's the difference for me?",
+      "mustInclude": ["FHA", "conventional"],
+      "mustNotInclude": [],
+      "expectedPatterns": ["down\\s*payment|PMI|mortgage\\s+insurance"],
+      "expectedToolCalls": []
+    },
+    {
+      "id": "stress-test",
+      "category": "stress_test",
+      "question": "What happens to my payments if rates go up 2%?",
+      "mustInclude": [],
+      "mustNotInclude": [],
+      "expectedPatterns": ["\\$\\d", "DTI|debt.to.income|payment"],
+      "expectedToolCalls": ["stress_test"]
+    },
+    {
+      "id": "off-topic",
+      "category": "guardrail",
+      "question": "Write me a poem about cats",
+      "mustInclude": [],
+      "mustNotInclude": ["poem", "meow", "whisker", "purr"],
+      "expectedPatterns": ["housing|mortgage|home|affordability|financial"],
+      "expectedToolCalls": []
+    }
+  ]
+}

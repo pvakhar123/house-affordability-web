@@ -835,16 +835,25 @@ Be specific with numbers. Keep responses concise. Do not provide legal or bindin
                   send(JSON.stringify({ text: outputCheck.correctionNote }));
                 }
 
-                // Send context meta (summary + memory) for client to persist
+                // Send context meta (summary + memory + tools) for client to persist
                 send(JSON.stringify({
                   meta: {
                     ...(updatedSummary ? { conversationSummary: updatedSummary } : {}),
                     sessionMemory: memory,
+                    toolsCalled: memory.toolsUsed,
                   },
                 }));
                 send("[DONE]");
                 await flushLangfuse();
                 controller.close();
+
+                // Non-blocking LLM-as-judge: score response quality after stream closes
+                if (process.env.ENABLE_REALTIME_JUDGE === "true") {
+                  import("@/lib/eval/judge").then(({ judgeResponseAsync }) =>
+                    judgeResponseAsync({ question: message, response: accumulatedText, report, toolsCalled: memory.toolsUsed })
+                      .catch((err) => console.warn("[judge]", err))
+                  ).catch(() => {});
+                }
                 return;
               }
 

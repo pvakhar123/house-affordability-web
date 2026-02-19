@@ -9,6 +9,8 @@ export const config = {
   summaryModel: process.env.CLAUDE_SUMMARY_MODEL ?? "claude-sonnet-4-5-20250929",
   // Fallback if primary models are overloaded
   fallbackModel: "claude-haiku-4-5-20251001",
+  // LLM-as-judge model (Haiku for cost efficiency)
+  judgeModel: process.env.CLAUDE_JUDGE_MODEL ?? "claude-haiku-4-5-20251001",
 
   validate(): void {
     if (!this.anthropicApiKey) {
