@@ -1,8 +1,9 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { OrchestratorAgent } from "@/lib/agents/orchestrator";
 import type { StreamPhase } from "@/lib/agents/orchestrator";
 import { config } from "@/lib/config";
 import type { UserProfile } from "@/lib/types";
+import type { FinalReport } from "@/lib/types";
 import { flushLangfuse } from "@/lib/langfuse";
 
 export const maxDuration = 300; // 5 minutes for agent processing
@@ -22,6 +23,8 @@ export async function POST(request: Request) {
       );
     }
 
+    let capturedReport: FinalReport | null = null;
+
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
       async start(controller) {
@@ -32,19 +35,9 @@ export async function POST(request: Request) {
         try {
           const orchestrator = new OrchestratorAgent();
           const report = await orchestrator.run(userProfile, send);
+          capturedReport = report;
           await flushLangfuse();
           controller.close();
-
-          // Report quality judge — awaited so Vercel doesn't kill the function early
-          // (response is already sent since controller is closed)
-          if (process.env.ENABLE_REALTIME_JUDGE === "true") {
-            try {
-              const { judgeReportAsync } = await import("@/lib/eval/judge");
-              await judgeReportAsync({ report, traceId: report.traceId });
-            } catch (err) {
-              console.warn("[report-judge]", err);
-            }
-          }
         } catch (error) {
           console.error("Analysis error:", error);
           const msg = error instanceof Error ? error.message : String(error);
@@ -67,6 +60,19 @@ export async function POST(request: Request) {
           controller.close();
         }
       },
+    });
+
+    // Run report judge after the response is fully sent (Vercel keeps the function alive for after())
+    after(async () => {
+      if (process.env.ENABLE_REALTIME_JUDGE === "true" && capturedReport) {
+        try {
+          const { judgeReportAsync } = await import("@/lib/eval/judge");
+          await judgeReportAsync({ report: capturedReport, traceId: capturedReport.traceId });
+        } catch (err) {
+          console.warn("[report-judge]", err);
+        }
+        await flushLangfuse();
+      }
     });
 
     return new Response(stream, {
