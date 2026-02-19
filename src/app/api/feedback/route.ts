@@ -1,9 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { appendFile, mkdir, readFile } from "fs/promises";
 import { paths } from "@/lib/eval/paths";
+import { isDbAvailable } from "@/lib/db";
+import { insertFeedback, queryFeedback } from "@/lib/db/queries";
 
 export async function GET() {
   try {
+    if (isDbAvailable) {
+      const data = await queryFeedback();
+      return NextResponse.json(data);
+    }
+
+    // JSONL fallback
     let raw: string;
     try {
       raw = await readFile(paths.feedback, "utf-8");
@@ -44,13 +52,17 @@ export async function POST(req: NextRequest) {
       rating, // "up" | "down"
       messageIndex, // for chat messages
       comment, // optional text feedback
+      traceId: body.traceId,
       timestamp: timestamp || new Date().toISOString(),
       userAgent: req.headers.get("user-agent") || "",
     };
 
-    // Append to a JSONL log file
-    await mkdir(paths.writableDir, { recursive: true });
-    await appendFile(paths.feedback, JSON.stringify(entry) + "\n");
+    if (isDbAvailable) {
+      await insertFeedback(entry);
+    } else {
+      await mkdir(paths.writableDir, { recursive: true });
+      await appendFile(paths.feedback, JSON.stringify(entry) + "\n");
+    }
 
     // Attach user feedback to Langfuse trace (if traceId provided)
     if (body.traceId) {

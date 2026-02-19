@@ -2,7 +2,6 @@
 
 import { useState, useCallback } from "react";
 import type { FinalReport } from "@/lib/types";
-import { cacheFeedbackEntry } from "@/lib/eval/client-cache";
 import AffordabilityCard from "./AffordabilityCard";
 import MarketSnapshotCard from "./MarketSnapshotCard";
 import RiskAssessmentCard from "./RiskAssessmentCard";
@@ -113,7 +112,6 @@ function ReportFeedback({ traceId }: { traceId?: string }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(entry),
     }).catch(() => {});
-    if (next) cacheFeedbackEntry(entry);
     if (next) setTimeout(() => setShowThanks(false), 2000);
   }, [rating, traceId]);
 

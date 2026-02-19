@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { readFile } from "fs/promises";
 import type { EvalResult, EvalRunSummary } from "@/lib/eval/types";
 import { paths } from "@/lib/eval/paths";
+import { isDbAvailable } from "@/lib/db";
+import { queryEvalResults } from "@/lib/db/queries";
 
 function avg(nums: number[]): number {
   return nums.length > 0 ? nums.reduce((s, n) => s + n, 0) / nums.length : 0;
@@ -9,6 +11,18 @@ function avg(nums: number[]): number {
 
 export async function GET(req: NextRequest) {
   try {
+    const runId = req.nextUrl.searchParams.get("runId");
+    const limit = parseInt(req.nextUrl.searchParams.get("limit") || "100", 10);
+
+    if (isDbAvailable) {
+      const data = await queryEvalResults({
+        runId: runId ?? undefined,
+        limit,
+      });
+      return NextResponse.json(data);
+    }
+
+    // JSONL fallback
     let raw: string;
     try {
       raw = await readFile(paths.evalResults, "utf-8");
@@ -19,8 +33,6 @@ export async function GET(req: NextRequest) {
     const lines = raw.trim().split("\n").filter(Boolean);
     const allResults: EvalResult[] = lines.map((l) => JSON.parse(l));
 
-    // Optional filter by runId
-    const runId = req.nextUrl.searchParams.get("runId");
     const filtered = runId ? allResults.filter((r) => r.evalRunId === runId) : allResults;
 
     // Group by evalRunId to build run summaries
@@ -53,8 +65,6 @@ export async function GET(req: NextRequest) {
       })
       .sort((a, b) => b.timestamp.localeCompare(a.timestamp));
 
-    // Return last 100 results
-    const limit = parseInt(req.nextUrl.searchParams.get("limit") || "100", 10);
     return NextResponse.json({
       runs,
       results: filtered.slice(-limit).reverse(),

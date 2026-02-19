@@ -34,16 +34,12 @@ export async function POST(request: Request) {
           const report = await orchestrator.run(userProfile, send);
           await flushLangfuse();
 
-          // Run report judge while stream is still open (keeps Vercel function alive).
-          // Client already has all data — "complete" event was sent by orchestrator.
-          // Send scores back via stream so client can cache them (Vercel /tmp is ephemeral).
+          // Run report judge before closing stream to keep Vercel function alive.
+          // Scores persist to DB directly — no need to send back via stream.
           if (process.env.ENABLE_REALTIME_JUDGE === "true") {
             try {
               const { judgeReportAsync } = await import("@/lib/eval/judge");
-              const entry = await judgeReportAsync({ report, traceId: report.traceId });
-              if (entry) {
-                send({ phase: "judge_scores", entry: entry as unknown as Record<string, unknown> });
-              }
+              await judgeReportAsync({ report, traceId: report.traceId });
             } catch (err) {
               console.warn("[report-judge]", err);
             }

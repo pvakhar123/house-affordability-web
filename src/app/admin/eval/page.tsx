@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { cacheEvalRun, cacheJudgeEntries, getCachedEvalData } from "@/lib/eval/client-cache";
 
 interface PatternCheck { pattern: string; passed: boolean }
 interface JudgeScores { accuracy: number; relevance: number; helpfulness: number; safety: number; overall: number; reasons: Record<string, string> }
@@ -58,21 +57,11 @@ export default function EvalDashboard() {
     fetch("/api/eval/results")
       .then((r) => r.json())
       .then((data) => {
-        const apiRuns = data.runs ?? [];
-        const apiResults = data.results ?? [];
-        if (apiRuns.length === 0) {
-          const cached = getCachedEvalData();
-          setRuns(cached.runs as unknown as RunSummary[]);
-          setResults(cached.results as unknown as EvalResult[]);
-        } else {
-          setRuns(apiRuns);
-          setResults(apiResults);
-        }
+        setRuns(data.runs ?? []);
+        setResults(data.results ?? []);
       })
       .catch(() => {
-        const cached = getCachedEvalData();
-        setRuns(cached.runs as unknown as RunSummary[]);
-        setResults(cached.results as unknown as EvalResult[]);
+        setError("Failed to load evaluation data");
       })
       .finally(() => setLoading(false));
   }, []);
@@ -150,22 +139,6 @@ export default function EvalDashboard() {
 
         setRuns((prev) => [runSummary, ...prev]);
         setResults((prev) => [...allResults, ...prev]);
-
-        // Cache for persistence + quality page
-        cacheEvalRun(runSummary, allResults);
-        const judgeEntries = allResults
-          .filter((r) => r.judgeScores.overall > 0)
-          .map((r) => ({
-            id: `${r.evalRunId}-${r.testCaseId}`,
-            timestamp: r.timestamp ?? new Date().toISOString(),
-            source: "batch" as const,
-            question: r.question,
-            responsePreview: r.response.slice(0, 200),
-            scores: r.judgeScores,
-            testCaseId: r.testCaseId,
-            evalRunId: r.evalRunId,
-          }));
-        cacheJudgeEntries(judgeEntries);
       } else {
         setError("All test cases failed to execute");
       }

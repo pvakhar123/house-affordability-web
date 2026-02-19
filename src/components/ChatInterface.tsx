@@ -3,8 +3,6 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import type { FinalReport } from "@/lib/types";
 import type { SessionMemory } from "@/lib/chat-context";
-import { cacheFeedbackEntry } from "@/lib/eval/client-cache";
-
 interface Message {
   role: "user" | "assistant";
   content: string;
@@ -251,7 +249,6 @@ export default function ChatInterface({ report, userLocation }: { report: FinalR
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(entry),
       }).catch(() => {});
-      if (next) cacheFeedbackEntry(entry);
       return { ...prev, [messageIndex]: next };
     });
   }, [messages]);

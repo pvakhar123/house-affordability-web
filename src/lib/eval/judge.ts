@@ -5,6 +5,8 @@ import type { FinalReport } from "@/lib/types";
 import type { JudgeInput, JudgeResult, JudgeScoreEntry } from "./types";
 import { paths } from "./paths";
 import { traceGeneration, getLangfuse, flushLangfuse } from "@/lib/langfuse";
+import { isDbAvailable } from "@/lib/db";
+import { insertJudgeScore } from "@/lib/db/queries";
 
 function buildJudgePrompt(input: JudgeInput): string {
   const rc = input.reportContext;
@@ -169,8 +171,12 @@ export async function judgeResponseAsync(input: {
       scores: result,
     };
 
-    await mkdir(paths.writableDir, { recursive: true });
-    await appendFile(JUDGE_SCORES_PATH, JSON.stringify(entry) + "\n");
+    if (isDbAvailable) {
+      await insertJudgeScore(entry);
+    } else {
+      await mkdir(paths.writableDir, { recursive: true });
+      await appendFile(JUDGE_SCORES_PATH, JSON.stringify(entry) + "\n");
+    }
   } catch (err) {
     console.warn("[judge] Async scoring failed:", err);
   }
@@ -293,8 +299,12 @@ export async function judgeReportAsync(input: {
       },
     };
 
-    await mkdir(paths.writableDir, { recursive: true });
-    await appendFile(JUDGE_SCORES_PATH, JSON.stringify(entry) + "\n");
+    if (isDbAvailable) {
+      await insertJudgeScore(entry);
+    } else {
+      await mkdir(paths.writableDir, { recursive: true });
+      await appendFile(JUDGE_SCORES_PATH, JSON.stringify(entry) + "\n");
+    }
 
     return entry;
   } catch (err) {

@@ -40,8 +40,7 @@ export type StreamPhase =
   | { phase: "market_data"; marketSnapshot: MarketDataResult }
   | { phase: "analysis"; affordability: AffordabilityResult; riskAssessment: RiskReport; recommendations: RecommendationsResult; propertyAnalysis?: PropertyAnalysis; rentVsBuy?: RentVsBuyReport; preApprovalReadiness?: PreApprovalReadinessScore; neighborhoodInfo?: NeighborhoodInfo }
   | { phase: "summary"; summary: string }
-  | { phase: "complete"; disclaimers: string[]; generatedAt: string; traceId?: string }
-  | { phase: "judge_scores"; entry: Record<string, unknown> };
+  | { phase: "complete"; disclaimers: string[]; generatedAt: string; traceId?: string };
 
 export class OrchestratorAgent {
   private client: Anthropic;

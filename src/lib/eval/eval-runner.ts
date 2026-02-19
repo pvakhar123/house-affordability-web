@@ -4,6 +4,8 @@ import type { GoldenDataset, GoldenTestCase, EvalResult, EvalRunSummary, JudgeRe
 import { judgeResponse, extractReportContext } from "./judge";
 import { paths } from "./paths";
 import { getLangfuse, flushLangfuse } from "@/lib/langfuse";
+import { isDbAvailable } from "@/lib/db";
+import { insertEvalResult, insertJudgeScore } from "@/lib/db/queries";
 
 // ── Load golden dataset ─────────────────────────────────────
 
@@ -222,7 +224,11 @@ export async function runEvaluation(options?: {
     };
 
     results.push(result);
-    await appendJsonl("eval-results.jsonl", result);
+    if (isDbAvailable) {
+      await insertEvalResult(result);
+    } else {
+      await appendJsonl("eval-results.jsonl", result);
+    }
 
     // Link result as a Langfuse dataset run item
     try {
@@ -253,7 +259,11 @@ export async function runEvaluation(options?: {
         testCaseId: testCase.id,
         evalRunId,
       };
-      await appendJsonl("judge-scores.jsonl", entry);
+      if (isDbAvailable) {
+        await insertJudgeScore(entry);
+      } else {
+        await appendJsonl("judge-scores.jsonl", entry);
+      }
     }
   }
 

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { readFile } from "fs/promises";
 import type { JudgeScoreEntry } from "@/lib/eval/types";
 import { paths } from "@/lib/eval/paths";
+import { isDbAvailable } from "@/lib/db";
+import { queryJudgeScores } from "@/lib/db/queries";
 
 function avg(nums: number[]): number {
   return nums.length > 0 ? nums.reduce((s, n) => s + n, 0) / nums.length : 0;
@@ -9,6 +11,20 @@ function avg(nums: number[]): number {
 
 export async function GET(req: NextRequest) {
   try {
+    const source = req.nextUrl.searchParams.get("source") as "realtime" | "batch" | "report" | null;
+    const since = req.nextUrl.searchParams.get("since");
+    const limit = parseInt(req.nextUrl.searchParams.get("limit") || "100", 10);
+
+    if (isDbAvailable) {
+      const data = await queryJudgeScores({
+        source: source ?? undefined,
+        since: since ?? undefined,
+        limit,
+      });
+      return NextResponse.json(data);
+    }
+
+    // JSONL fallback
     let raw: string;
     try {
       raw = await readFile(paths.judgeScores, "utf-8");
@@ -25,11 +41,6 @@ export async function GET(req: NextRequest) {
     const lines = raw.trim().split("\n").filter(Boolean);
     const allEntries: JudgeScoreEntry[] = lines.map((l) => JSON.parse(l));
 
-    // Filters
-    const source = req.nextUrl.searchParams.get("source") as "realtime" | "batch" | "report" | null;
-    const since = req.nextUrl.searchParams.get("since");
-    const limit = parseInt(req.nextUrl.searchParams.get("limit") || "100", 10);
-
     let filtered = allEntries;
     if (source) filtered = filtered.filter((e) => e.source === source);
     if (since) filtered = filtered.filter((e) => e.timestamp >= since);
@@ -38,7 +49,6 @@ export async function GET(req: NextRequest) {
     const batchCount = allEntries.filter((e) => e.source === "batch").length;
     const reportCount = allEntries.filter((e) => e.source === "report").length;
 
-    // Aggregates over filtered set
     const validScores = filtered.filter((e) => e.scores.overall > 0);
     const aggregates = {
       total: filtered.length,
