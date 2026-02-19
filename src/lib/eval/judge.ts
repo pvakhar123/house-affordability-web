@@ -1,9 +1,9 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { appendFile, mkdir } from "fs/promises";
-import { join } from "path";
 import { config } from "@/lib/config";
 import type { FinalReport } from "@/lib/types";
 import type { JudgeInput, JudgeResult, JudgeScoreEntry } from "./types";
+import { paths } from "./paths";
 
 function buildJudgePrompt(input: JudgeInput): string {
   const rc = input.reportContext;
@@ -115,7 +115,7 @@ function defaultJudgeResult(reason: string): JudgeResult {
   };
 }
 
-const JUDGE_SCORES_PATH = join(process.cwd(), "data", "judge-scores.jsonl");
+const JUDGE_SCORES_PATH = paths.judgeScores;
 
 export async function judgeResponseAsync(input: {
   question: string;
@@ -141,7 +141,7 @@ export async function judgeResponseAsync(input: {
       scores: result,
     };
 
-    await mkdir(join(process.cwd(), "data"), { recursive: true });
+    await mkdir(paths.writableDir, { recursive: true });
     await appendFile(JUDGE_SCORES_PATH, JSON.stringify(entry) + "\n");
   } catch (err) {
     console.warn("[judge] Async scoring failed:", err);

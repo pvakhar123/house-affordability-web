@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { readFile } from "fs/promises";
-import { join } from "path";
 import type { JudgeScoreEntry } from "@/lib/eval/types";
-
-const SCORES_PATH = join(process.cwd(), "data", "judge-scores.jsonl");
+import { paths } from "@/lib/eval/paths";
 
 function avg(nums: number[]): number {
   return nums.length > 0 ? nums.reduce((s, n) => s + n, 0) / nums.length : 0;
@@ -13,7 +11,7 @@ export async function GET(req: NextRequest) {
   try {
     let raw: string;
     try {
-      raw = await readFile(SCORES_PATH, "utf-8");
+      raw = await readFile(paths.judgeScores, "utf-8");
     } catch {
       return NextResponse.json({
         entries: [],

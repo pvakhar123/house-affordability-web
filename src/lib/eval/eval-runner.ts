@@ -1,13 +1,13 @@
 import { readFile, appendFile, mkdir } from "fs/promises";
-import { join } from "path";
 import type { FinalReport } from "@/lib/types";
 import type { GoldenDataset, GoldenTestCase, EvalResult, EvalRunSummary, JudgeResult, JudgeScoreEntry } from "./types";
 import { judgeResponse, extractReportContext } from "./judge";
+import { paths } from "./paths";
 
 // ── Load golden dataset ─────────────────────────────────────
 
 async function loadGoldenDataset(): Promise<GoldenDataset> {
-  const raw = await readFile(join(process.cwd(), "data", "golden-dataset.json"), "utf-8");
+  const raw = await readFile(paths.goldenDataset, "utf-8");
   return JSON.parse(raw) as GoldenDataset;
 }
 
@@ -110,9 +110,9 @@ function scorePatterns(testCase: GoldenTestCase, response: string, toolsCalled: 
 // ── JSONL helper ────────────────────────────────────────────
 
 async function appendJsonl(filename: string, data: unknown) {
-  const dir = join(process.cwd(), "data");
-  await mkdir(dir, { recursive: true });
-  await appendFile(join(dir, filename), JSON.stringify(data) + "\n");
+  await mkdir(paths.writableDir, { recursive: true });
+  const filepath = filename === "eval-results.jsonl" ? paths.evalResults : paths.judgeScores;
+  await appendFile(filepath, JSON.stringify(data) + "\n");
 }
 
 // ── Main eval runner ────────────────────────────────────────

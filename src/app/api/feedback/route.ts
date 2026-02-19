@@ -1,14 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { appendFile, mkdir, readFile } from "fs/promises";
-import { join } from "path";
-
-const FEEDBACK_PATH = join(process.cwd(), "data", "feedback.jsonl");
+import { paths } from "@/lib/eval/paths";
 
 export async function GET() {
   try {
     let raw: string;
     try {
-      raw = await readFile(FEEDBACK_PATH, "utf-8");
+      raw = await readFile(paths.feedback, "utf-8");
     } catch {
       return NextResponse.json({ entries: [], stats: { chat: { up: 0, down: 0 }, report: { up: 0, down: 0 }, total: 0 } });
     }
@@ -51,9 +49,8 @@ export async function POST(req: NextRequest) {
     };
 
     // Append to a JSONL log file
-    const dir = join(process.cwd(), "data");
-    await mkdir(dir, { recursive: true });
-    await appendFile(join(dir, "feedback.jsonl"), JSON.stringify(entry) + "\n");
+    await mkdir(paths.writableDir, { recursive: true });
+    await appendFile(paths.feedback, JSON.stringify(entry) + "\n");
 
     return NextResponse.json({ ok: true });
   } catch (err) {
