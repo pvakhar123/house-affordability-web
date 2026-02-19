@@ -35,12 +35,15 @@ export async function POST(request: Request) {
           await flushLangfuse();
           controller.close();
 
-          // Non-blocking report quality judge
+          // Report quality judge — awaited so Vercel doesn't kill the function early
+          // (response is already sent since controller is closed)
           if (process.env.ENABLE_REALTIME_JUDGE === "true") {
-            import("@/lib/eval/judge").then(({ judgeReportAsync }) =>
-              judgeReportAsync({ report, traceId: report.traceId })
-                .catch((err) => console.warn("[report-judge]", err))
-            ).catch(() => {});
+            try {
+              const { judgeReportAsync } = await import("@/lib/eval/judge");
+              await judgeReportAsync({ report, traceId: report.traceId });
+            } catch (err) {
+              console.warn("[report-judge]", err);
+            }
           }
         } catch (error) {
           console.error("Analysis error:", error);
