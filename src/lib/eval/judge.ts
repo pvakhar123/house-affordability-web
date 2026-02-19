@@ -225,7 +225,7 @@ Respond in EXACTLY this JSON format, no other text:
 export async function judgeReportAsync(input: {
   report: FinalReport;
   traceId?: string;
-}): Promise<void> {
+}): Promise<JudgeScoreEntry | null> {
   try {
     const client = new Anthropic({ apiKey: config.anthropicApiKey });
     const prompt = buildReportJudgePrompt(input.report);
@@ -247,7 +247,7 @@ export async function judgeReportAsync(input: {
 
     const text = response.content[0]?.type === "text" ? response.content[0].text : "{}";
     const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) return;
+    if (!jsonMatch) return null;
 
     const parsed = JSON.parse(jsonMatch[0]);
     const accuracy = parsed.accuracy?.score ?? 3;
@@ -295,7 +295,10 @@ export async function judgeReportAsync(input: {
 
     await mkdir(paths.writableDir, { recursive: true });
     await appendFile(JUDGE_SCORES_PATH, JSON.stringify(entry) + "\n");
+
+    return entry;
   } catch (err) {
     console.warn("[report-judge] Async scoring failed:", err);
+    return null;
   }
 }

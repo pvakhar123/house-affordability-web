@@ -10,6 +10,7 @@ import SavedReportsList from "@/components/SavedReportsList";
 import type { UserProfile, FinalReport } from "@/lib/types";
 import ThemeToggle from "@/components/ThemeToggle";
 import { decompressReport } from "@/lib/share-report";
+import { cacheJudgeEntries } from "@/lib/eval/client-cache";
 
 type AppState = "form" | "loading" | "results";
 
@@ -135,6 +136,10 @@ function HomeContent() {
               _summaryLoading: false,
             }));
             if (event.traceId) setReportTraceId(event.traceId);
+          }
+
+          if (event.phase === "judge_scores") {
+            cacheJudgeEntries([event.entry]);
           }
         }
       }
