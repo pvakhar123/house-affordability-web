@@ -22,7 +22,7 @@ const FACTS = [
 
 const STEPS = [
   "Fetching live market data",
-  "Crunching affordability numbers",
+  "Analyzing your home buying power",
   "Running risk stress tests",
   "Finding best loan options",
   "Writing your personalized report",

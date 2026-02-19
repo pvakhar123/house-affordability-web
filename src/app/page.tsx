@@ -180,7 +180,7 @@ function HomeContent() {
             </div>
             <div>
               <h1 className="text-xl font-bold text-gray-900">
-                AI Home Calculator
+                AI Home Research
               </h1>
               <p className="text-xs text-gray-500">Powered by 4 AI Agents &middot; Real-time market data</p>
             </div>
@@ -258,7 +258,7 @@ function HomeContent() {
             We do not store any personal data or information. This is not financial advice. Use at your own risk.
           </p>
           <div className="flex items-center justify-between text-xs text-gray-400">
-            <span>&copy; {new Date().getFullYear()} AI Calculator</span>
+            <span>&copy; {new Date().getFullYear()} AI Home Research</span>
             <a
               href="mailto:pareshv23@gmail.com"
               className="text-gray-500 hover:text-blue-600 transition-colors"

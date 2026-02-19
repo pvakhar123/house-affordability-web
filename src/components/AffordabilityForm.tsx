@@ -446,7 +446,7 @@ export default function AffordabilityForm({ onSubmit, isLoading }: Props) {
         disabled={isLoading}
         className="w-full py-3 px-6 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
-        {isLoading ? "Analyzing..." : "Analyze My Affordability"}
+        {isLoading ? "Analyzing..." : "Analyze My Home Purchase"}
       </button>
     </form>
   );

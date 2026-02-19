@@ -15,13 +15,13 @@ function buildEmailHTML(report: FinalReport): string {
   return `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; color: #1f2937;">
       <h1 style="font-size: 24px; color: #111827; border-bottom: 2px solid #3b82f6; padding-bottom: 12px;">
-        House Affordability Report
+        Home Research Report
       </h1>
       <p style="font-size: 12px; color: #9ca3af;">
         Generated ${new Date(report.generatedAt).toLocaleString()}
       </p>
 
-      <h2 style="font-size: 18px; color: #1e40af; margin-top: 24px;">Affordability</h2>
+      <h2 style="font-size: 18px; color: #1e40af; margin-top: 24px;">Buying Power</h2>
       <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
         <tr style="border-bottom: 1px solid #e5e7eb;">
           <td style="padding: 8px 0; color: #6b7280;">Max Home Price</td>
@@ -111,9 +111,9 @@ async function _POST(request: Request) {
     const resend = new Resend(resendKey);
 
     const { error } = await resend.emails.send({
-      from: "House Affordability <onboarding@resend.dev>",
+      from: "AI Home Research <onboarding@resend.dev>",
       to: email,
-      subject: `Your Affordability Report — Max ${Math.round(report.affordability.maxHomePrice).toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 })}`,
+      subject: `Your Home Research Report — Max ${Math.round(report.affordability.maxHomePrice).toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 })}`,
       html: buildEmailHTML(report),
     });
 

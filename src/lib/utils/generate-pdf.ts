@@ -60,7 +60,7 @@ export function generateReportPDF(report: FinalReport): jsPDF {
   doc.setFontSize(22);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(17, 24, 39);
-  doc.text("House Affordability Report", margin, y);
+  doc.text("Home Research Report", margin, y);
   y += 16;
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
@@ -70,7 +70,7 @@ export function generateReportPDF(report: FinalReport): jsPDF {
   divider();
 
   // === Affordability ===
-  heading("Affordability Analysis");
+  heading("Buying Power Analysis");
   const a = report.affordability;
   row("Max Home Price", fmt(a.maxHomePrice));
   row("Recommended Price", fmt(a.recommendedHomePrice));

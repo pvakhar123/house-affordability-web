@@ -168,7 +168,7 @@ export default function ResultsDashboard({ report, onReset, summaryLoading, user
                   ? `Report for ${report.propertyAnalysis.property.address}`
                   : userLocation
                     ? `Report for ${userLocation}`
-                    : "Your Affordability Report"}
+                    : "Your Home Research Report"}
               </h2>
               {report.generatedAt && (
                 <p className="text-sm text-gray-500">

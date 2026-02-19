@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "House Affordability Calculator",
-  description: "Multi-agent AI-powered house affordability analysis",
+  title: "AI Home Research",
+  description: "Multi-agent AI-powered home buying research and analysis",
 };
 
 export default function RootLayout({

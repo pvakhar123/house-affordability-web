@@ -680,11 +680,11 @@ export async function POST(request: Request) {
     // Second message: cache HIT  → ~90% cheaper input tokens, ~80% faster
     // Cache TTL: 5 minutes (refreshed on each use)
 
-    const systemPromptText = `You are a helpful home buying advisor following up on an affordability analysis.
+    const systemPromptText = `You are a helpful home research advisor following up on a home buying analysis.
 
 Here is the buyer's complete analysis report:
 
-AFFORDABILITY:
+BUYING POWER:
 - Max Home Price: $${report.affordability.maxHomePrice.toLocaleString()}
 - Recommended Price: $${report.affordability.recommendedHomePrice.toLocaleString()}
 - Down Payment: $${report.affordability.downPaymentAmount.toLocaleString()} (${report.affordability.downPaymentPercent}%)

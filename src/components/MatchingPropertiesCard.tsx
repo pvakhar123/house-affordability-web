@@ -90,7 +90,7 @@ export default function MatchingPropertiesCard({ affordability, marketData, loca
           </svg>
           <h3 className="text-base font-semibold text-gray-900">Properties in Your Budget</h3>
         </div>
-        <p className="text-xs text-gray-500 mt-1">Real listings near {location} matching your affordability profile</p>
+        <p className="text-xs text-gray-500 mt-1">Real listings near {location} matching your budget</p>
       </div>
 
       <div className="p-4">

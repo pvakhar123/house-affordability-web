@@ -61,10 +61,10 @@ const INJECTION_PATTERNS: RegExp[] = [
 ];
 
 const OFF_TOPIC_RESPONSE =
-  "I'm your home buying and mortgage advisor. I can help with questions about home affordability, mortgage options, interest rates, monthly payments, and homebuying topics. What would you like to know about your home purchase?";
+  "I'm your home research advisor. I can help with questions about home buying, mortgage options, interest rates, monthly payments, and market analysis. What would you like to know about your home purchase?";
 
 const INJECTION_RESPONSE =
-  "I'm here to help with your mortgage and home affordability questions. How can I assist you?";
+  "I'm here to help with your home research and mortgage questions. How can I assist you?";
 
 async function classifyTopic(message: string): Promise<boolean> {
   try {
