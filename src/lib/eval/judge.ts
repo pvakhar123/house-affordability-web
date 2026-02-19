@@ -4,6 +4,7 @@ import { config } from "@/lib/config";
 import type { FinalReport } from "@/lib/types";
 import type { JudgeInput, JudgeResult, JudgeScoreEntry } from "./types";
 import { paths } from "./paths";
+import { traceGeneration, getLangfuse, flushLangfuse } from "@/lib/langfuse";
 
 function buildJudgePrompt(input: JudgeInput): string {
   const rc = input.reportContext;
@@ -65,15 +66,25 @@ export function extractReportContext(report: FinalReport): JudgeInput["reportCon
   };
 }
 
-export async function judgeResponse(input: JudgeInput): Promise<JudgeResult> {
+export async function judgeResponse(input: JudgeInput & { traceId?: string }): Promise<JudgeResult> {
   const client = new Anthropic({ apiKey: config.anthropicApiKey });
   const prompt = buildJudgePrompt(input);
 
-  const response = await client.messages.create({
+  const params: Anthropic.Messages.MessageCreateParamsNonStreaming = {
     model: config.judgeModel,
     max_tokens: 400,
     messages: [{ role: "user", content: prompt }],
-  });
+  };
+
+  // If traceId is provided, trace the judge call under the parent chat trace
+  const response = input.traceId
+    ? await traceGeneration({
+        client,
+        params,
+        trace: { name: "llm-judge", traceId: input.traceId },
+        metadata: { question: input.question },
+      })
+    : await client.messages.create(params);
 
   const text = response.content[0]?.type === "text" ? response.content[0].text : "{}";
 
@@ -122,6 +133,7 @@ export async function judgeResponseAsync(input: {
   response: string;
   report: FinalReport;
   toolsCalled: string[];
+  traceId?: string;
 }): Promise<void> {
   try {
     const reportContext = extractReportContext(input.report);
@@ -130,7 +142,23 @@ export async function judgeResponseAsync(input: {
       response: input.response,
       reportContext,
       toolsCalled: input.toolsCalled,
+      traceId: input.traceId,
     });
+
+    // Attach judge scores to the Langfuse chat trace
+    if (input.traceId) {
+      const langfuse = getLangfuse();
+      const dims = { accuracy: result.accuracy, relevance: result.relevance, helpfulness: result.helpfulness, safety: result.safety, overall: result.overall };
+      for (const [dim, value] of Object.entries(dims)) {
+        langfuse.score({
+          traceId: input.traceId,
+          name: `judge-${dim}`,
+          value,
+          comment: result.reasons[dim as keyof typeof result.reasons] ?? "",
+        });
+      }
+      await flushLangfuse();
+    }
 
     const entry: JudgeScoreEntry = {
       id: crypto.randomUUID(),

@@ -61,8 +61,9 @@ export async function traceGeneration(
   const langfuse = getLangfuse();
   const { client, params, options, trace, metadata } = input;
 
+  // When traceId is provided, we're nesting under an existing trace — don't overwrite its name
   const langfuseTrace = trace.traceId
-    ? langfuse.trace({ id: trace.traceId, name: trace.name, sessionId: trace.sessionId, userId: trace.userId })
+    ? langfuse.trace({ id: trace.traceId })
     : langfuse.trace({ name: trace.name, sessionId: trace.sessionId, userId: trace.userId, metadata });
 
   const generation = langfuseTrace.generation({

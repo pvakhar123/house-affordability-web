@@ -3,6 +3,7 @@ import type { FinalReport } from "@/lib/types";
 import type { GoldenDataset, GoldenTestCase, EvalResult, EvalRunSummary, JudgeResult, JudgeScoreEntry } from "./types";
 import { judgeResponse, extractReportContext } from "./judge";
 import { paths } from "./paths";
+import { getLangfuse, flushLangfuse } from "@/lib/langfuse";
 
 // ── Load golden dataset ─────────────────────────────────────
 
@@ -135,6 +136,29 @@ export async function runEvaluation(options?: {
   const evalRunId = `eval-${Date.now()}`;
   const results: EvalResult[] = [];
 
+  // Sync golden test cases to Langfuse as a Dataset
+  const langfuse = getLangfuse();
+  const datasetName = "golden-dataset-v1";
+  try {
+    await langfuse.createDataset({ name: datasetName });
+    for (const tc of cases) {
+      await langfuse.createDatasetItem({
+        datasetName,
+        id: tc.id,
+        input: { question: tc.question, report: dataset.fixtureReport },
+        expectedOutput: {
+          mustInclude: tc.mustInclude,
+          mustNotInclude: tc.mustNotInclude,
+          expectedPatterns: tc.expectedPatterns,
+          expectedToolCalls: tc.expectedToolCalls,
+        },
+        metadata: { category: tc.category },
+      });
+    }
+  } catch (e) {
+    console.warn("[eval] Langfuse dataset sync failed:", e);
+  }
+
   for (const testCase of cases) {
     const report = dataset.fixtureReport;
 
@@ -154,6 +178,12 @@ export async function runEvaluation(options?: {
 
     const patternScoring = scorePatterns(testCase, fullText, toolsCalled);
 
+    // Create a Langfuse trace for this eval case so judge calls are traced
+    const evalTrace = langfuse.trace({
+      name: `eval-${testCase.id}`,
+      metadata: { evalRunId, category: testCase.category },
+    });
+
     let judgeScores: JudgeResult;
     if (!options?.skipJudge && !fullText.startsWith("[ERROR]")) {
       const reportContext = extractReportContext(report);
@@ -162,6 +192,7 @@ export async function runEvaluation(options?: {
         response: fullText,
         reportContext,
         toolsCalled,
+        traceId: evalTrace.id,
       });
     } else {
       judgeScores = {
@@ -193,6 +224,23 @@ export async function runEvaluation(options?: {
     results.push(result);
     await appendJsonl("eval-results.jsonl", result);
 
+    // Link result as a Langfuse dataset run item
+    try {
+      langfuse.createDatasetRunItem({
+        datasetItemId: testCase.id,
+        runName: evalRunId,
+        runDescription: `Eval run ${evalRunId}`,
+        metadata: {
+          patternScore: patternScoring.score,
+          overallPass,
+          judgeScores,
+          durationMs,
+        },
+      });
+    } catch (e) {
+      console.warn("[eval] Langfuse dataset run item failed:", e);
+    }
+
     // Also persist judge score in shared file
     if (!options?.skipJudge && !fullText.startsWith("[ERROR]")) {
       const entry: JudgeScoreEntry = {
@@ -210,6 +258,9 @@ export async function runEvaluation(options?: {
   }
 
   const passed = results.filter((r) => r.overallPass).length;
+
+  // Flush all Langfuse events before returning
+  await flushLangfuse();
 
   return {
     evalRunId,

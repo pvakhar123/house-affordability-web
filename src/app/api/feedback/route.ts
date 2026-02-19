@@ -52,6 +52,23 @@ export async function POST(req: NextRequest) {
     await mkdir(paths.writableDir, { recursive: true });
     await appendFile(paths.feedback, JSON.stringify(entry) + "\n");
 
+    // Attach user feedback to Langfuse trace (if traceId provided)
+    if (body.traceId) {
+      try {
+        const { getLangfuse, flushLangfuse } = await import("@/lib/langfuse");
+        const langfuse = getLangfuse();
+        langfuse.score({
+          traceId: body.traceId,
+          name: "user-feedback",
+          value: rating === "up" ? 1 : 0,
+          comment: comment || undefined,
+        });
+        await flushLangfuse();
+      } catch (e) {
+        console.warn("[feedback] Langfuse score failed:", e);
+      }
+    }
+
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("Feedback error:", err);

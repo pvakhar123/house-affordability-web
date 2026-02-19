@@ -8,6 +8,7 @@ import { cacheFeedbackEntry } from "@/lib/eval/client-cache";
 interface Message {
   role: "user" | "assistant";
   content: string;
+  traceId?: string;
 }
 
 type Rating = "up" | "down" | null;
@@ -242,7 +243,8 @@ export default function ChatInterface({ report, userLocation }: { report: FinalR
     setRatings((prev) => {
       const current = prev[messageIndex];
       const next = current === rating ? null : rating;
-      const entry = { type: "chat", rating: next ?? "retracted", messageIndex, timestamp: new Date().toISOString() };
+      const traceId = messages[messageIndex]?.traceId;
+      const entry = { type: "chat", rating: next ?? "retracted", messageIndex, traceId, timestamp: new Date().toISOString() };
       // Fire-and-forget POST + cache client-side for admin dashboard
       fetch("/api/feedback", {
         method: "POST",
@@ -252,7 +254,7 @@ export default function ChatInterface({ report, userLocation }: { report: FinalR
       if (next) cacheFeedbackEntry(entry);
       return { ...prev, [messageIndex]: next };
     });
-  }, []);
+  }, [messages]);
 
   // ── STREAMING MESSAGE SENDER ───────────────────────────────
   // Instead of waiting for the full JSON response, we read an SSE stream.
@@ -323,13 +325,23 @@ export default function ChatInterface({ report, userLocation }: { report: FinalR
               throw new Error(parsed.error);
             }
 
-            // Handle context meta events (summary + memory from server)
+            // Handle context meta events (summary + memory + traceId from server)
             if (parsed.meta) {
               if (parsed.meta.conversationSummary) {
                 setConversationSummary(parsed.meta.conversationSummary);
               }
               if (parsed.meta.sessionMemory) {
                 setSessionMemory(parsed.meta.sessionMemory);
+              }
+              if (parsed.meta.traceId) {
+                setMessages((prev) => {
+                  const updated = [...prev];
+                  const last = updated[updated.length - 1];
+                  if (last?.role === "assistant") {
+                    return [...updated.slice(0, -1), { ...last, traceId: parsed.meta.traceId }];
+                  }
+                  return updated;
+                });
               }
               continue;
             }
