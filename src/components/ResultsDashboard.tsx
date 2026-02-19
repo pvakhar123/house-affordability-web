@@ -22,6 +22,7 @@ interface Props {
   onReset: () => void;
   summaryLoading?: boolean;
   userLocation?: string;
+  traceId?: string;
 }
 
 function ExpandableSection({
@@ -98,7 +99,7 @@ function SummaryLoadingSkeleton() {
   );
 }
 
-function ReportFeedback() {
+function ReportFeedback({ traceId }: { traceId?: string }) {
   const [rating, setRating] = useState<"up" | "down" | null>(null);
   const [showThanks, setShowThanks] = useState(false);
 
@@ -106,7 +107,7 @@ function ReportFeedback() {
     const next = rating === value ? null : value;
     setRating(next);
     setShowThanks(!!next);
-    const entry = { type: "report", rating: next ?? "retracted", timestamp: new Date().toISOString() };
+    const entry = { type: "report", rating: next ?? "retracted", traceId, timestamp: new Date().toISOString() };
     fetch("/api/feedback", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -114,7 +115,7 @@ function ReportFeedback() {
     }).catch(() => {});
     if (next) cacheFeedbackEntry(entry);
     if (next) setTimeout(() => setShowThanks(false), 2000);
-  }, [rating]);
+  }, [rating, traceId]);
 
   return (
     <div className="flex items-center justify-center gap-3 py-4">
@@ -152,7 +153,7 @@ function ReportFeedback() {
   );
 }
 
-export default function ResultsDashboard({ report, onReset, summaryLoading, userLocation }: Props) {
+export default function ResultsDashboard({ report, onReset, summaryLoading, userLocation, traceId }: Props) {
   const hasCore = report.affordability && report.riskAssessment && report.recommendations;
   const hasSummary = !!report.summary && !summaryLoading;
 
@@ -317,7 +318,7 @@ export default function ResultsDashboard({ report, onReset, summaryLoading, user
         {/* Report Feedback */}
         {hasCore && (
           <StreamFadeIn delay={100}>
-            <ReportFeedback />
+            <ReportFeedback traceId={traceId} />
           </StreamFadeIn>
         )}
 

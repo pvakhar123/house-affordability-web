@@ -31,9 +31,17 @@ export async function POST(request: Request) {
 
         try {
           const orchestrator = new OrchestratorAgent();
-          await orchestrator.run(userProfile, send);
+          const report = await orchestrator.run(userProfile, send);
           await flushLangfuse();
           controller.close();
+
+          // Non-blocking report quality judge
+          if (process.env.ENABLE_REALTIME_JUDGE === "true") {
+            import("@/lib/eval/judge").then(({ judgeReportAsync }) =>
+              judgeReportAsync({ report, traceId: report.traceId })
+                .catch((err) => console.warn("[report-judge]", err))
+            ).catch(() => {});
+          }
         } catch (error) {
           console.error("Analysis error:", error);
           const msg = error instanceof Error ? error.message : String(error);

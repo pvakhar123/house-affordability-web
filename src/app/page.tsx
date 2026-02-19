@@ -21,6 +21,7 @@ function HomeContent() {
   const [report, setReport] = useState<PartialReport | null>(null);
   const [error, setError] = useState("");
   const [userLocation, setUserLocation] = useState("");
+  const [reportTraceId, setReportTraceId] = useState<string | undefined>();
   const [sharedLoading, setSharedLoading] = useState(false);
   const searchParams = useSearchParams();
 
@@ -133,6 +134,7 @@ function HomeContent() {
               generatedAt: event.generatedAt,
               _summaryLoading: false,
             }));
+            if (event.traceId) setReportTraceId(event.traceId);
           }
         }
       }
@@ -150,6 +152,7 @@ function HomeContent() {
     setState("form");
     setReport(null);
     setError("");
+    setReportTraceId(undefined);
   };
 
   return (
@@ -243,6 +246,7 @@ function HomeContent() {
             onReset={handleReset}
             summaryLoading={report._summaryLoading}
             userLocation={userLocation}
+            traceId={reportTraceId}
           />
         )}
       </main>

@@ -61,4 +61,5 @@ export interface FinalReport {
   neighborhoodInfo?: NeighborhoodInfo;
   disclaimers: string[];
   generatedAt: string;
+  traceId?: string;
 }

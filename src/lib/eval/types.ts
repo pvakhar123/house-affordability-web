@@ -53,7 +53,7 @@ export interface JudgeResult {
 export interface JudgeScoreEntry {
   id: string;
   timestamp: string;
-  source: "realtime" | "batch";
+  source: "realtime" | "batch" | "report";
   question: string;
   responsePreview: string;
   scores: JudgeResult;

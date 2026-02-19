@@ -40,7 +40,7 @@ export type StreamPhase =
   | { phase: "market_data"; marketSnapshot: MarketDataResult }
   | { phase: "analysis"; affordability: AffordabilityResult; riskAssessment: RiskReport; recommendations: RecommendationsResult; propertyAnalysis?: PropertyAnalysis; rentVsBuy?: RentVsBuyReport; preApprovalReadiness?: PreApprovalReadinessScore; neighborhoodInfo?: NeighborhoodInfo }
   | { phase: "summary"; summary: string }
-  | { phase: "complete"; disclaimers: string[]; generatedAt: string };
+  | { phase: "complete"; disclaimers: string[]; generatedAt: string; traceId?: string };
 
 export class OrchestratorAgent {
   private client: Anthropic;
@@ -113,7 +113,7 @@ export class OrchestratorAgent {
       "Market data is based on the most recent available figures and may not reflect real-time conditions.",
     ];
     const generatedAt = new Date().toISOString();
-    onProgress?.({ phase: "complete", disclaimers, generatedAt });
+    onProgress?.({ phase: "complete", disclaimers, generatedAt, traceId: this.traceId });
 
     console.log(`\nTotal: ${((Date.now() - t0) / 1000).toFixed(1)}s`);
 
@@ -129,6 +129,7 @@ export class OrchestratorAgent {
       neighborhoodInfo,
       disclaimers,
       generatedAt,
+      traceId: this.traceId,
     };
   }
 
