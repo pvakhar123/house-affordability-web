@@ -6,7 +6,6 @@ import { Suspense } from "react";
 import AffordabilityForm from "@/components/AffordabilityForm";
 import LoadingState from "@/components/LoadingState";
 import ResultsDashboard from "@/components/ResultsDashboard";
-import SavedReportsList from "@/components/SavedReportsList";
 import type { UserProfile, FinalReport } from "@/lib/types";
 import ThemeToggle from "@/components/ThemeToggle";
 import UserMenu from "@/components/UserMenu";
@@ -45,10 +44,19 @@ function HomeContent() {
       .finally(() => setSharedLoading(false));
   }, [searchParams]);
 
-  const handleLoadSaved = useCallback((savedReport: FinalReport, location?: string) => {
-    setReport(savedReport);
-    setUserLocation(location || "");
-    setState("results");
+  // Load report from saved reports page (via sessionStorage)
+  useEffect(() => {
+    const stored = sessionStorage.getItem("loadReport");
+    if (!stored) return;
+    sessionStorage.removeItem("loadReport");
+    try {
+      const { report: savedReport, userLocation: loc } = JSON.parse(stored);
+      setReport(savedReport);
+      setUserLocation(loc || "");
+      setState("results");
+    } catch (err) {
+      console.error("Failed to load saved report:", err);
+    }
   }, []);
 
   const handleSubmit = useCallback(async (profile: UserProfile) => {
@@ -229,7 +237,6 @@ function HomeContent() {
             </div>
           )}
           <AffordabilityForm onSubmit={handleSubmit} isLoading={false} />
-          <SavedReportsList onLoad={handleLoadSaved} />
         </div>
 
         {sharedLoading && (
