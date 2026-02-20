@@ -15,6 +15,7 @@ import RentVsBuyCard from "./RentVsBuyCard";
 import MatchingPropertiesCard from "./MatchingPropertiesCard";
 import NeighborhoodInfoCard from "./NeighborhoodInfoCard";
 import BudgetSimulatorCard from "./BudgetSimulatorCard";
+import InvestmentAnalysisCard from "./InvestmentAnalysisCard";
 
 interface Props {
   report: FinalReport;
@@ -252,6 +253,14 @@ export default function ResultsDashboard({ report, onReset, summaryLoading, user
               <StreamFadeIn delay={500}>
                 <ExpandableSection title="Rent vs. Buy Analysis">
                   <RentVsBuyCard data={report.rentVsBuy} />
+                </ExpandableSection>
+              </StreamFadeIn>
+            )}
+
+            {report.investmentAnalysis && (
+              <StreamFadeIn delay={520}>
+                <ExpandableSection title="Investment Property Analysis" defaultOpen>
+                  <InvestmentAnalysisCard data={report.investmentAnalysis} />
                 </ExpandableSection>
               </StreamFadeIn>
             )}

@@ -1,4 +1,5 @@
 import type { AffordabilityResult, RentVsBuyReport } from "./affordability";
+import type { InvestmentAnalysis } from "./investment";
 import type { MarketDataResult } from "./market-data";
 import type { PropertyAnalysis } from "./property";
 import type { RecommendationsResult } from "./recommendations";
@@ -57,6 +58,7 @@ export interface FinalReport {
   recommendations: RecommendationsResult;
   propertyAnalysis?: PropertyAnalysis;
   rentVsBuy?: RentVsBuyReport;
+  investmentAnalysis?: InvestmentAnalysis;
   preApprovalReadiness?: PreApprovalReadinessScore;
   neighborhoodInfo?: NeighborhoodInfo;
   disclaimers: string[];

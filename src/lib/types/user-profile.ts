@@ -1,4 +1,5 @@
 import type { PropertyInfo } from "./property";
+import type { InvestmentInputs } from "./investment";
 
 export interface UserProfile {
   annualGrossIncome: number;
@@ -17,6 +18,7 @@ export interface UserProfile {
   monthlyExpenses?: number;
   currentMonthlyRent?: number;
   property?: PropertyInfo;
+  investmentInputs?: InvestmentInputs;
 }
 
 export interface DebtItem {

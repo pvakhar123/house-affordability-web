@@ -15,6 +15,9 @@ import {
   stressTestIncomeLoss,
   evaluateEmergencyFund,
   calculateRentVsBuy,
+  estimateMonthlyRent,
+  calculateInvestmentMetrics,
+  projectInvestmentReturns,
 } from "../utils/financial-math";
 import { handleRecommendationToolCall } from "../tools/recommendation-tools";
 import type {
@@ -26,19 +29,20 @@ import type {
   RecommendationsResult,
   PropertyAnalysis,
   RentVsBuyReport,
+  InvestmentAnalysis,
   StressTestResult,
   RiskFlag,
   PreApprovalReadinessScore,
   ReadinessActionItem,
   HistoricalData,
 } from "../types/index";
-import { getNeighborhoodInfo, lookupAreaInfo, type NeighborhoodInfo } from "../data/area-info";
+import { getNeighborhoodInfo, lookupAreaInfo, getMedianRent, type NeighborhoodInfo } from "../data/area-info";
 
 const cache = new CacheService();
 
 export type StreamPhase =
   | { phase: "market_data"; marketSnapshot: MarketDataResult }
-  | { phase: "analysis"; affordability: AffordabilityResult; riskAssessment: RiskReport; recommendations: RecommendationsResult; propertyAnalysis?: PropertyAnalysis; rentVsBuy?: RentVsBuyReport; preApprovalReadiness?: PreApprovalReadinessScore; neighborhoodInfo?: NeighborhoodInfo }
+  | { phase: "analysis"; affordability: AffordabilityResult; riskAssessment: RiskReport; recommendations: RecommendationsResult; propertyAnalysis?: PropertyAnalysis; rentVsBuy?: RentVsBuyReport; investmentAnalysis?: InvestmentAnalysis; preApprovalReadiness?: PreApprovalReadinessScore; neighborhoodInfo?: NeighborhoodInfo }
   | { phase: "summary"; summary: string }
   | { phase: "complete"; disclaimers: string[]; generatedAt: string; traceId?: string };
 
@@ -88,6 +92,13 @@ export class OrchestratorAgent {
       rentVsBuy = this.computeRentVsBuy(userProfile, marketData, affordability);
     }
 
+    // Investment property analysis (if toggle is on)
+    let investmentAnalysis: InvestmentAnalysis | undefined;
+    if (userProfile.investmentInputs?.isInvestmentProperty) {
+      investmentAnalysis = this.computeInvestmentAnalysis(userProfile, marketData, affordability, propertyAnalysis);
+      console.log(`      Investment analysis: verdict=${investmentAnalysis.verdict}, CoC=${investmentAnalysis.cashOnCashReturn}%`);
+    }
+
     // Pre-approval readiness score
     const preApprovalReadiness = this.computePreApprovalReadiness(userProfile, affordability, riskReport);
     console.log(`      Pre-approval readiness: score=${preApprovalReadiness.overallScore}, level=${preApprovalReadiness.level}`);
@@ -98,12 +109,12 @@ export class OrchestratorAgent {
       : undefined;
 
     console.log(`      Done (${((Date.now() - t2) / 1000).toFixed(1)}s)`);
-    onProgress?.({ phase: "analysis", affordability, riskAssessment: riskReport, recommendations, propertyAnalysis, rentVsBuy, preApprovalReadiness, neighborhoodInfo });
+    onProgress?.({ phase: "analysis", affordability, riskAssessment: riskReport, recommendations, propertyAnalysis, rentVsBuy, investmentAnalysis, preApprovalReadiness, neighborhoodInfo });
 
     // ── Phase 3: Single Claude call for narrative summary (~3-5s) ──
     console.log("[3/3] Generating AI summary...");
     const t3 = Date.now();
-    const summary = await this.synthesize(userProfile, marketData, affordability, riskReport, recommendations, propertyAnalysis);
+    const summary = await this.synthesize(userProfile, marketData, affordability, riskReport, recommendations, propertyAnalysis, investmentAnalysis);
     console.log(`      Done (${((Date.now() - t3) / 1000).toFixed(1)}s)`);
     onProgress?.({ phase: "summary", summary });
 
@@ -125,6 +136,7 @@ export class OrchestratorAgent {
       recommendations,
       propertyAnalysis,
       rentVsBuy,
+      investmentAnalysis,
       preApprovalReadiness,
       neighborhoodInfo,
       disclaimers,
@@ -910,7 +922,132 @@ export class OrchestratorAgent {
   }
 
   // ─────────────────────────────────────────────
-  // Phase 2e: Pre-approval readiness score
+  // Phase 2e+: Investment property analysis
+  // ─────────────────────────────────────────────
+
+  private computeInvestmentAnalysis(
+    profile: UserProfile,
+    market: MarketDataResult,
+    afford: AffordabilityResult,
+    propAnalysis?: PropertyAnalysis
+  ): InvestmentAnalysis {
+    const inputs = profile.investmentInputs!;
+    const rate = market.mortgageRates.thirtyYearFixed / 100;
+    const loanTerm = profile.preferredLoanTerm ?? 30;
+
+    // Determine purchase price — use specific property if available, else recommended
+    const purchasePrice = propAnalysis
+      ? propAnalysis.property.listingPrice
+      : afford.recommendedHomePrice;
+
+    const downPayment = Math.min(profile.downPaymentSavings, purchasePrice);
+    const loanAmount = Math.max(0, purchasePrice - downPayment);
+    const downPaymentPercent = purchasePrice > 0 ? (downPayment / purchasePrice) * 100 : 0;
+
+    // Determine monthly rent: user override or auto-estimate
+    let monthlyGrossRent: number;
+    let rentSource: "auto_estimate" | "user_override";
+
+    if (inputs.expectedMonthlyRent && inputs.expectedMonthlyRent > 0) {
+      monthlyGrossRent = inputs.expectedMonthlyRent;
+      rentSource = "user_override";
+    } else {
+      const areaInfo = profile.targetLocation ? lookupAreaInfo(profile.targetLocation) : null;
+      const areaMedianRent = areaInfo?.data.medianMonthlyRent ?? getMedianRent(profile.targetLocation || "");
+      const areaMedianPrice = areaInfo?.data.medianHomePrice ?? null;
+      const estimate = estimateMonthlyRent({ purchasePrice, areaMedianRent, areaMedianHomePrice: areaMedianPrice });
+      monthlyGrossRent = estimate.estimatedRent;
+      rentSource = "auto_estimate";
+    }
+
+    // Calculate mortgage PI
+    const monthlyRate = rate / 12;
+    const numPayments = loanTerm * 12;
+    const monthlyMortgagePI = loanAmount > 0
+      ? (loanAmount * (monthlyRate * Math.pow(1 + monthlyRate, numPayments))) /
+        (Math.pow(1 + monthlyRate, numPayments) - 1)
+      : 0;
+    const monthlyPMI = downPaymentPercent < 20 ? (loanAmount * 0.005) / 12 : 0;
+
+    // Property tax — from property or area lookup
+    const propertyTaxAnnual = propAnalysis?.property.propertyTaxAnnual
+      ?? purchasePrice * 0.011;
+    const insuranceAnnual = 1500;
+    const hoaMonthly = propAnalysis?.property.hoaMonthly ?? 0;
+
+    // Calculate investment metrics
+    const metrics = calculateInvestmentMetrics({
+      purchasePrice,
+      downPaymentAmount: downPayment,
+      closingCostPercent: 0.03,
+      monthlyGrossRent,
+      monthlyMortgagePI: Math.round(monthlyMortgagePI * 100) / 100,
+      monthlyPMI: Math.round(monthlyPMI * 100) / 100,
+      propertyTaxAnnual,
+      insuranceAnnual,
+      hoaMonthly,
+      maintenanceRate: 0.01,
+      propertyManagementPercent: inputs.propertyManagementPercent,
+      vacancyRatePercent: inputs.vacancyRatePercent,
+      capexReservePercent: inputs.capexReservePercent,
+    });
+
+    // Project 10-year returns
+    const projections = projectInvestmentReturns({
+      purchasePrice,
+      loanAmount,
+      interestRate: rate,
+      loanTermYears: loanTerm,
+      annualCashFlowYear1: metrics.annualCashFlow,
+      baseAnnualRent: monthlyGrossRent * 12,
+      totalCashInvested: metrics.totalCashInvested,
+      annualHomeAppreciation: 0.03,
+      annualRentGrowth: 0.03,
+      years: 10,
+    });
+
+    // Determine verdict
+    let verdict: InvestmentAnalysis["verdict"];
+    let verdictExplanation: string;
+    const coc = metrics.cashOnCashReturn;
+    const fmt = (n: number) => "$" + Math.round(Math.abs(n)).toLocaleString("en-US");
+
+    if (coc >= 8) {
+      verdict = "strong_investment";
+      verdictExplanation = `Strong investment with ${coc.toFixed(1)}% cash-on-cash return and ${fmt(metrics.annualCashFlow)}/yr cash flow. This exceeds typical stock market returns on a leveraged basis.`;
+    } else if (coc >= 4) {
+      verdict = "moderate_investment";
+      verdictExplanation = `Moderate investment with ${coc.toFixed(1)}% cash-on-cash return. Cash flow is positive at ${fmt(metrics.annualCashFlow)}/yr, and equity growth adds to total returns over time.`;
+    } else if (metrics.annualCashFlow >= 0) {
+      verdict = "marginal";
+      verdictExplanation = `Marginal investment with ${coc.toFixed(1)}% cash-on-cash return. Cash flow is near breakeven at ${fmt(metrics.annualCashFlow)}/yr. Returns depend heavily on appreciation.`;
+    } else {
+      verdict = "negative_cash_flow";
+      verdictExplanation = `Negative cash flow of ${fmt(metrics.annualCashFlow)}/yr means you'd need to cover ${fmt(-metrics.monthlyCashFlow)}/mo out of pocket. Consider higher rent, lower price, or larger down payment.`;
+    }
+
+    return {
+      monthlyGrossRent,
+      rentSource,
+      monthlyOperatingExpenses: metrics.monthlyOperatingExpenses,
+      monthlyNOI: metrics.monthlyNOI,
+      monthlyCashFlow: metrics.monthlyCashFlow,
+      annualNOI: metrics.annualNOI,
+      annualCashFlow: metrics.annualCashFlow,
+      capRate: metrics.capRate,
+      cashOnCashReturn: metrics.cashOnCashReturn,
+      grossRentMultiplier: metrics.grossRentMultiplier,
+      rentToPrice: metrics.rentToPrice,
+      totalCashInvested: metrics.totalCashInvested,
+      purchasePrice,
+      projections,
+      verdict,
+      verdictExplanation,
+    };
+  }
+
+  // ─────────────────────────────────────────────
+  // Phase 2f: Pre-approval readiness score
   // ─────────────────────────────────────────────
 
   private computePreApprovalReadiness(
@@ -1055,7 +1192,8 @@ export class OrchestratorAgent {
     afford: AffordabilityResult,
     risk: RiskReport,
     recs: RecommendationsResult,
-    propAnalysis?: PropertyAnalysis
+    propAnalysis?: PropertyAnalysis,
+    investAnalysis?: InvestmentAnalysis
   ): Promise<string> {
     // Build a compact data summary for Claude (not the full state object)
     const data: Record<string, unknown> = {
@@ -1091,6 +1229,22 @@ export class OrchestratorAgent {
         stretchFactor: propAnalysis.stretchFactor,
         verdict: propAnalysis.verdict,
         verdictExplanation: propAnalysis.verdictExplanation,
+      };
+    }
+
+    if (investAnalysis) {
+      data.investmentAnalysis = {
+        purchasePrice: investAnalysis.purchasePrice,
+        monthlyRent: investAnalysis.monthlyGrossRent,
+        rentSource: investAnalysis.rentSource,
+        monthlyCashFlow: investAnalysis.monthlyCashFlow,
+        annualCashFlow: investAnalysis.annualCashFlow,
+        capRate: investAnalysis.capRate,
+        cashOnCashReturn: investAnalysis.cashOnCashReturn,
+        rentToPrice: investAnalysis.rentToPrice,
+        verdict: investAnalysis.verdict,
+        fiveYearReturn: investAnalysis.projections[4]?.totalReturnPercent,
+        tenYearReturn: investAnalysis.projections[9]?.totalReturnPercent,
       };
     }
 

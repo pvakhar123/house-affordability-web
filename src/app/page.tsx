@@ -110,6 +110,7 @@ function HomeContent() {
               recommendations: event.recommendations,
               propertyAnalysis: event.propertyAnalysis,
               rentVsBuy: event.rentVsBuy,
+              investmentAnalysis: event.investmentAnalysis,
               preApprovalReadiness: event.preApprovalReadiness,
               neighborhoodInfo: event.neighborhoodInfo,
               _summaryLoading: true,

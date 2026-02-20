@@ -32,6 +32,12 @@ export default function AffordabilityForm({ onSubmit, isLoading }: Props) {
     propertyTaxAnnual: "",
     propertyHoaMonthly: "",
     propertySquareFootage: "",
+    // Investment analysis fields
+    isInvestmentProperty: false,
+    investmentExpectedRent: "",
+    investmentPropertyMgmt: "10",
+    investmentVacancyRate: "8",
+    investmentCapexReserve: "5",
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -66,6 +72,17 @@ export default function AffordabilityForm({ onSubmit, isLoading }: Props) {
         propertyTaxAnnual: Number(form.propertyTaxAnnual) || undefined,
         hoaMonthly: Number(form.propertyHoaMonthly) || undefined,
         squareFootage: Number(form.propertySquareFootage) || undefined,
+      };
+    }
+
+    // Add investment analysis inputs if toggle is on
+    if (form.isInvestmentProperty) {
+      profile.investmentInputs = {
+        isInvestmentProperty: true,
+        expectedMonthlyRent: Number(form.investmentExpectedRent) || undefined,
+        propertyManagementPercent: Number(form.investmentPropertyMgmt) || 10,
+        vacancyRatePercent: Number(form.investmentVacancyRate) || 8,
+        capexReservePercent: Number(form.investmentCapexReserve) || 5,
       };
     }
 
@@ -267,6 +284,98 @@ export default function AffordabilityForm({ onSubmit, isLoading }: Props) {
             </label>
           </div>
         </div>
+      </section>
+
+      {/* Investment Property Toggle */}
+      <section>
+        <div className="flex items-center justify-between mb-4 border-b pb-2">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900">
+              Investment Analysis
+            </h2>
+            <p className="text-xs text-gray-500 mt-0.5">Analyze as a rental investment property</p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={form.isInvestmentProperty}
+            onClick={() => update("isInvestmentProperty", !form.isInvestmentProperty)}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+              form.isInvestmentProperty ? "bg-blue-600" : "bg-gray-300"
+            }`}
+          >
+            <span
+              className={`inline-block h-4 w-4 rounded-full bg-white transition-transform ${
+                form.isInvestmentProperty ? "translate-x-6" : "translate-x-1"
+              }`}
+            />
+          </button>
+        </div>
+
+        {form.isInvestmentProperty && (
+          <div className="space-y-4 p-4 bg-blue-50/50 border border-blue-100 rounded-lg">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Expected Monthly Rent
+              </label>
+              <p className="text-xs text-gray-500 mb-1">
+                Leave blank to auto-estimate based on area data
+              </p>
+              <div className="relative">
+                <span className="absolute left-3 top-2.5 text-gray-500">$</span>
+                <input
+                  type="number"
+                  min={0}
+                  value={form.investmentExpectedRent}
+                  onChange={(e) => update("investmentExpectedRent", e.target.value)}
+                  className="w-full pl-7 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                  placeholder="Auto-estimate"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Property Mgmt %
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  max={30}
+                  value={form.investmentPropertyMgmt}
+                  onChange={(e) => update("investmentPropertyMgmt", e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Vacancy Rate %
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  max={30}
+                  value={form.investmentVacancyRate}
+                  onChange={(e) => update("investmentVacancyRate", e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  CapEx Reserve %
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  max={30}
+                  value={form.investmentCapexReserve}
+                  onChange={(e) => update("investmentCapexReserve", e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                />
+              </div>
+            </div>
+          </div>
+        )}
       </section>
 
       {/* Income */}

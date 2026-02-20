@@ -4,6 +4,7 @@
  * Sources:
  * - Property tax rates: Tax Foundation, county assessor offices (2024)
  * - Median home prices: NAR, Zillow Home Value Index (2024)
+ * - Median rents: Zillow Observed Rent Index (ZORI), Census ACS (2024)
  * - School ratings: GreatSchools, Niche aggregated metro ratings
  * - Cost of living: BEA Regional Price Parities, C2ER index (100 = national average)
  */
@@ -11,6 +12,7 @@
 export interface AreaInfo {
   propertyTaxRate: number;
   medianHomePrice: number;
+  medianMonthlyRent?: number;
   schoolRating: string;
   costOfLivingIndex: number;
   state: string;
@@ -41,7 +43,7 @@ export interface NeighborhoodInfo {
 export const AREA_DATA: Record<string, AreaInfo> = {
   // ── SOUTH ──
   "austin, tx": {
-    propertyTaxRate: 0.0167, medianHomePrice: 450000, schoolRating: "Above Average", costOfLivingIndex: 103, state: "TX",
+    propertyTaxRate: 0.0167, medianHomePrice: 450000, medianMonthlyRent: 1750, schoolRating: "Above Average", costOfLivingIndex: 103, state: "TX",
     schools: "Strong public schools with several Blue Ribbon Award winners. University of Texas adds college-town advantages.",
     transit: "Capital Metro bus and rail system with expanding light rail. Bike-friendly downtown.",
     safety: "Crime rate near national average. Suburbs like Round Rock and Cedar Park are notably safe.",
@@ -50,7 +52,7 @@ export const AREA_DATA: Record<string, AreaInfo> = {
     walkability: "Car-dependent metro overall, but downtown and university area are walkable.",
   },
   "dallas, tx": {
-    propertyTaxRate: 0.0180, medianHomePrice: 380000, schoolRating: "Average", costOfLivingIndex: 100, state: "TX",
+    propertyTaxRate: 0.0180, medianHomePrice: 380000, medianMonthlyRent: 1600, schoolRating: "Average", costOfLivingIndex: 100, state: "TX",
     schools: "Large and varied school districts. Highland Park and Plano ISDs are top-rated. Magnet and charter options available.",
     transit: "DART light rail and bus system covers the metro. Expanding suburban commuter lines.",
     safety: "Suburban areas like Frisco and Southlake are very safe. Urban core has average crime rates.",
@@ -59,7 +61,7 @@ export const AREA_DATA: Record<string, AreaInfo> = {
     walkability: "Car-dependent with walkable pockets in Uptown, Deep Ellum, and Bishop Arts.",
   },
   "houston, tx": {
-    propertyTaxRate: 0.0181, medianHomePrice: 320000, schoolRating: "Average", costOfLivingIndex: 96, state: "TX",
+    propertyTaxRate: 0.0181, medianHomePrice: 320000, medianMonthlyRent: 1450, schoolRating: "Average", costOfLivingIndex: 96, state: "TX",
     schools: "Diverse school options. Katy and Cypress-Fairbanks ISDs rank among the state's best.",
     transit: "METRORail light rail and extensive bus network. Major freeway system. Car-centric metro.",
     safety: "Suburbs like Sugar Land and The Woodlands are very safe. Inner city has higher crime rates.",
@@ -68,7 +70,7 @@ export const AREA_DATA: Record<string, AreaInfo> = {
     walkability: "Primarily car-dependent. Midtown and downtown areas are improving walkability.",
   },
   "san antonio, tx": {
-    propertyTaxRate: 0.0173, medianHomePrice: 280000, schoolRating: "Average", costOfLivingIndex: 91, state: "TX",
+    propertyTaxRate: 0.0173, medianHomePrice: 280000, medianMonthlyRent: 1350, schoolRating: "Average", costOfLivingIndex: 91, state: "TX",
     schools: "North East ISD and Alamo Heights ISD are well-regarded. Several strong magnet programs.",
     transit: "VIA Metropolitan Transit bus system. Mostly car-dependent with improving infrastructure.",
     safety: "Crime rate slightly above national average. Northern suburbs are considerably safer.",
@@ -77,7 +79,7 @@ export const AREA_DATA: Record<string, AreaInfo> = {
     walkability: "Car-dependent overall. River Walk and downtown core are pedestrian-friendly.",
   },
   "fort worth, tx": {
-    propertyTaxRate: 0.0178, medianHomePrice: 340000, schoolRating: "Average", costOfLivingIndex: 97, state: "TX",
+    propertyTaxRate: 0.0178, medianHomePrice: 340000, medianMonthlyRent: 1500, schoolRating: "Average", costOfLivingIndex: 97, state: "TX",
     schools: "Carroll ISD in Southlake is top-rated. Several strong suburban districts in the area.",
     transit: "Trinity Metro bus and TEXRail commuter line to DFW Airport. Shares DART access with Dallas.",
     safety: "Suburban areas are notably safe. City crime rate near national average.",
@@ -86,7 +88,7 @@ export const AREA_DATA: Record<string, AreaInfo> = {
     walkability: "Car-dependent metro. Sundance Square and Near Southside are walkable neighborhoods.",
   },
   "atlanta, ga": {
-    propertyTaxRate: 0.0092, medianHomePrice: 380000, schoolRating: "Average", costOfLivingIndex: 98, state: "GA",
+    propertyTaxRate: 0.0092, medianHomePrice: 380000, medianMonthlyRent: 1700, schoolRating: "Average", costOfLivingIndex: 98, state: "GA",
     schools: "Varied quality across districts. North Fulton and Decatur schools are highly rated.",
     transit: "MARTA rail and bus system. Heavy car traffic. BeltLine trail expanding connectivity.",
     safety: "Suburban areas like Alpharetta and Johns Creek are very safe. Urban crime above average.",
@@ -95,7 +97,7 @@ export const AREA_DATA: Record<string, AreaInfo> = {
     walkability: "Car-dependent metro. Midtown, Virginia-Highland, and Decatur are walkable neighborhoods.",
   },
   "charlotte, nc": {
-    propertyTaxRate: 0.0084, medianHomePrice: 370000, schoolRating: "Above Average", costOfLivingIndex: 97, state: "NC",
+    propertyTaxRate: 0.0084, medianHomePrice: 370000, medianMonthlyRent: 1500, schoolRating: "Above Average", costOfLivingIndex: 97, state: "NC",
     schools: "Charlotte-Mecklenburg Schools has top-rated magnets. Strong private school options.",
     transit: "LYNX light rail Blue Line with expanding Gold Line. Growing transit network.",
     safety: "Suburban areas like Ballantyne and Lake Norman are very safe. Moderate city crime.",
@@ -104,7 +106,7 @@ export const AREA_DATA: Record<string, AreaInfo> = {
     walkability: "Car-dependent overall. Uptown and South End are walkable with light rail access.",
   },
   "raleigh, nc": {
-    propertyTaxRate: 0.0082, medianHomePrice: 410000, schoolRating: "Above Average", costOfLivingIndex: 100, state: "NC",
+    propertyTaxRate: 0.0082, medianHomePrice: 410000, medianMonthlyRent: 1700, schoolRating: "Above Average", costOfLivingIndex: 100, state: "NC",
     schools: "Excellent public schools. Wake County schools consistently rank among the state's best.",
     transit: "GoRaleigh bus system. Planned commuter rail. Research Triangle has good connectivity.",
     safety: "Below national average crime rate. Cary and Apex are among the safest cities in the US.",
@@ -113,7 +115,7 @@ export const AREA_DATA: Record<string, AreaInfo> = {
     walkability: "Car-dependent metro. Downtown Raleigh is walkable with growing bike infrastructure.",
   },
   "nashville, tn": {
-    propertyTaxRate: 0.0066, medianHomePrice: 420000, schoolRating: "Average", costOfLivingIndex: 101, state: "TN",
+    propertyTaxRate: 0.0066, medianHomePrice: 420000, medianMonthlyRent: 1650, schoolRating: "Average", costOfLivingIndex: 101, state: "TN",
     schools: "Metro Nashville schools are mixed. Franklin and Williamson County schools are top-rated.",
     transit: "WeGo public transit buses. Mostly car-dependent. No state income tax is a draw.",
     safety: "Suburban areas like Franklin and Brentwood are very safe. Downtown has moderate crime.",
@@ -122,7 +124,7 @@ export const AREA_DATA: Record<string, AreaInfo> = {
     walkability: "Car-dependent metro. Downtown/Midtown and the Gulch are walkable entertainment areas.",
   },
   "miami, fl": {
-    propertyTaxRate: 0.0089, medianHomePrice: 550000, schoolRating: "Below Average", costOfLivingIndex: 118, state: "FL",
+    propertyTaxRate: 0.0089, medianHomePrice: 550000, medianMonthlyRent: 2300, schoolRating: "Below Average", costOfLivingIndex: 118, state: "FL",
     schools: "Miami-Dade County schools are the 4th largest district. Several top-rated magnet schools.",
     transit: "Metrorail, Metromover (free), and Metrobus. Tri-Rail connects to Fort Lauderdale and West Palm.",
     safety: "Varies widely by neighborhood. Coral Gables, Key Biscayne, and Pinecrest are very safe.",
@@ -131,7 +133,7 @@ export const AREA_DATA: Record<string, AreaInfo> = {
     walkability: "Miami Beach and Brickell are walkable. Wider metro is car-dependent.",
   },
   "tampa, fl": {
-    propertyTaxRate: 0.0083, medianHomePrice: 360000, schoolRating: "Average", costOfLivingIndex: 99, state: "FL",
+    propertyTaxRate: 0.0083, medianHomePrice: 360000, medianMonthlyRent: 1550, schoolRating: "Average", costOfLivingIndex: 99, state: "FL",
     schools: "Hillsborough County schools are average. Plant and Steinbrenner High are well-regarded.",
     transit: "HART bus system and TECO streetcar. Largely car-dependent. No state income tax.",
     safety: "Suburban areas like Wesley Chapel and Westchase are safe. City crime near average.",
@@ -140,7 +142,7 @@ export const AREA_DATA: Record<string, AreaInfo> = {
     walkability: "Car-dependent overall. Hyde Park and downtown Tampa have walkable pockets.",
   },
   "orlando, fl": {
-    propertyTaxRate: 0.0086, medianHomePrice: 380000, schoolRating: "Average", costOfLivingIndex: 100, state: "FL",
+    propertyTaxRate: 0.0086, medianHomePrice: 380000, medianMonthlyRent: 1600, schoolRating: "Average", costOfLivingIndex: 100, state: "FL",
     schools: "Orange County schools are average. Seminole County (north) is rated above average.",
     transit: "SunRail commuter rail and LYNX bus system. Mostly car-dependent.",
     safety: "Suburban areas like Winter Park and Lake Nona are safe. Tourist areas have moderate crime.",
@@ -149,7 +151,7 @@ export const AREA_DATA: Record<string, AreaInfo> = {
     walkability: "Car-dependent metro. Downtown Orlando and Winter Park have walkable cores.",
   },
   "jacksonville, fl": {
-    propertyTaxRate: 0.0081, medianHomePrice: 330000, schoolRating: "Average", costOfLivingIndex: 96, state: "FL",
+    propertyTaxRate: 0.0081, medianHomePrice: 330000, medianMonthlyRent: 1450, schoolRating: "Average", costOfLivingIndex: 96, state: "FL",
     schools: "Duval County schools improving. St. Johns County (south) has top-rated schools.",
     transit: "JTA bus system and Skyway monorail downtown. Car-dependent metro.",
     safety: "Ponte Vedra Beach and St. Johns County are very safe. City crime rate slightly above average.",
@@ -158,7 +160,7 @@ export const AREA_DATA: Record<string, AreaInfo> = {
     walkability: "Car-dependent as the largest city by area in the contiguous US. San Marco and Riverside are walkable.",
   },
   "richmond, va": {
-    propertyTaxRate: 0.0082, medianHomePrice: 340000, schoolRating: "Above Average", costOfLivingIndex: 99, state: "VA",
+    propertyTaxRate: 0.0082, medianHomePrice: 340000, medianMonthlyRent: 1450, schoolRating: "Above Average", costOfLivingIndex: 99, state: "VA",
     schools: "Henrico and Chesterfield county schools are above average. Strong magnet school programs.",
     transit: "GRTC bus and Pulse rapid transit. Improving bike lanes and trails.",
     safety: "Short Pump and western suburbs are very safe. City crime rate is moderate.",
@@ -167,7 +169,7 @@ export const AREA_DATA: Record<string, AreaInfo> = {
     walkability: "The Fan, Carytown, and Scott's Addition are walkable. Suburbs are car-dependent.",
   },
   "virginia beach, va": {
-    propertyTaxRate: 0.0080, medianHomePrice: 320000, schoolRating: "Above Average", costOfLivingIndex: 100, state: "VA",
+    propertyTaxRate: 0.0080, medianHomePrice: 320000, medianMonthlyRent: 1400, schoolRating: "Above Average", costOfLivingIndex: 100, state: "VA",
     schools: "Virginia Beach City Public Schools consistently rank among the state's best.",
     transit: "Hampton Roads Transit bus system. The Tide light rail in nearby Norfolk. Car-dependent.",
     safety: "One of the safest large cities in the US with below-average crime rates.",
@@ -176,7 +178,7 @@ export const AREA_DATA: Record<string, AreaInfo> = {
     walkability: "Car-dependent overall. Oceanfront and Town Center are walkable areas.",
   },
   "new orleans, la": {
-    propertyTaxRate: 0.0055, medianHomePrice: 260000, schoolRating: "Below Average", costOfLivingIndex: 95, state: "LA",
+    propertyTaxRate: 0.0055, medianHomePrice: 260000, medianMonthlyRent: 1350, schoolRating: "Below Average", costOfLivingIndex: 95, state: "LA",
     schools: "Charter school system with improving outcomes. Benjamin Franklin High is top-rated statewide.",
     transit: "Historic streetcar lines, RTA bus system. One of the most transit-friendly Southern cities.",
     safety: "Crime rates above national average. Garden District and Uptown are relatively safe.",
@@ -185,7 +187,7 @@ export const AREA_DATA: Record<string, AreaInfo> = {
     walkability: "French Quarter, Garden District, and Magazine Street are very walkable. Streetcar adds connectivity.",
   },
   "birmingham, al": {
-    propertyTaxRate: 0.0040, medianHomePrice: 230000, schoolRating: "Below Average", costOfLivingIndex: 88, state: "AL",
+    propertyTaxRate: 0.0040, medianHomePrice: 230000, medianMonthlyRent: 1150, schoolRating: "Below Average", costOfLivingIndex: 88, state: "AL",
     schools: "City schools below average. Vestavia Hills, Hoover, and Mountain Brook schools are excellent.",
     transit: "MAX Transit bus system. Primarily car-dependent. Very affordable cost of living.",
     safety: "Suburbs like Mountain Brook and Vestavia Hills are very safe. City crime above average.",
@@ -194,7 +196,7 @@ export const AREA_DATA: Record<string, AreaInfo> = {
     walkability: "Car-dependent metro. Lakeview and Five Points South have walkable restaurant and bar districts.",
   },
   "charleston, sc": {
-    propertyTaxRate: 0.0057, medianHomePrice: 420000, schoolRating: "Above Average", costOfLivingIndex: 107, state: "SC",
+    propertyTaxRate: 0.0057, medianHomePrice: 420000, medianMonthlyRent: 1800, schoolRating: "Above Average", costOfLivingIndex: 107, state: "SC",
     schools: "Mount Pleasant schools are well-rated. Academic Magnet High School is nationally ranked.",
     transit: "CARTA bus system. Car-dependent metro with walkable historic downtown.",
     safety: "Mount Pleasant, Daniel Island, and Summerville are very safe. City crime is moderate.",
@@ -205,7 +207,7 @@ export const AREA_DATA: Record<string, AreaInfo> = {
 
   // ── WEST ──
   "denver, co": {
-    propertyTaxRate: 0.0055, medianHomePrice: 550000, schoolRating: "Above Average", costOfLivingIndex: 112, state: "CO",
+    propertyTaxRate: 0.0055, medianHomePrice: 550000, medianMonthlyRent: 1900, schoolRating: "Above Average", costOfLivingIndex: 112, state: "CO",
     schools: "Above-average public schools. Strong charter schools and STEM programs across the metro.",
     transit: "RTD light rail and bus system connecting suburbs to downtown. Denver International Airport is a major hub.",
     safety: "Moderate crime in city center. Suburbs like Highlands Ranch and Castle Rock are very safe.",
@@ -214,7 +216,7 @@ export const AREA_DATA: Record<string, AreaInfo> = {
     walkability: "Walkable downtown and neighborhoods like LoDo and RiNo. Car needed for suburbs.",
   },
   "colorado springs, co": {
-    propertyTaxRate: 0.0052, medianHomePrice: 440000, schoolRating: "Above Average", costOfLivingIndex: 100, state: "CO",
+    propertyTaxRate: 0.0052, medianHomePrice: 440000, medianMonthlyRent: 1750, schoolRating: "Above Average", costOfLivingIndex: 100, state: "CO",
     schools: "Academy District 20 and Cheyenne Mountain are top-rated. Strong STEM education focus.",
     transit: "Mountain Metro Transit bus system. Car-dependent but easy access to I-25 corridor.",
     safety: "Below national average crime rate in most areas. Strong military community (5 bases).",
@@ -223,7 +225,7 @@ export const AREA_DATA: Record<string, AreaInfo> = {
     walkability: "Car-dependent overall. Old Colorado City and downtown have walkable cores.",
   },
   "phoenix, az": {
-    propertyTaxRate: 0.0062, medianHomePrice: 430000, schoolRating: "Average", costOfLivingIndex: 102, state: "AZ",
+    propertyTaxRate: 0.0062, medianHomePrice: 430000, medianMonthlyRent: 1600, schoolRating: "Average", costOfLivingIndex: 102, state: "AZ",
     schools: "Scottsdale Unified and Gilbert schools are well-rated. Wide range of charter options.",
     transit: "Valley Metro light rail and bus system. Extensive freeway network. Car-centric metro.",
     safety: "Scottsdale, Chandler, and Gilbert are very safe. Metro crime rate near average.",
@@ -232,7 +234,7 @@ export const AREA_DATA: Record<string, AreaInfo> = {
     walkability: "Sprawling and car-dependent. Old Town Scottsdale and downtown Tempe near ASU are walkable.",
   },
   "tucson, az": {
-    propertyTaxRate: 0.0073, medianHomePrice: 310000, schoolRating: "Average", costOfLivingIndex: 93, state: "AZ",
+    propertyTaxRate: 0.0073, medianHomePrice: 310000, medianMonthlyRent: 1350, schoolRating: "Average", costOfLivingIndex: 93, state: "AZ",
     schools: "Catalina Foothills and Tanque Verde schools are above average. University of Arizona campus community.",
     transit: "SunTran bus and Sun Link streetcar. Car-dependent metro with very affordable housing.",
     safety: "Foothills and Oro Valley are safe. City crime rate slightly above average.",
@@ -241,7 +243,7 @@ export const AREA_DATA: Record<string, AreaInfo> = {
     walkability: "Car-dependent overall. 4th Avenue district and university area are walkable.",
   },
   "las vegas, nv": {
-    propertyTaxRate: 0.0053, medianHomePrice: 400000, schoolRating: "Below Average", costOfLivingIndex: 102, state: "NV",
+    propertyTaxRate: 0.0053, medianHomePrice: 400000, medianMonthlyRent: 1550, schoolRating: "Below Average", costOfLivingIndex: 102, state: "NV",
     schools: "Clark County School District is one of the largest. Summerlin area schools are better rated.",
     transit: "RTC bus system and monorail on the Strip. Car-dependent metro. No state income tax.",
     safety: "Summerlin and Henderson are safe suburbs. Tourist corridor has higher crime.",
@@ -250,7 +252,7 @@ export const AREA_DATA: Record<string, AreaInfo> = {
     walkability: "The Strip is walkable. Residential areas are car-dependent. Suburban layout.",
   },
   "salt lake city, ut": {
-    propertyTaxRate: 0.0058, medianHomePrice: 520000, schoolRating: "Above Average", costOfLivingIndex: 104, state: "UT",
+    propertyTaxRate: 0.0058, medianHomePrice: 520000, medianMonthlyRent: 1850, schoolRating: "Above Average", costOfLivingIndex: 104, state: "UT",
     schools: "Above-average public schools. Strong community focus on education and family.",
     transit: "TRAX light rail, FrontRunner commuter rail, and UTA bus. Among the best transit in the Mountain West.",
     safety: "Below national average crime rate. Safe suburbs like Draper and Sandy.",
@@ -259,7 +261,7 @@ export const AREA_DATA: Record<string, AreaInfo> = {
     walkability: "Downtown is walkable with good transit. Suburbs require a car. Grid street system helps navigation.",
   },
   "boise, id": {
-    propertyTaxRate: 0.0063, medianHomePrice: 440000, schoolRating: "Above Average", costOfLivingIndex: 100, state: "ID",
+    propertyTaxRate: 0.0063, medianHomePrice: 440000, medianMonthlyRent: 1700, schoolRating: "Above Average", costOfLivingIndex: 100, state: "ID",
     schools: "Boise schools are above average. Eagle and Meridian districts are well-regarded.",
     transit: "ValleyRide bus system. Car-dependent but growing. Very clean air and low congestion.",
     safety: "One of the safest metros in the US with well below-average crime rates.",
@@ -268,7 +270,7 @@ export const AREA_DATA: Record<string, AreaInfo> = {
     walkability: "Downtown and North End are walkable. Suburbs are car-dependent.",
   },
   "portland, or": {
-    propertyTaxRate: 0.0093, medianHomePrice: 510000, schoolRating: "Above Average", costOfLivingIndex: 113, state: "OR",
+    propertyTaxRate: 0.0093, medianHomePrice: 510000, medianMonthlyRent: 1850, schoolRating: "Above Average", costOfLivingIndex: 113, state: "OR",
     schools: "Lake Oswego and West Linn schools are top-rated. Portland Public Schools are average to above average.",
     transit: "TriMet MAX light rail, bus, and streetcar. One of the best transit systems on the West Coast.",
     safety: "Suburbs like Lake Oswego and Beaverton are safe. City crime has risen but remains moderate.",
@@ -277,7 +279,7 @@ export const AREA_DATA: Record<string, AreaInfo> = {
     walkability: "Very walkable downtown and close-in neighborhoods like Pearl District, Hawthorne, and Alberta.",
   },
   "seattle, wa": {
-    propertyTaxRate: 0.0092, medianHomePrice: 750000, schoolRating: "Above Average", costOfLivingIndex: 126, state: "WA",
+    propertyTaxRate: 0.0092, medianHomePrice: 750000, medianMonthlyRent: 2200, schoolRating: "Above Average", costOfLivingIndex: 126, state: "WA",
     schools: "Bellevue, Mercer Island, and Bainbridge Island schools are top-rated. Strong STEM focus metro-wide.",
     transit: "Sound Transit Link light rail expanding rapidly. Metro buses, ferries, and water taxis. No state income tax.",
     safety: "Eastside suburbs (Bellevue, Kirkland, Redmond) are very safe. City crime moderate.",
@@ -286,7 +288,7 @@ export const AREA_DATA: Record<string, AreaInfo> = {
     walkability: "Capitol Hill, Fremont, and downtown are very walkable. Eastside suburbs more car-dependent.",
   },
   "san francisco, ca": {
-    propertyTaxRate: 0.0073, medianHomePrice: 1200000, schoolRating: "Above Average", costOfLivingIndex: 145, state: "CA",
+    propertyTaxRate: 0.0073, medianHomePrice: 1200000, medianMonthlyRent: 3200, schoolRating: "Above Average", costOfLivingIndex: 145, state: "CA",
     schools: "Lowell High and other selective schools are top-rated. Strong private school options.",
     transit: "BART, Muni buses and rail, cable cars, ferries. One of the best transit systems in the US.",
     safety: "Safe residential neighborhoods. Property crime elevated in some areas. Vigilance recommended downtown.",
@@ -295,7 +297,7 @@ export const AREA_DATA: Record<string, AreaInfo> = {
     walkability: "One of the most walkable cities in the US. Excellent transit reduces car dependency.",
   },
   "san jose, ca": {
-    propertyTaxRate: 0.0070, medianHomePrice: 1350000, schoolRating: "Above Average", costOfLivingIndex: 150, state: "CA",
+    propertyTaxRate: 0.0070, medianHomePrice: 1350000, medianMonthlyRent: 3400, schoolRating: "Above Average", costOfLivingIndex: 150, state: "CA",
     schools: "Cupertino and Palo Alto schools are among the nation's best. Strong STEM focus due to tech industry.",
     transit: "VTA light rail and bus, Caltrain to SF, BART extension. Car useful but transit improving.",
     safety: "Below average crime rates for a large city. Cupertino and Saratoga are very safe.",
@@ -304,7 +306,7 @@ export const AREA_DATA: Record<string, AreaInfo> = {
     walkability: "Downtown San Jose is walkable. Suburban neighborhoods are car-dependent.",
   },
   "los angeles, ca": {
-    propertyTaxRate: 0.0072, medianHomePrice: 900000, schoolRating: "Average", costOfLivingIndex: 136, state: "CA",
+    propertyTaxRate: 0.0072, medianHomePrice: 900000, medianMonthlyRent: 2800, schoolRating: "Average", costOfLivingIndex: 136, state: "CA",
     schools: "LAUSD quality varies widely. Beverly Hills, Santa Monica, and South Pasadena schools are excellent.",
     transit: "Metro Rail expanding rapidly, extensive bus system. Still car-centric but transit improving.",
     safety: "Varies greatly by area. Westside, South Bay, and San Gabriel Valley suburbs are safe.",
@@ -313,7 +315,7 @@ export const AREA_DATA: Record<string, AreaInfo> = {
     walkability: "Santa Monica, DTLA, and Pasadena are walkable. LA is largely car-dependent.",
   },
   "san diego, ca": {
-    propertyTaxRate: 0.0073, medianHomePrice: 850000, schoolRating: "Above Average", costOfLivingIndex: 130, state: "CA",
+    propertyTaxRate: 0.0073, medianHomePrice: 850000, medianMonthlyRent: 2700, schoolRating: "Above Average", costOfLivingIndex: 130, state: "CA",
     schools: "Poway and San Dieguito districts are top-rated. La Jolla and Scripps Ranch schools excel.",
     transit: "MTS Trolley and bus system. Coaster commuter rail. Car still recommended.",
     safety: "Generally safe metro. Carmel Valley, Scripps Ranch, and Coronado have low crime rates.",
@@ -322,7 +324,7 @@ export const AREA_DATA: Record<string, AreaInfo> = {
     walkability: "Downtown and beach communities like Pacific Beach are walkable. Inland areas need a car.",
   },
   "sacramento, ca": {
-    propertyTaxRate: 0.0070, medianHomePrice: 520000, schoolRating: "Average", costOfLivingIndex: 112, state: "CA",
+    propertyTaxRate: 0.0070, medianHomePrice: 520000, medianMonthlyRent: 1900, schoolRating: "Average", costOfLivingIndex: 112, state: "CA",
     schools: "Folsom, Rocklin, and Davis schools are above average. Sacramento City schools are mixed.",
     transit: "RT light rail and bus system. Amtrak Capitol Corridor to Bay Area. Expanding bike infrastructure.",
     safety: "El Dorado Hills, Folsom, and Roseville are very safe suburbs. City crime near average.",
@@ -331,7 +333,7 @@ export const AREA_DATA: Record<string, AreaInfo> = {
     walkability: "Midtown Sacramento is very walkable. Suburbs are car-dependent.",
   },
   "riverside, ca": {
-    propertyTaxRate: 0.0098, medianHomePrice: 540000, schoolRating: "Average", costOfLivingIndex: 108, state: "CA",
+    propertyTaxRate: 0.0098, medianHomePrice: 540000, medianMonthlyRent: 1950, schoolRating: "Average", costOfLivingIndex: 108, state: "CA",
     schools: "Average overall. Murrieta and Temecula schools are above average.",
     transit: "Metrolink commuter rail to LA, RTA bus system. Car-dependent metro.",
     safety: "Rancho Cucamonga, Corona, and Temecula are safe. City crime rate moderate.",
@@ -340,7 +342,7 @@ export const AREA_DATA: Record<string, AreaInfo> = {
     walkability: "Car-dependent metro. Downtown Riverside and university area have walkable cores.",
   },
   "honolulu, hi": {
-    propertyTaxRate: 0.0028, medianHomePrice: 820000, schoolRating: "Average", costOfLivingIndex: 143, state: "HI",
+    propertyTaxRate: 0.0028, medianHomePrice: 820000, medianMonthlyRent: 2400, schoolRating: "Average", costOfLivingIndex: 143, state: "HI",
     notes: "Lowest property tax rate in the US",
     schools: "Public schools are average. Punahou and Iolani are nationally renowned private schools.",
     transit: "TheBus system is extensive. Skyline rail transit opening in phases. Walkable Waikiki area.",
@@ -352,7 +354,7 @@ export const AREA_DATA: Record<string, AreaInfo> = {
 
   // ── MIDWEST ──
   "chicago, il": {
-    propertyTaxRate: 0.0197, medianHomePrice: 330000, schoolRating: "Average", costOfLivingIndex: 105, state: "IL",
+    propertyTaxRate: 0.0197, medianHomePrice: 330000, medianMonthlyRent: 1550, schoolRating: "Average", costOfLivingIndex: 105, state: "IL",
     schools: "Wide variation. Naperville, Hinsdale, and New Trier (Winnetka) are among the state's best.",
     transit: "CTA 'L' trains, Metra commuter rail, extensive bus network. Excellent transit for the Midwest.",
     safety: "North Shore and western suburbs are very safe. City crime varies significantly by neighborhood.",
@@ -361,7 +363,7 @@ export const AREA_DATA: Record<string, AreaInfo> = {
     walkability: "Downtown, Lincoln Park, and Lakeview are very walkable. 'L' train extends walkability citywide.",
   },
   "minneapolis, mn": {
-    propertyTaxRate: 0.0112, medianHomePrice: 360000, schoolRating: "Above Average", costOfLivingIndex: 103, state: "MN",
+    propertyTaxRate: 0.0112, medianHomePrice: 360000, medianMonthlyRent: 1500, schoolRating: "Above Average", costOfLivingIndex: 103, state: "MN",
     schools: "Edina, Wayzata, and Minnetonka schools are top-rated. Strong public education statewide.",
     transit: "Metro Transit light rail (Blue & Green lines), bus network, and extensive bike trails.",
     safety: "Suburbs like Edina and Plymouth are very safe. City crime moderate.",
@@ -370,7 +372,7 @@ export const AREA_DATA: Record<string, AreaInfo> = {
     walkability: "Downtown and Uptown are walkable. Skyway system connects 80 blocks of downtown indoors during winter.",
   },
   "columbus, oh": {
-    propertyTaxRate: 0.0153, medianHomePrice: 280000, schoolRating: "Average", costOfLivingIndex: 94, state: "OH",
+    propertyTaxRate: 0.0153, medianHomePrice: 280000, medianMonthlyRent: 1300, schoolRating: "Average", costOfLivingIndex: 94, state: "OH",
     schools: "Dublin, Upper Arlington, and Worthington schools are well-regarded. Ohio State University campus community.",
     transit: "COTA bus system. Car-dependent but affordable. Growing Short North neighborhood revitalization.",
     safety: "Dublin, Westerville, and New Albany are very safe suburbs. City crime near national average.",
@@ -379,7 +381,7 @@ export const AREA_DATA: Record<string, AreaInfo> = {
     walkability: "Short North, German Village, and Grandview are walkable. Most of metro is car-dependent.",
   },
   "cincinnati, oh": {
-    propertyTaxRate: 0.0157, medianHomePrice: 260000, schoolRating: "Average", costOfLivingIndex: 91, state: "OH",
+    propertyTaxRate: 0.0157, medianHomePrice: 260000, medianMonthlyRent: 1250, schoolRating: "Average", costOfLivingIndex: 91, state: "OH",
     schools: "Mason, Indian Hill, and Wyoming schools are highly rated. Cincinnati Public has strong magnet programs.",
     transit: "Metro bus system and Cincinnati Bell Connector streetcar. Car-dependent metro.",
     safety: "Mason, Blue Ash, and Indian Hill are very safe. City crime above average.",
@@ -388,7 +390,7 @@ export const AREA_DATA: Record<string, AreaInfo> = {
     walkability: "Over-the-Rhine and downtown are walkable. Suburbs are car-dependent.",
   },
   "cleveland, oh": {
-    propertyTaxRate: 0.0168, medianHomePrice: 210000, schoolRating: "Below Average", costOfLivingIndex: 89, state: "OH",
+    propertyTaxRate: 0.0168, medianHomePrice: 210000, medianMonthlyRent: 1050, schoolRating: "Below Average", costOfLivingIndex: 89, state: "OH",
     schools: "City schools below average. Solon, Chagrin Falls, and Rocky River are excellent suburban districts.",
     transit: "RTA rapid transit and bus system. Affordable metro with easy lakefront access.",
     safety: "Westlake, Solon, and Avon Lake are very safe. City crime above average.",
@@ -397,7 +399,7 @@ export const AREA_DATA: Record<string, AreaInfo> = {
     walkability: "Ohio City and Tremont are walkable. Most of metro is car-dependent. Very affordable.",
   },
   "indianapolis, in": {
-    propertyTaxRate: 0.0085, medianHomePrice: 260000, schoolRating: "Average", costOfLivingIndex: 92, state: "IN",
+    propertyTaxRate: 0.0085, medianHomePrice: 260000, medianMonthlyRent: 1250, schoolRating: "Average", costOfLivingIndex: 92, state: "IN",
     schools: "Carmel, Zionsville, and Fishers schools are top-rated. City schools improving.",
     transit: "IndyGo bus system and Red Line rapid transit. Expanding but mostly car-dependent.",
     safety: "Carmel, Fishers, and Zionsville are among the safest cities in the US. City crime above average.",
@@ -406,7 +408,7 @@ export const AREA_DATA: Record<string, AreaInfo> = {
     walkability: "Mass Ave and Broad Ripple are walkable. Cultural Trail connects downtown neighborhoods. Suburbs need a car.",
   },
   "kansas city, mo": {
-    propertyTaxRate: 0.0112, medianHomePrice: 280000, schoolRating: "Average", costOfLivingIndex: 93, state: "MO",
+    propertyTaxRate: 0.0112, medianHomePrice: 280000, medianMonthlyRent: 1250, schoolRating: "Average", costOfLivingIndex: 93, state: "MO",
     schools: "Blue Valley and Shawnee Mission (KS side) are excellent. Missouri side schools are mixed.",
     transit: "KC Streetcar (free) expanding. KCATA bus system. Car-dependent metro.",
     safety: "Overland Park and Lee's Summit are very safe. City crime above average.",
@@ -415,7 +417,7 @@ export const AREA_DATA: Record<string, AreaInfo> = {
     walkability: "Country Club Plaza, Westport, and River Market are walkable. Free streetcar helps downtown.",
   },
   "detroit, mi": {
-    propertyTaxRate: 0.0162, medianHomePrice: 230000, schoolRating: "Below Average", costOfLivingIndex: 90, state: "MI",
+    propertyTaxRate: 0.0162, medianHomePrice: 230000, medianMonthlyRent: 1100, schoolRating: "Below Average", costOfLivingIndex: 90, state: "MI",
     schools: "City schools below average. Troy, Bloomfield Hills, and Birmingham schools are top-rated.",
     transit: "SMART bus and QLine streetcar. Mostly car-dependent. Motor City culture runs deep.",
     safety: "Royal Oak, Troy, and Northville are very safe. City crime above average but improving.",
@@ -424,7 +426,7 @@ export const AREA_DATA: Record<string, AreaInfo> = {
     walkability: "Midtown, Corktown, and downtown are walkable. Suburbs are car-dependent.",
   },
   "milwaukee, wi": {
-    propertyTaxRate: 0.0185, medianHomePrice: 260000, schoolRating: "Average", costOfLivingIndex: 93, state: "WI",
+    propertyTaxRate: 0.0185, medianHomePrice: 260000, medianMonthlyRent: 1200, schoolRating: "Average", costOfLivingIndex: 93, state: "WI",
     schools: "Whitefish Bay, Elm Grove, and Brookfield schools are well-rated. City schools are mixed.",
     transit: "MCTS bus system and The Hop streetcar. Car-dependent metro.",
     safety: "Brookfield and Mequon are very safe. City crime above average in some neighborhoods.",
@@ -433,7 +435,7 @@ export const AREA_DATA: Record<string, AreaInfo> = {
     walkability: "Third Ward and East Side are walkable. Lakefront path is popular. Suburbs need a car.",
   },
   "st. louis, mo": {
-    propertyTaxRate: 0.0100, medianHomePrice: 240000, schoolRating: "Average", costOfLivingIndex: 90, state: "MO",
+    propertyTaxRate: 0.0100, medianHomePrice: 240000, medianMonthlyRent: 1150, schoolRating: "Average", costOfLivingIndex: 90, state: "MO",
     schools: "Ladue, Clayton, and Kirkwood schools are excellent. City schools below average.",
     transit: "MetroLink light rail and MetroBus system. Car-dependent metro overall.",
     safety: "Clayton, Chesterfield, and West County are very safe. City crime rates above average.",
@@ -444,7 +446,7 @@ export const AREA_DATA: Record<string, AreaInfo> = {
 
   // ── NORTHEAST ──
   "new york, ny": {
-    propertyTaxRate: 0.0168, medianHomePrice: 680000, schoolRating: "Average", costOfLivingIndex: 140, state: "NY",
+    propertyTaxRate: 0.0168, medianHomePrice: 680000, medianMonthlyRent: 2800, schoolRating: "Average", costOfLivingIndex: 140, state: "NY",
     schools: "Specialized high schools (Stuyvesant, Bronx Science) are world-class. Scarsdale and Great Neck suburbs excel.",
     transit: "MTA subway, buses, commuter rail (LIRR, Metro-North). Best public transit in the US.",
     safety: "Historically low crime for a major city. Safe neighborhoods throughout Manhattan and Brooklyn.",
@@ -453,7 +455,7 @@ export const AREA_DATA: Record<string, AreaInfo> = {
     walkability: "One of the most walkable cities in the world. Many residents live car-free.",
   },
   "boston, ma": {
-    propertyTaxRate: 0.0112, medianHomePrice: 700000, schoolRating: "Above Average", costOfLivingIndex: 132, state: "MA",
+    propertyTaxRate: 0.0112, medianHomePrice: 700000, medianMonthlyRent: 2600, schoolRating: "Above Average", costOfLivingIndex: 132, state: "MA",
     schools: "Boston Latin and Brookline schools are top-rated. Home to Harvard, MIT, and 50+ colleges.",
     transit: "MBTA subway (the T), commuter rail, bus, and ferry. Walkable and bikeable city.",
     safety: "Generally safe metro. Cambridge, Brookline, and Newton have very low crime rates.",
@@ -462,7 +464,7 @@ export const AREA_DATA: Record<string, AreaInfo> = {
     walkability: "One of the most walkable cities in the US. Back Bay, Beacon Hill, and Cambridge are very pedestrian-friendly.",
   },
   "philadelphia, pa": {
-    propertyTaxRate: 0.0134, medianHomePrice: 320000, schoolRating: "Average", costOfLivingIndex: 102, state: "PA",
+    propertyTaxRate: 0.0134, medianHomePrice: 320000, medianMonthlyRent: 1450, schoolRating: "Average", costOfLivingIndex: 102, state: "PA",
     schools: "Lower Merion, Radnor, and Tredyffrin-Easttown are top-rated suburbs. City schools are mixed.",
     transit: "SEPTA subway, trolley, bus, and regional rail. Good transit for the metro size.",
     safety: "Main Line suburbs are very safe. City crime above average but varies by neighborhood.",
@@ -471,7 +473,7 @@ export const AREA_DATA: Record<string, AreaInfo> = {
     walkability: "Center City, University City, and Rittenhouse Square are very walkable. SEPTA extends access.",
   },
   "pittsburgh, pa": {
-    propertyTaxRate: 0.0136, medianHomePrice: 220000, schoolRating: "Average", costOfLivingIndex: 89, state: "PA",
+    propertyTaxRate: 0.0136, medianHomePrice: 220000, medianMonthlyRent: 1100, schoolRating: "Average", costOfLivingIndex: 89, state: "PA",
     schools: "Mt. Lebanon, Upper St. Clair, and Fox Chapel schools are excellent. City schools improving.",
     transit: "Port Authority buses and the T light rail. Inclines to Mount Washington. Hilly terrain.",
     safety: "Mt. Lebanon, Cranberry Township, and Fox Chapel are very safe. City crime near average.",
@@ -480,7 +482,7 @@ export const AREA_DATA: Record<string, AreaInfo> = {
     walkability: "Shadyside, Squirrel Hill, and Lawrenceville are walkable. Hills and bridges make driving common.",
   },
   "washington, dc": {
-    propertyTaxRate: 0.0085, medianHomePrice: 600000, schoolRating: "Above Average", costOfLivingIndex: 125, state: "DC",
+    propertyTaxRate: 0.0085, medianHomePrice: 600000, medianMonthlyRent: 2300, schoolRating: "Above Average", costOfLivingIndex: 125, state: "DC",
     schools: "Fairfax County (VA) and Montgomery County (MD) have some of the best schools in the nation.",
     transit: "Metro subway, extensive bus network, Capital Bikeshare. Excellent transit across the region.",
     safety: "Arlington, Bethesda, and Alexandria are very safe. District crime moderate and declining.",
@@ -489,7 +491,7 @@ export const AREA_DATA: Record<string, AreaInfo> = {
     walkability: "Dupont Circle, Georgetown, and Capitol Hill are very walkable. Metro connects the metro area well.",
   },
   "baltimore, md": {
-    propertyTaxRate: 0.0101, medianHomePrice: 350000, schoolRating: "Average", costOfLivingIndex: 105, state: "MD",
+    propertyTaxRate: 0.0101, medianHomePrice: 350000, medianMonthlyRent: 1500, schoolRating: "Average", costOfLivingIndex: 105, state: "MD",
     schools: "Howard County and Baltimore County north have top-rated schools. City schools below average.",
     transit: "MTA Light Rail, subway, and bus. MARC commuter rail to DC. Car useful for suburbs.",
     safety: "Columbia, Towson, and Ellicott City are safe. City crime above average.",
@@ -498,7 +500,7 @@ export const AREA_DATA: Record<string, AreaInfo> = {
     walkability: "Fells Point, Federal Hill, and Canton are walkable. Suburbs are car-dependent.",
   },
   "hartford, ct": {
-    propertyTaxRate: 0.0198, medianHomePrice: 310000, schoolRating: "Above Average", costOfLivingIndex: 106, state: "CT",
+    propertyTaxRate: 0.0198, medianHomePrice: 310000, medianMonthlyRent: 1450, schoolRating: "Above Average", costOfLivingIndex: 106, state: "CT",
     notes: "Among the highest property tax rates in the US",
     schools: "West Hartford, Glastonbury, and Simsbury schools are excellent. City schools below average.",
     transit: "CTtransit bus system and Hartford Line commuter rail to New Haven. Car-dependent metro.",
@@ -508,7 +510,7 @@ export const AREA_DATA: Record<string, AreaInfo> = {
     walkability: "West Hartford Center is walkable. Metro is mostly car-dependent.",
   },
   "providence, ri": {
-    propertyTaxRate: 0.0146, medianHomePrice: 380000, schoolRating: "Average", costOfLivingIndex: 103, state: "RI",
+    propertyTaxRate: 0.0146, medianHomePrice: 380000, medianMonthlyRent: 1600, schoolRating: "Average", costOfLivingIndex: 103, state: "RI",
     schools: "East Greenwich, Barrington, and Lincoln schools are well-rated. RISD and Brown bring campus culture.",
     transit: "RIPTA bus system. Amtrak and MBTA commuter rail to Boston. Car useful.",
     safety: "East Greenwich and Barrington are very safe. City crime near national average.",
@@ -519,7 +521,7 @@ export const AREA_DATA: Record<string, AreaInfo> = {
 
   // ── SOUTH (additional) ──
   "memphis, tn": {
-    propertyTaxRate: 0.0071, medianHomePrice: 210000, schoolRating: "Below Average", costOfLivingIndex: 86, state: "TN",
+    propertyTaxRate: 0.0071, medianHomePrice: 210000, medianMonthlyRent: 1000, schoolRating: "Below Average", costOfLivingIndex: 86, state: "TN",
     schools: "City schools below average. Germantown and Collierville schools are highly rated.",
     transit: "MATA bus and trolley system. Car-dependent metro. No state income tax.",
     safety: "Germantown and Collierville are very safe. City crime rate above average.",
@@ -528,7 +530,7 @@ export const AREA_DATA: Record<string, AreaInfo> = {
     walkability: "Car-dependent metro. Downtown and Cooper-Young are walkable entertainment districts.",
   },
   "louisville, ky": {
-    propertyTaxRate: 0.0083, medianHomePrice: 250000, schoolRating: "Average", costOfLivingIndex: 91, state: "KY",
+    propertyTaxRate: 0.0083, medianHomePrice: 250000, medianMonthlyRent: 1200, schoolRating: "Average", costOfLivingIndex: 91, state: "KY",
     schools: "Oldham County and East End schools are top-rated. Louisville has expanding magnet programs.",
     transit: "TARC bus system. Car-dependent metro. Very affordable cost of living.",
     safety: "East End, Prospect, and Oldham County are very safe. City crime moderate.",
@@ -537,7 +539,7 @@ export const AREA_DATA: Record<string, AreaInfo> = {
     walkability: "Highlands and NuLu are walkable. Most of metro is car-dependent.",
   },
   "lexington, ky": {
-    propertyTaxRate: 0.0081, medianHomePrice: 270000, schoolRating: "Above Average", costOfLivingIndex: 93, state: "KY",
+    propertyTaxRate: 0.0081, medianHomePrice: 270000, medianMonthlyRent: 1250, schoolRating: "Above Average", costOfLivingIndex: 93, state: "KY",
     schools: "Fayette County schools are above average. University of Kentucky campus community.",
     transit: "Lextran bus system. Car-dependent but compact. Affordable college-town feel.",
     safety: "Below national average crime rate. Safe suburbs and campus neighborhoods.",
@@ -546,7 +548,7 @@ export const AREA_DATA: Record<string, AreaInfo> = {
     walkability: "Downtown and campus area are walkable. Suburbs are car-dependent.",
   },
   "knoxville, tn": {
-    propertyTaxRate: 0.0069, medianHomePrice: 310000, schoolRating: "Average", costOfLivingIndex: 89, state: "TN",
+    propertyTaxRate: 0.0069, medianHomePrice: 310000, medianMonthlyRent: 1400, schoolRating: "Average", costOfLivingIndex: 89, state: "TN",
     schools: "Farragut and Hardin Valley schools are well-regarded. University of Tennessee campus community.",
     transit: "KAT bus system. Car-dependent metro. No state income tax.",
     safety: "Farragut and West Knox are very safe. City crime near national average.",
@@ -555,7 +557,7 @@ export const AREA_DATA: Record<string, AreaInfo> = {
     walkability: "Market Square and Old City are walkable. Metro is car-dependent.",
   },
   "chattanooga, tn": {
-    propertyTaxRate: 0.0068, medianHomePrice: 290000, schoolRating: "Average", costOfLivingIndex: 90, state: "TN",
+    propertyTaxRate: 0.0068, medianHomePrice: 290000, medianMonthlyRent: 1350, schoolRating: "Average", costOfLivingIndex: 90, state: "TN",
     schools: "Signal Mountain and Ooltewah schools are above average. City schools improving.",
     transit: "CARTA bus and free electric shuttle downtown. Car-dependent but compact.",
     safety: "Signal Mountain and North Shore are safe. City crime near average.",
@@ -564,7 +566,7 @@ export const AREA_DATA: Record<string, AreaInfo> = {
     walkability: "Downtown and North Shore are walkable. One of the fastest internet cities in the US (EPB fiber).",
   },
   "greenville, sc": {
-    propertyTaxRate: 0.0057, medianHomePrice: 300000, schoolRating: "Above Average", costOfLivingIndex: 94, state: "SC",
+    propertyTaxRate: 0.0057, medianHomePrice: 300000, medianMonthlyRent: 1400, schoolRating: "Above Average", costOfLivingIndex: 94, state: "SC",
     schools: "J.L. Mann and Mauldin High are well-rated. Greenville County schools above average.",
     transit: "Greenlink bus system. Car-dependent metro. Very affordable.",
     safety: "Below national average crime rate. Simpsonville and Greer are notably safe.",
@@ -573,7 +575,7 @@ export const AREA_DATA: Record<string, AreaInfo> = {
     walkability: "Downtown Main Street is very walkable. Suburbs are car-dependent.",
   },
   "columbia, sc": {
-    propertyTaxRate: 0.0057, medianHomePrice: 230000, schoolRating: "Average", costOfLivingIndex: 92, state: "SC",
+    propertyTaxRate: 0.0057, medianHomePrice: 230000, medianMonthlyRent: 1150, schoolRating: "Average", costOfLivingIndex: 92, state: "SC",
     schools: "Lexington-Richland District 5 is well-rated. University of South Carolina campus community.",
     transit: "COMET bus system. Car-dependent metro. Very affordable.",
     safety: "Lexington and Irmo are safe suburbs. City crime above average.",
@@ -582,7 +584,7 @@ export const AREA_DATA: Record<string, AreaInfo> = {
     walkability: "Five Points and the Vista are walkable. Most of metro is car-dependent.",
   },
   "savannah, ga": {
-    propertyTaxRate: 0.0098, medianHomePrice: 310000, schoolRating: "Average", costOfLivingIndex: 96, state: "GA",
+    propertyTaxRate: 0.0098, medianHomePrice: 310000, medianMonthlyRent: 1400, schoolRating: "Average", costOfLivingIndex: 96, state: "GA",
     schools: "Richmond Hill and Pooler schools are above average. City schools are mixed.",
     transit: "CAT bus system and free DOT shuttle downtown. Car-dependent metro.",
     safety: "Richmond Hill and the islands are safe. City crime above average.",
@@ -591,7 +593,7 @@ export const AREA_DATA: Record<string, AreaInfo> = {
     walkability: "Historic downtown is one of the most walkable in the Southeast. Suburbs need a car.",
   },
   "durham, nc": {
-    propertyTaxRate: 0.0120, medianHomePrice: 380000, schoolRating: "Average", costOfLivingIndex: 99, state: "NC",
+    propertyTaxRate: 0.0120, medianHomePrice: 380000, medianMonthlyRent: 1600, schoolRating: "Average", costOfLivingIndex: 99, state: "NC",
     schools: "Durham Public Schools improving. Duke University and Research Triangle boost education culture.",
     transit: "GoDurham bus and regional transit. Research Triangle connectivity. Car useful.",
     safety: "Southpoint and Research Triangle Park areas are safe. City crime moderate.",
@@ -600,7 +602,7 @@ export const AREA_DATA: Record<string, AreaInfo> = {
     walkability: "Downtown and Ninth Street are walkable. Car-dependent overall but improving.",
   },
   "greensboro, nc": {
-    propertyTaxRate: 0.0112, medianHomePrice: 270000, schoolRating: "Average", costOfLivingIndex: 91, state: "NC",
+    propertyTaxRate: 0.0112, medianHomePrice: 270000, medianMonthlyRent: 1250, schoolRating: "Average", costOfLivingIndex: 91, state: "NC",
     schools: "Guilford County schools average. Northwest Guilford and Page High are better rated.",
     transit: "GTA bus system. Car-dependent metro. Very affordable.",
     safety: "Friendly Center area and western suburbs are safe. City crime near average.",
@@ -609,7 +611,7 @@ export const AREA_DATA: Record<string, AreaInfo> = {
     walkability: "Downtown is walkable and improving. Car-dependent metro overall.",
   },
   "little rock, ar": {
-    propertyTaxRate: 0.0062, medianHomePrice: 200000, schoolRating: "Average", costOfLivingIndex: 85, state: "AR",
+    propertyTaxRate: 0.0062, medianHomePrice: 200000, medianMonthlyRent: 1050, schoolRating: "Average", costOfLivingIndex: 85, state: "AR",
     schools: "West Little Rock and Cabot schools are well-rated. City schools below average.",
     transit: "Rock Region Metro bus. Car-dependent metro. Extremely affordable.",
     safety: "West Little Rock and Conway are safe. City crime above average.",
@@ -618,7 +620,7 @@ export const AREA_DATA: Record<string, AreaInfo> = {
     walkability: "River Market and SoMa are walkable. Metro is car-dependent.",
   },
   "baton rouge, la": {
-    propertyTaxRate: 0.0056, medianHomePrice: 230000, schoolRating: "Below Average", costOfLivingIndex: 90, state: "LA",
+    propertyTaxRate: 0.0056, medianHomePrice: 230000, medianMonthlyRent: 1100, schoolRating: "Below Average", costOfLivingIndex: 90, state: "LA",
     schools: "Zachary and Central schools are top-rated. City schools below average. LSU campus community.",
     transit: "CATS bus system. Car-dependent metro. Affordable cost of living.",
     safety: "Zachary, Central, and Denham Springs are safe. City crime above average.",
@@ -627,7 +629,7 @@ export const AREA_DATA: Record<string, AreaInfo> = {
     walkability: "Car-dependent metro. Downtown and Mid City have walkable pockets.",
   },
   "oklahoma city, ok": {
-    propertyTaxRate: 0.0087, medianHomePrice: 230000, schoolRating: "Average", costOfLivingIndex: 88, state: "OK",
+    propertyTaxRate: 0.0087, medianHomePrice: 230000, medianMonthlyRent: 1100, schoolRating: "Average", costOfLivingIndex: 88, state: "OK",
     schools: "Edmond and Deer Creek schools are top-rated. City schools average.",
     transit: "EMBARK bus and streetcar. Car-dependent metro. Very affordable.",
     safety: "Edmond, Norman, and Yukon are very safe. City crime near average.",
@@ -636,7 +638,7 @@ export const AREA_DATA: Record<string, AreaInfo> = {
     walkability: "Bricktown and Midtown are walkable. Car-dependent metro overall.",
   },
   "tulsa, ok": {
-    propertyTaxRate: 0.0099, medianHomePrice: 210000, schoolRating: "Average", costOfLivingIndex: 87, state: "OK",
+    propertyTaxRate: 0.0099, medianHomePrice: 210000, medianMonthlyRent: 1050, schoolRating: "Average", costOfLivingIndex: 87, state: "OK",
     schools: "Jenks and Union schools are among the state's best. Tulsa Public Schools average.",
     transit: "MTTA bus system. Car-dependent metro. Very affordable.",
     safety: "Jenks, Broken Arrow, and Bixby are very safe. City crime moderate.",
@@ -645,7 +647,7 @@ export const AREA_DATA: Record<string, AreaInfo> = {
     walkability: "Cherry Street and Brookside are walkable. Car-dependent metro overall.",
   },
   "el paso, tx": {
-    propertyTaxRate: 0.0224, medianHomePrice: 210000, schoolRating: "Average", costOfLivingIndex: 84, state: "TX",
+    propertyTaxRate: 0.0224, medianHomePrice: 210000, medianMonthlyRent: 1000, schoolRating: "Average", costOfLivingIndex: 84, state: "TX",
     schools: "Socorro and Franklin High are well-regarded. Bilingual education widely available.",
     transit: "Sun Metro bus and BRIO rapid transit. Car-dependent. Very affordable.",
     safety: "One of the safest large cities in the US with well below-average crime rates.",
@@ -654,7 +656,7 @@ export const AREA_DATA: Record<string, AreaInfo> = {
     walkability: "Downtown and UTEP area are walkable. Car-dependent metro overall.",
   },
   "sarasota, fl": {
-    propertyTaxRate: 0.0079, medianHomePrice: 450000, schoolRating: "Above Average", costOfLivingIndex: 105, state: "FL",
+    propertyTaxRate: 0.0079, medianHomePrice: 450000, medianMonthlyRent: 1900, schoolRating: "Above Average", costOfLivingIndex: 105, state: "FL",
     schools: "Sarasota County schools consistently rank among Florida's best.",
     transit: "SCAT bus system. Car-dependent. No state income tax.",
     safety: "Below national average crime rate. Lakewood Ranch and Siesta Key are very safe.",
@@ -663,7 +665,7 @@ export const AREA_DATA: Record<string, AreaInfo> = {
     walkability: "St. Armands Circle and downtown are walkable. Car-dependent metro overall.",
   },
   "west palm beach, fl": {
-    propertyTaxRate: 0.0086, medianHomePrice: 450000, schoolRating: "Average", costOfLivingIndex: 112, state: "FL",
+    propertyTaxRate: 0.0086, medianHomePrice: 450000, medianMonthlyRent: 1850, schoolRating: "Average", costOfLivingIndex: 112, state: "FL",
     schools: "A.D. Henderson and Boca Raton schools are well-rated. Palm Beach County is mixed overall.",
     transit: "Palm Tran bus and Tri-Rail commuter rail. Car-dependent. No state income tax.",
     safety: "Palm Beach Gardens, Jupiter, and Wellington are very safe.",
@@ -672,7 +674,7 @@ export const AREA_DATA: Record<string, AreaInfo> = {
     walkability: "Clematis Street and CityPlace are walkable. Metro is car-dependent.",
   },
   "fort myers, fl": {
-    propertyTaxRate: 0.0084, medianHomePrice: 360000, schoolRating: "Average", costOfLivingIndex: 100, state: "FL",
+    propertyTaxRate: 0.0084, medianHomePrice: 360000, medianMonthlyRent: 1500, schoolRating: "Average", costOfLivingIndex: 100, state: "FL",
     schools: "Lee County schools are average. Estero and Bonita Springs areas have better-rated schools.",
     transit: "LeeTran bus. Car-dependent. No state income tax. Popular retirement destination.",
     safety: "Estero, Bonita Springs, and Sanibel are safe. City crime near average.",
@@ -681,7 +683,7 @@ export const AREA_DATA: Record<string, AreaInfo> = {
     walkability: "Downtown River District is walkable. Car-dependent metro overall.",
   },
   "jackson, ms": {
-    propertyTaxRate: 0.0079, medianHomePrice: 170000, schoolRating: "Below Average", costOfLivingIndex: 82, state: "MS",
+    propertyTaxRate: 0.0079, medianHomePrice: 170000, medianMonthlyRent: 950, schoolRating: "Below Average", costOfLivingIndex: 82, state: "MS",
     schools: "City schools below average. Madison and Brandon schools are well-rated.",
     transit: "JATRAN bus. Car-dependent metro. Extremely affordable.",
     safety: "Madison, Ridgeland, and Brandon are safe. City crime above average.",
@@ -692,7 +694,7 @@ export const AREA_DATA: Record<string, AreaInfo> = {
 
   // ── WEST (additional) ──
   "albuquerque, nm": {
-    propertyTaxRate: 0.0079, medianHomePrice: 320000, schoolRating: "Below Average", costOfLivingIndex: 92, state: "NM",
+    propertyTaxRate: 0.0079, medianHomePrice: 320000, medianMonthlyRent: 1350, schoolRating: "Below Average", costOfLivingIndex: 92, state: "NM",
     schools: "APS district is large and mixed. Los Ranchos and Rio Rancho schools are better rated.",
     transit: "ABQ RIDE bus and ART rapid transit. Car-dependent metro.",
     safety: "Northeast Heights and Corrales are safe. City crime above average.",
@@ -701,7 +703,7 @@ export const AREA_DATA: Record<string, AreaInfo> = {
     walkability: "Old Town and Nob Hill are walkable. Car-dependent metro overall.",
   },
   "reno, nv": {
-    propertyTaxRate: 0.0059, medianHomePrice: 480000, schoolRating: "Average", costOfLivingIndex: 103, state: "NV",
+    propertyTaxRate: 0.0059, medianHomePrice: 480000, medianMonthlyRent: 1800, schoolRating: "Average", costOfLivingIndex: 103, state: "NV",
     schools: "Washoe County schools are average. Incline Village schools (Lake Tahoe) are above average.",
     transit: "RTC RIDE bus system. Car-dependent. No state income tax.",
     safety: "South Reno and Sparks are safe. City crime near national average.",
@@ -710,7 +712,7 @@ export const AREA_DATA: Record<string, AreaInfo> = {
     walkability: "Midtown and Riverwalk are walkable. Car-dependent metro overall.",
   },
   "fresno, ca": {
-    propertyTaxRate: 0.0075, medianHomePrice: 370000, schoolRating: "Below Average", costOfLivingIndex: 95, state: "CA",
+    propertyTaxRate: 0.0075, medianHomePrice: 370000, medianMonthlyRent: 1500, schoolRating: "Below Average", costOfLivingIndex: 95, state: "CA",
     schools: "Clovis Unified is top-rated. Fresno Unified is below average.",
     transit: "FAX bus system. Car-dependent. Gateway to national parks.",
     safety: "Clovis and northeast Fresno are safe. City crime above average.",
@@ -719,7 +721,7 @@ export const AREA_DATA: Record<string, AreaInfo> = {
     walkability: "Tower District is walkable. Car-dependent metro overall.",
   },
   "bakersfield, ca": {
-    propertyTaxRate: 0.0076, medianHomePrice: 340000, schoolRating: "Average", costOfLivingIndex: 93, state: "CA",
+    propertyTaxRate: 0.0076, medianHomePrice: 340000, medianMonthlyRent: 1400, schoolRating: "Average", costOfLivingIndex: 93, state: "CA",
     schools: "Panama-Buena Vista and Rosedale schools are above average. City schools are mixed.",
     transit: "GET bus system. Car-dependent. Affordable for California.",
     safety: "Rosedale and the Southwest are safe. City crime moderate.",
@@ -1483,4 +1485,13 @@ export function getNeighborhoodInfo(location: string): NeighborhoodInfo | null {
     thingsToDo: d.thingsToDo,
     walkability: d.walkability,
   };
+}
+
+/**
+ * Get median monthly rent for a location.
+ * Returns null if location not found or rent data not available.
+ */
+export function getMedianRent(location: string): number | null {
+  const result = lookupAreaInfo(location);
+  return result?.data.medianMonthlyRent ?? null;
 }

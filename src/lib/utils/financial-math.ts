@@ -1,4 +1,4 @@
-import type { PaymentBreakdown, DTIAnalysis, AmortizationYear } from "../types/index";
+import type { PaymentBreakdown, DTIAnalysis, AmortizationYear, InvestmentProjectionYear } from "../types/index";
 
 export function calculateMaxHomePrice(params: {
   annualGrossIncome: number;
@@ -351,6 +351,145 @@ export function calculateRentVsBuy(params: {
     buyEquity: Math.round(buyEquity),
     verdict,
   };
+}
+
+// ── Investment Property Functions ──
+
+export function estimateMonthlyRent(params: {
+  purchasePrice: number;
+  areaMedianRent?: number | null;
+  areaMedianHomePrice?: number | null;
+}): { estimatedRent: number; method: "area_ratio" | "fallback_ratio" } {
+  if (params.areaMedianRent && params.areaMedianHomePrice && params.areaMedianHomePrice > 0) {
+    const areaRentToPrice = params.areaMedianRent / params.areaMedianHomePrice;
+    return { estimatedRent: Math.round(params.purchasePrice * areaRentToPrice), method: "area_ratio" };
+  }
+  // Fallback: 0.8% of purchase price (conservative national average)
+  return { estimatedRent: Math.round(params.purchasePrice * 0.008), method: "fallback_ratio" };
+}
+
+export function calculateInvestmentMetrics(params: {
+  purchasePrice: number;
+  downPaymentAmount: number;
+  closingCostPercent: number;
+  monthlyGrossRent: number;
+  monthlyMortgagePI: number;
+  monthlyPMI: number;
+  propertyTaxAnnual: number;
+  insuranceAnnual: number;
+  hoaMonthly: number;
+  maintenanceRate: number;
+  propertyManagementPercent: number;
+  vacancyRatePercent: number;
+  capexReservePercent: number;
+}): {
+  monthlyOperatingExpenses: {
+    propertyManagement: number; vacancy: number; capexReserve: number;
+    propertyTax: number; insurance: number; hoa: number; maintenance: number;
+  };
+  monthlyNOI: number;
+  monthlyCashFlow: number;
+  annualNOI: number;
+  annualCashFlow: number;
+  capRate: number;
+  cashOnCashReturn: number;
+  grossRentMultiplier: number;
+  rentToPrice: number;
+  totalCashInvested: number;
+} {
+  const rent = params.monthlyGrossRent;
+  const propertyManagement = round(rent * params.propertyManagementPercent / 100);
+  const vacancy = round(rent * params.vacancyRatePercent / 100);
+  const capexReserve = round(rent * params.capexReservePercent / 100);
+  const propertyTax = round(params.propertyTaxAnnual / 12);
+  const insurance = round(params.insuranceAnnual / 12);
+  const hoa = round(params.hoaMonthly);
+  const maintenance = round((params.purchasePrice * params.maintenanceRate) / 12);
+
+  const totalOpex = propertyManagement + vacancy + capexReserve + propertyTax + insurance + hoa + maintenance;
+  const monthlyNOI = round(rent - totalOpex);
+  const monthlyCashFlow = round(monthlyNOI - params.monthlyMortgagePI - params.monthlyPMI);
+  const annualNOI = round(monthlyNOI * 12);
+  const annualCashFlow = round(monthlyCashFlow * 12);
+  const totalCashInvested = round(params.downPaymentAmount + params.purchasePrice * params.closingCostPercent);
+
+  return {
+    monthlyOperatingExpenses: { propertyManagement, vacancy, capexReserve, propertyTax, insurance, hoa, maintenance },
+    monthlyNOI,
+    monthlyCashFlow,
+    annualNOI,
+    annualCashFlow,
+    capRate: params.purchasePrice > 0 ? round((annualNOI / params.purchasePrice) * 100) : 0,
+    cashOnCashReturn: totalCashInvested > 0 ? round((annualCashFlow / totalCashInvested) * 100) : 0,
+    grossRentMultiplier: rent > 0 ? round(params.purchasePrice / (rent * 12)) : 0,
+    rentToPrice: params.purchasePrice > 0 ? round((rent / params.purchasePrice) * 100) : 0,
+    totalCashInvested,
+  };
+}
+
+export function projectInvestmentReturns(params: {
+  purchasePrice: number;
+  loanAmount: number;
+  interestRate: number;
+  loanTermYears: number;
+  annualCashFlowYear1: number;
+  baseAnnualRent: number;
+  totalCashInvested: number;
+  annualHomeAppreciation: number;
+  annualRentGrowth: number;
+  years: number;
+}): InvestmentProjectionYear[] {
+  const monthlyRate = params.interestRate / 12;
+  const numPayments = params.loanTermYears * 12;
+  const monthlyPI = params.loanAmount > 0
+    ? (params.loanAmount * (monthlyRate * Math.pow(1 + monthlyRate, numPayments))) /
+      (Math.pow(1 + monthlyRate, numPayments) - 1)
+    : 0;
+
+  let balance = params.loanAmount;
+  let propertyValue = params.purchasePrice;
+  let cumulativeCashFlow = 0;
+  const projections: InvestmentProjectionYear[] = [];
+
+  for (let year = 1; year <= params.years; year++) {
+    // Amortize for this year
+    for (let month = 0; month < 12; month++) {
+      const interest = balance * monthlyRate;
+      const principal = monthlyPI - interest;
+      balance = Math.max(0, balance - principal);
+    }
+
+    // Appreciate property
+    propertyValue = propertyValue * (1 + params.annualHomeAppreciation);
+    const equity = propertyValue - balance;
+
+    // Grow rent and cash flow
+    const annualRent = params.baseAnnualRent * Math.pow(1 + params.annualRentGrowth, year - 1);
+    const annualCashFlow = params.annualCashFlowYear1 * Math.pow(1 + params.annualRentGrowth, year - 1);
+    cumulativeCashFlow += annualCashFlow;
+
+    const totalReturn = equity + cumulativeCashFlow - params.totalCashInvested;
+    const totalReturnPercent = params.totalCashInvested > 0
+      ? (totalReturn / params.totalCashInvested) * 100
+      : 0;
+    const annualizedReturn = year > 0
+      ? (Math.pow(1 + Math.max(0, totalReturnPercent) / 100, 1 / year) - 1) * 100
+      : 0;
+
+    projections.push({
+      year,
+      propertyValue: Math.round(propertyValue),
+      equity: Math.round(equity),
+      annualRent: Math.round(annualRent),
+      annualCashFlow: Math.round(annualCashFlow),
+      cumulativeCashFlow: Math.round(cumulativeCashFlow),
+      totalReturn: Math.round(totalReturn),
+      totalReturnPercent: round(totalReturnPercent),
+      annualizedReturn: round(annualizedReturn),
+    });
+  }
+
+  return projections;
 }
 
 function round(n: number): number {

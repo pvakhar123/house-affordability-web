@@ -24,6 +24,11 @@ If a specific property was analyzed (propertyAnalysis field in data), also inclu
 Whether the buyer can afford this specific property, the monthly payment for it,
 how it compares to their maximum and recommended price, and your recommendation.
 
+If investment analysis data is present (investmentAnalysis field), also include:
+## Investment Analysis
+Whether this property works as a rental investment: cap rate, cash-on-cash return, monthly cash flow,
+and projected total returns over 5 and 10 years. Be direct about whether the numbers support this as an investment.
+
 Use bullet points within sections. Highlight specific dollar amounts and percentages.
 Keep each section concise but specific with real numbers from the data.
 Always end with a disclaimer that this is informational only, not financial advice.`,
