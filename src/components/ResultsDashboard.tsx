@@ -218,7 +218,15 @@ export default function ResultsDashboard({ report, onReset, summaryLoading, user
         {hasCore && (
           <div className="space-y-4">
 
-            <StreamFadeIn delay={300}>
+            {report.investmentAnalysis && (
+              <StreamFadeIn delay={300}>
+                <ExpandableSection title="Investment Property Analysis" defaultOpen>
+                  <InvestmentAnalysisCard data={report.investmentAnalysis} />
+                </ExpandableSection>
+              </StreamFadeIn>
+            )}
+
+            <StreamFadeIn delay={report.investmentAnalysis ? 350 : 300}>
               <ExpandableSection title="Financial Readiness & Simulator" defaultOpen>
                 <BudgetSimulatorCard
                   affordability={report.affordability}
@@ -229,7 +237,7 @@ export default function ResultsDashboard({ report, onReset, summaryLoading, user
               </ExpandableSection>
             </StreamFadeIn>
 
-            <StreamFadeIn delay={400}>
+            <StreamFadeIn delay={report.investmentAnalysis ? 450 : 400}>
               <ExpandableSection title="Market Snapshot">
                 <MarketSnapshotCard data={report.marketSnapshot} />
               </ExpandableSection>
@@ -253,14 +261,6 @@ export default function ResultsDashboard({ report, onReset, summaryLoading, user
               <StreamFadeIn delay={500}>
                 <ExpandableSection title="Rent vs. Buy Analysis">
                   <RentVsBuyCard data={report.rentVsBuy} />
-                </ExpandableSection>
-              </StreamFadeIn>
-            )}
-
-            {report.investmentAnalysis && (
-              <StreamFadeIn delay={520}>
-                <ExpandableSection title="Investment Property Analysis" defaultOpen>
-                  <InvestmentAnalysisCard data={report.investmentAnalysis} />
                 </ExpandableSection>
               </StreamFadeIn>
             )}
