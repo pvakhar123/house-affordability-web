@@ -1,4 +1,46 @@
-import { pgTable, text, timestamp, real, jsonb, boolean, integer } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, real, jsonb, boolean, integer, primaryKey } from "drizzle-orm/pg-core";
+
+// ── Auth: users ─────────────────────────────────────────────
+// Required by @auth/drizzle-adapter for NextAuth v5
+
+export const users = pgTable("users", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  name: text("name"),
+  email: text("email").notNull(),
+  emailVerified: timestamp("emailVerified", { mode: "date" }),
+  image: text("image"),
+});
+
+// ── Auth: accounts ──────────────────────────────────────────
+// OAuth provider accounts linked to users
+
+export const accounts = pgTable("accounts", {
+  userId: text("userId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  type: text("type").notNull(),
+  provider: text("provider").notNull(),
+  providerAccountId: text("providerAccountId").notNull(),
+  refresh_token: text("refresh_token"),
+  access_token: text("access_token"),
+  expires_at: integer("expires_at"),
+  token_type: text("token_type"),
+  scope: text("scope"),
+  id_token: text("id_token"),
+  session_state: text("session_state"),
+}, (account) => [
+  primaryKey({ columns: [account.provider, account.providerAccountId] }),
+]);
+
+// ── saved_reports ───────────────────────────────────────────
+// User-saved analysis reports (DB persistence for authenticated users)
+
+export const savedReports = pgTable("saved_reports", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  savedAt: timestamp("saved_at", { withTimezone: true }).notNull().defaultNow(),
+  report: jsonb("report").notNull(),
+  userLocation: text("user_location"),
+});
 
 // ── judge_scores ────────────────────────────────────────────
 // Maps to: JudgeScoreEntry (src/lib/eval/types.ts)

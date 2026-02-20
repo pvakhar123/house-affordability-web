@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { useSession } from "next-auth/react";
 import type { FinalReport } from "@/lib/types";
 import {
   getSavedReports,
@@ -18,23 +19,70 @@ function fmt(n: number): string {
 }
 
 export default function SavedReportsList({ onLoad }: Props) {
+  const { data: session } = useSession();
   const [reports, setReports] = useState<SavedReport[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const isSignedIn = !!session?.user?.id;
+
+  const loadReports = useCallback(async () => {
+    if (isSignedIn) {
+      setLoading(true);
+      try {
+        const res = await fetch("/api/saved-reports");
+        if (res.ok) {
+          setReports(await res.json());
+        }
+      } catch (err) {
+        console.error("Failed to load saved reports:", err);
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      setReports(getSavedReports());
+    }
+  }, [isSignedIn]);
 
   useEffect(() => {
-    setReports(getSavedReports());
-  }, []);
+    loadReports();
+  }, [loadReports]);
+
+  if (loading) {
+    return (
+      <div className="mt-8 max-w-2xl mx-auto text-center py-4">
+        <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto" />
+        <p className="text-xs text-gray-400 mt-2">Loading saved reports...</p>
+      </div>
+    );
+  }
 
   if (reports.length === 0) return null;
 
-  const handleDelete = (id: string) => {
-    deleteReport(id);
-    setReports(getSavedReports());
+  const handleDelete = async (id: string) => {
+    if (isSignedIn) {
+      await fetch(`/api/saved-reports/${id}`, { method: "DELETE" });
+      loadReports();
+    } else {
+      deleteReport(id);
+      setReports(getSavedReports());
+    }
   };
 
-  const handleRename = (id: string) => {
-    if (editName.trim()) {
+  const handleRename = async (id: string) => {
+    if (!editName.trim()) {
+      setEditingId(null);
+      return;
+    }
+    if (isSignedIn) {
+      await fetch(`/api/saved-reports/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: editName.trim() }),
+      });
+      loadReports();
+    } else {
       renameReport(id, editName.trim());
       setReports(getSavedReports());
     }
@@ -49,7 +97,16 @@ export default function SavedReportsList({ onLoad }: Props) {
             <path strokeLinecap="round" strokeLinejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
           </svg>
           <h3 className="text-sm font-semibold text-gray-900">Saved Reports</h3>
-          <span className="text-xs text-gray-400 ml-auto">{reports.length}/10</span>
+          {isSignedIn && (
+            <span className="text-xs text-blue-500 ml-1">
+              <svg className="w-3 h-3 inline -mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15a4.5 4.5 0 004.5 4.5H18a3.75 3.75 0 001.332-7.257 3 3 0 00-3.758-3.848 5.25 5.25 0 00-10.233 2.33A4.502 4.502 0 002.25 15z" />
+              </svg>
+            </span>
+          )}
+          <span className="text-xs text-gray-400 ml-auto">
+            {isSignedIn ? `${reports.length} saved` : `${reports.length}/10`}
+          </span>
         </div>
 
         <div className="divide-y divide-gray-100">

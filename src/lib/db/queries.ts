@@ -1,7 +1,8 @@
-import { desc, eq, gte, avg, count, sql } from "drizzle-orm";
+import { desc, eq, gte, avg, count, sql, and } from "drizzle-orm";
 import { getDb } from "./index";
 import * as schema from "./schema";
 import type { JudgeScoreEntry, EvalResult, EvalRunSummary } from "@/lib/eval/types";
+import type { FinalReport } from "@/lib/types";
 
 // ── Judge Scores ────────────────────────────────────────────
 
@@ -474,4 +475,62 @@ export async function queryErrorLogs(opts?: {
     byRoute: byRoute.map((r) => ({ route: r.route, count: r.count })),
     total: totals.total,
   };
+}
+
+// ── Saved Reports ────────────────────────────────────────────
+
+export async function getUserSavedReports(userId: string) {
+  const db = getDb();
+  const rows = await db
+    .select()
+    .from(schema.savedReports)
+    .where(eq(schema.savedReports.userId, userId))
+    .orderBy(desc(schema.savedReports.savedAt));
+
+  return rows.map((r) => ({
+    id: r.id,
+    name: r.name,
+    savedAt: r.savedAt.toISOString(),
+    report: r.report as FinalReport,
+    userLocation: r.userLocation,
+  }));
+}
+
+export async function insertSavedReport(entry: {
+  userId: string;
+  name: string;
+  report: FinalReport;
+  userLocation?: string;
+}) {
+  const db = getDb();
+  const [row] = await db
+    .insert(schema.savedReports)
+    .values({
+      userId: entry.userId,
+      name: entry.name,
+      report: entry.report,
+      userLocation: entry.userLocation ?? null,
+    })
+    .returning();
+  return {
+    id: row.id,
+    name: row.name,
+    savedAt: row.savedAt.toISOString(),
+    userLocation: row.userLocation,
+  };
+}
+
+export async function deleteSavedReport(id: string, userId: string) {
+  const db = getDb();
+  await db
+    .delete(schema.savedReports)
+    .where(and(eq(schema.savedReports.id, id), eq(schema.savedReports.userId, userId)));
+}
+
+export async function renameSavedReport(id: string, userId: string, name: string) {
+  const db = getDb();
+  await db
+    .update(schema.savedReports)
+    .set({ name })
+    .where(and(eq(schema.savedReports.id, id), eq(schema.savedReports.userId, userId)));
 }

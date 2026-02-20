@@ -9,6 +9,7 @@ import ResultsDashboard from "@/components/ResultsDashboard";
 import SavedReportsList from "@/components/SavedReportsList";
 import type { UserProfile, FinalReport } from "@/lib/types";
 import ThemeToggle from "@/components/ThemeToggle";
+import UserMenu from "@/components/UserMenu";
 import { decompressReport } from "@/lib/share-report";
 type AppState = "form" | "loading" | "results";
 
@@ -188,6 +189,7 @@ function HomeContent() {
           </div>
           <div className="flex items-center gap-2">
             <ThemeToggle />
+            <UserMenu />
             {state !== "form" && (
               <button
                 onClick={handleReset}

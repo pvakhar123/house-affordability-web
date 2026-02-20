@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useSession } from "next-auth/react";
 import type { FinalReport } from "@/lib/types";
 import { generateReportPDF } from "@/lib/utils/generate-pdf";
 import { saveReport } from "@/lib/saved-reports";
@@ -12,6 +13,7 @@ interface Props {
 }
 
 export default function ReportActions({ report, userLocation }: Props) {
+  const { data: session } = useSession();
   const [emailOpen, setEmailOpen] = useState(false);
   const [email, setEmail] = useState("");
   const [emailStatus, setEmailStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
@@ -33,8 +35,20 @@ export default function ReportActions({ report, userLocation }: Props) {
     }
   }
 
-  function handleSave() {
-    saveReport(report, undefined, userLocation);
+  async function handleSave() {
+    if (session?.user?.id) {
+      try {
+        await fetch("/api/saved-reports", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ report, userLocation }),
+        });
+      } catch (err) {
+        console.error("Failed to save report to DB:", err);
+      }
+    } else {
+      saveReport(report, undefined, userLocation);
+    }
     setSaved(true);
   }
 
