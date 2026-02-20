@@ -40,6 +40,28 @@ function formatAddress(result: NominatimResult): string {
   return parts.join(", ");
 }
 
+function scoreResult(result: NominatimResult, query: string): number {
+  const formatted = formatAddress(result).toLowerCase();
+  const q = query.toLowerCase().trim();
+  const queryHouseNum = q.match(/^\d+/)?.[0];
+
+  let score = 0;
+
+  // Exact house number match is most important
+  if (queryHouseNum && result.address.house_number === queryHouseNum) score += 100;
+
+  // Has a house number at all (more specific result)
+  if (result.address.house_number) score += 30;
+
+  // Formatted address starts with the query
+  if (formatted.startsWith(q)) score += 50;
+
+  // Contains the full query
+  if (formatted.includes(q)) score += 10;
+
+  return score;
+}
+
 export default function AddressPicker({ value, onChange }: Props) {
   const [input, setInput] = useState(value);
   const [suggestions, setSuggestions] = useState<NominatimResult[]>([]);
@@ -78,6 +100,8 @@ export default function AddressPicker({ value, onChange }: Props) {
         }
       );
       const data: NominatimResult[] = await res.json();
+      // Sort so results matching typed house number come first
+      data.sort((a, b) => scoreResult(b, query) - scoreResult(a, query));
       setSuggestions(data);
     } catch {
       setSuggestions([]);
