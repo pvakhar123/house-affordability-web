@@ -85,16 +85,19 @@ export async function GET(req: NextRequest) {
             const data = await searchRes.json();
             const results = data?.data?.home_search?.results || [];
 
-            // Try to find exact address match
-            const streetLower = streetAddress.toLowerCase();
+            // Only use photo if we find an exact address match
+            const houseNum = streetAddress.match(/^\d+/)?.[0] || "";
+            const streetWords = streetAddress.toLowerCase().replace(/^\d+\s*/, "").split(/\s+/).slice(0, 2).join(" ");
+
             const match = results.find(
-              (r: { location?: { address?: { line?: string } } }) =>
-                r.location?.address?.line?.toLowerCase().includes(streetLower.split(" ").slice(0, 2).join(" "))
+              (r: { location?: { address?: { line?: string } } }) => {
+                const line = r.location?.address?.line?.toLowerCase() || "";
+                return houseNum && line.startsWith(houseNum) && line.includes(streetWords);
+              }
             );
 
-            const photoResult = match || results[0];
-            if (photoResult?.primary_photo?.href) {
-              propertyImage = photoResult.primary_photo.href.replace(
+            if (match?.primary_photo?.href) {
+              propertyImage = match.primary_photo.href.replace(
                 /s\.jpg$/,
                 "od.jpg"
               );
