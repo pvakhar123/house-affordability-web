@@ -178,21 +178,18 @@ export default function ResultsDashboard({ report, onReset, summaryLoading, user
       <div className="space-y-6" style={{ marginRight: "clamp(0px, calc(100vw - 1280px + 400px), 400px)" }}>
         {/* Hero Banner */}
         <StreamFadeIn>
-          <div className="relative rounded-xl overflow-hidden shadow-sm">
-            {/* Background image */}
-            <div className="h-48 sm:h-56 bg-gradient-to-br from-blue-900 to-blue-700">
-              {heroImage && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={heroImage}
-                  alt={displayLocation}
-                  className="w-full h-full object-cover"
-                  onError={() => setHeroImage(null)}
-                />
-              )}
-              {/* Gradient overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
-            </div>
+          <div className="relative rounded-xl overflow-hidden shadow-sm h-48 sm:h-56 bg-gradient-to-br from-blue-900 to-blue-700">
+            {heroImage && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={heroImage}
+                alt={displayLocation}
+                className="absolute inset-0 w-full h-full object-cover"
+                onError={() => setHeroImage(null)}
+              />
+            )}
+            {/* Gradient overlay */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
             {/* Content overlay */}
             <div className="absolute bottom-0 left-0 right-0 p-5 sm:p-6 flex items-end justify-between">
               <div>
