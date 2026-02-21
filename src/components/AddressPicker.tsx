@@ -7,61 +7,63 @@ interface Props {
   onChange: (address: string) => void;
 }
 
-interface NominatimResult {
-  place_id: number;
-  display_name: string;
-  address: {
-    house_number?: string;
-    road?: string;
-    city?: string;
-    town?: string;
-    village?: string;
-    state?: string;
-    postcode?: string;
-    county?: string;
-  };
+interface PhotonProperties {
+  osm_id: number;
+  name?: string;
+  housenumber?: string;
+  street?: string;
+  city?: string;
+  state?: string;
+  postcode?: string;
+  country?: string;
+  county?: string;
+  type?: string;
 }
 
-function formatAddress(result: NominatimResult): string {
-  const a = result.address;
+interface PhotonFeature {
+  properties: PhotonProperties;
+}
+
+function formatAddress(props: PhotonProperties): string {
   const parts: string[] = [];
 
-  if (a.house_number && a.road) {
-    parts.push(`${a.house_number} ${a.road}`);
-  } else if (a.road) {
-    parts.push(a.road);
+  if (props.housenumber && props.street) {
+    parts.push(`${props.housenumber} ${props.street}`);
+  } else if (props.street) {
+    parts.push(props.street);
+  } else if (props.name) {
+    parts.push(props.name);
   }
 
-  const city = a.city || a.town || a.village;
-  if (city) parts.push(city);
-  if (a.state) parts.push(a.state);
-  if (a.postcode) parts.push(a.postcode);
+  if (props.city) parts.push(props.city);
+  if (props.state) parts.push(props.state);
+  if (props.postcode) parts.push(props.postcode);
 
   return parts.join(", ");
 }
 
-function scoreResult(result: NominatimResult, query: string): number {
-  const formatted = formatAddress(result).toLowerCase();
+function scoreResult(feature: PhotonFeature, query: string): number {
+  const props = feature.properties;
+  const formatted = formatAddress(props).toLowerCase();
   const q = query.toLowerCase().trim();
   const queryHouseNum = q.match(/^\d+/)?.[0];
-  const a = result.address;
 
   let score = 0;
 
-  // Exact house number match is most important
-  if (queryHouseNum && a.house_number === queryHouseNum) score += 200;
+  // Exact house number match
+  if (queryHouseNum && props.housenumber === queryHouseNum) score += 200;
 
-  // Has both house number and road (specific address)
-  if (a.house_number && a.road) score += 100;
+  // Has both house number and street (specific address)
+  if (props.housenumber && props.street) score += 100;
 
-  // Has a road at least (street-level)
-  if (a.road) score += 40;
+  // Has a street at least
+  if (props.street) score += 40;
 
-  // Has a house number at all
-  if (a.house_number) score += 30;
+  // Has a house number
+  if (props.housenumber) score += 30;
 
-  // Penalize results that are just city/county/state (no road)
-  if (!a.road && !a.house_number) score -= 50;
+  // Penalize results with no street and no house number (city/state level)
+  if (!props.street && !props.housenumber) score -= 50;
 
   // Formatted address starts with the query
   if (formatted.startsWith(q)) score += 50;
@@ -74,7 +76,7 @@ function scoreResult(result: NominatimResult, query: string): number {
 
 export default function AddressPicker({ value, onChange }: Props) {
   const [input, setInput] = useState(value);
-  const [suggestions, setSuggestions] = useState<NominatimResult[]>([]);
+  const [suggestions, setSuggestions] = useState<PhotonFeature[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const [highlightIndex, setHighlightIndex] = useState(-1);
   const [isLoading, setIsLoading] = useState(false);
@@ -92,68 +94,29 @@ export default function AddressPicker({ value, onChange }: Props) {
       return;
     }
 
-    // If query starts with a number (house number), wait until the street
-    // name portion also has at least 2 characters so Nominatim can match
-    const startsWithNum = /^\d/.test(query);
-    if (startsWithNum) {
-      const streetPart = query.replace(/^\d+\s*/, "");
-      if (streetPart.length < 2) {
-        setSuggestions([]);
-        return;
-      }
-    }
-
     setIsLoading(true);
     try {
-      const baseParams = {
-        format: "json",
-        addressdetails: "1",
-        countrycodes: "us",
-        limit: "6",
-      };
-      const headers = { "Accept-Language": "en" };
-      const base = "https://nominatim.openstreetmap.org/search?";
+      const res = await fetch(
+        `https://photon.komoot.io/api/?` +
+          new URLSearchParams({
+            q: query,
+            limit: "7",
+            lang: "en",
+            lat: "39.8",
+            lon: "-98.5",
+          })
+      );
+      const data = await res.json();
+      const features: PhotonFeature[] = data.features || [];
 
-      // Always do free-text search
-      const freeTextReq = fetch(
-        base + new URLSearchParams({ ...baseParams, q: query }),
-        { headers }
+      // Filter to US only
+      const usResults = features.filter(
+        (f) => f.properties.country === "United States"
       );
 
-      // If query starts with a number, also do structured street search
-      let structuredReq: Promise<Response> | null = null;
-      if (startsWithNum) {
-        const parts = query.split(",").map((p) => p.trim());
-        const structured: Record<string, string> = {
-          ...baseParams,
-          street: parts[0],
-        };
-        if (parts[1]) structured.city = parts[1];
-        if (parts[2]) structured.state = parts[2];
-        structuredReq = fetch(base + new URLSearchParams(structured), {
-          headers,
-        });
-      }
-
-      // Run in parallel, merge results
-      const responses = await Promise.all(
-        [freeTextReq, structuredReq].filter(Boolean)
-      );
-      const allResults: NominatimResult[] = [];
-      const seenIds = new Set<number>();
-      for (const res of responses) {
-        const data: NominatimResult[] = await res!.json();
-        for (const r of data) {
-          if (!seenIds.has(r.place_id)) {
-            seenIds.add(r.place_id);
-            allResults.push(r);
-          }
-        }
-      }
-
-      // Sort so specific address matches rank above city/area results
-      allResults.sort((a, b) => scoreResult(b, query) - scoreResult(a, query));
-      setSuggestions(allResults.slice(0, 5));
+      // Sort: specific addresses first, city-level results last
+      usResults.sort((a, b) => scoreResult(b, query) - scoreResult(a, query));
+      setSuggestions(usResults.slice(0, 5));
     } catch {
       setSuggestions([]);
     } finally {
@@ -163,19 +126,19 @@ export default function AddressPicker({ value, onChange }: Props) {
 
   const handleInputChange = (val: string) => {
     setInput(val);
-    onChange(val); // Keep parent form state in sync immediately
+    onChange(val);
     setHighlightIndex(-1);
     setShowDropdown(true);
 
-    // Debounce API calls
+    // Fast debounce for responsive autocomplete
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       fetchSuggestions(val);
-    }, 300);
+    }, 200);
   };
 
-  const selectAddress = (result: NominatimResult) => {
-    const formatted = formatAddress(result);
+  const selectAddress = (feature: PhotonFeature) => {
+    const formatted = formatAddress(feature.properties);
     setInput(formatted);
     onChange(formatted);
     setSuggestions([]);
@@ -208,7 +171,6 @@ export default function AddressPicker({ value, onChange }: Props) {
     setTimeout(() => {
       setShowDropdown(false);
       setHighlightIndex(-1);
-      // Commit the current input value
       if (input.trim() && input.trim() !== value) {
         onChange(input.trim());
       }
@@ -293,14 +255,22 @@ export default function AddressPicker({ value, onChange }: Props) {
       {/* Suggestions dropdown */}
       {showDropdown && suggestions.length > 0 && (
         <div className="absolute z-50 left-0 right-0 mt-1 border border-gray-200 rounded-lg bg-white shadow-lg overflow-hidden">
-          {suggestions.map((result, i) => {
-            const formatted = formatAddress(result);
+          {suggestions.map((feature, i) => {
+            const props = feature.properties;
+            const formatted = formatAddress(props);
+            // Show street line + city/state line separately
+            const streetLine = props.housenumber && props.street
+              ? `${props.housenumber} ${props.street}`
+              : props.street || props.name || "";
+            const cityLine = [props.city, props.state, props.postcode]
+              .filter(Boolean)
+              .join(", ");
             return (
               <button
-                key={result.place_id}
+                key={`${props.osm_id}-${i}`}
                 type="button"
                 onMouseDown={(e) => e.preventDefault()}
-                onClick={() => selectAddress(result)}
+                onClick={() => selectAddress(feature)}
                 onMouseEnter={() => setHighlightIndex(i)}
                 className={`w-full flex items-start gap-3 px-4 py-2.5 text-sm text-left transition-colors ${
                   i === highlightIndex
@@ -329,9 +299,12 @@ export default function AddressPicker({ value, onChange }: Props) {
                   />
                 </svg>
                 <div className="min-w-0">
-                  <p className="truncate">
-                    {highlightMatch(formatted, input)}
+                  <p className="truncate font-medium">
+                    {highlightMatch(streetLine, input)}
                   </p>
+                  {cityLine && (
+                    <p className="truncate text-xs text-gray-500">{cityLine}</p>
+                  )}
                 </div>
               </button>
             );
@@ -340,7 +313,7 @@ export default function AddressPicker({ value, onChange }: Props) {
       )}
 
       <p className="mt-1.5 text-xs text-gray-400">
-        Type at least 3 characters to see suggestions
+        Type an address, street, or neighborhood
       </p>
     </div>
   );
