@@ -44,14 +44,24 @@ function scoreResult(result: NominatimResult, query: string): number {
   const formatted = formatAddress(result).toLowerCase();
   const q = query.toLowerCase().trim();
   const queryHouseNum = q.match(/^\d+/)?.[0];
+  const a = result.address;
 
   let score = 0;
 
   // Exact house number match is most important
-  if (queryHouseNum && result.address.house_number === queryHouseNum) score += 100;
+  if (queryHouseNum && a.house_number === queryHouseNum) score += 200;
 
-  // Has a house number at all (more specific result)
-  if (result.address.house_number) score += 30;
+  // Has both house number and road (specific address)
+  if (a.house_number && a.road) score += 100;
+
+  // Has a road at least (street-level)
+  if (a.road) score += 40;
+
+  // Has a house number at all
+  if (a.house_number) score += 30;
+
+  // Penalize results that are just city/county/state (no road)
+  if (!a.road && !a.house_number) score -= 50;
 
   // Formatted address starts with the query
   if (formatted.startsWith(q)) score += 50;
@@ -95,15 +105,28 @@ export default function AddressPicker({ value, onChange }: Props) {
 
     setIsLoading(true);
     try {
+      // Use structured search when query starts with a house number
+      // so Nominatim returns addresses instead of cities
+      const params: Record<string, string> = {
+        format: "json",
+        addressdetails: "1",
+        countrycodes: "us",
+        limit: "8",
+      };
+
+      if (startsWithNum) {
+        // Split on comma to separate street from city/state
+        const parts = query.split(",").map((p) => p.trim());
+        params.street = parts[0];
+        if (parts[1]) params.city = parts[1];
+        if (parts[2]) params.state = parts[2];
+      } else {
+        params.q = query;
+      }
+
       const res = await fetch(
         `https://nominatim.openstreetmap.org/search?` +
-          new URLSearchParams({
-            q: query,
-            format: "json",
-            addressdetails: "1",
-            countrycodes: "us",
-            limit: "5",
-          }),
+          new URLSearchParams(params),
         {
           headers: {
             "Accept-Language": "en",
@@ -111,9 +134,9 @@ export default function AddressPicker({ value, onChange }: Props) {
         }
       );
       const data: NominatimResult[] = await res.json();
-      // Sort so results matching typed house number come first
+      // Sort so specific address matches rank above city/area results
       data.sort((a, b) => scoreResult(b, query) - scoreResult(a, query));
-      setSuggestions(data);
+      setSuggestions(data.slice(0, 5));
     } catch {
       setSuggestions([]);
     } finally {
