@@ -182,14 +182,44 @@ function parseLocation(location: string): Record<string, string> {
   const parts = trimmed.split(",").map((p) => p.trim()).filter(Boolean);
 
   if (parts.length >= 3) {
-    // Full address: "123 Main St, Austin, TX 78701" or "123 Main St, Apt 4, Austin, TX 78701"
-    // Last part has state (+ optional zip), second-to-last is city
-    const lastPart = parts[parts.length - 1];
-    const city = parts[parts.length - 2];
-    const stateMatch = lastPart.match(/^([A-Za-z]{2,})/);
-    const state = stateMatch
-      ? (stateMatch[1].length === 2 ? stateMatch[1].toUpperCase() : stateToCode(stateMatch[1]))
-      : "";
+    // Handle formats like:
+    // "123 Main St, Austin, TX 78701"  (3 parts)
+    // "123 Main St, Austin, Texas, 78701"  (4 parts, state and zip separate)
+    // "123 Main St, Apt 4, Austin, TX 78701"  (4+ parts)
+    let city = "";
+    let state = "";
+
+    // Walk backwards to find state and city
+    for (let i = parts.length - 1; i >= 0; i--) {
+      const part = parts[i];
+      // Skip pure zip codes
+      if (/^\d{5}(-\d{4})?$/.test(part)) continue;
+      // Try to extract state from this part
+      const stateMatch = part.match(/^([A-Za-z]{2,})(?:\s+\d{5})?$/);
+      if (stateMatch && !state) {
+        const candidate = stateMatch[1];
+        const code = candidate.length === 2 ? candidate.toUpperCase() : stateToCode(candidate);
+        // Verify it's a real state code
+        if (code.length === 2) {
+          state = code;
+          continue;
+        }
+      }
+      // First non-state, non-zip part from the end is the city
+      if (!city && state) {
+        city = part;
+        break;
+      }
+    }
+
+    // Fallback: second-to-last is city, last has state
+    if (!city || !state) {
+      const lastPart = parts[parts.length - 1];
+      city = city || parts[parts.length - 2];
+      const sm = lastPart.match(/^([A-Za-z]{2,})/);
+      state = state || (sm ? (sm[1].length === 2 ? sm[1].toUpperCase() : stateToCode(sm[1])) : "");
+    }
+
     const result: Record<string, string> = { city, state_code: state };
     if (zipMatch) result.postal_code = zipMatch[1];
     return result;
