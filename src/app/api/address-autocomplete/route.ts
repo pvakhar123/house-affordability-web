@@ -1,6 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const GOOGLE_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
+const RADAR_KEY = process.env.RADAR_PUBLISHABLE_KEY;
+
+interface RadarAddress {
+  formattedAddress: string;
+  addressLabel: string;
+  number: string;
+  street: string;
+  city: string;
+  state: string;
+  stateCode: string;
+  postalCode: string;
+  country: string;
+  countryCode: string;
+  layer: string;
+}
 
 export async function GET(req: NextRequest) {
   const input = req.nextUrl.searchParams.get("input");
@@ -9,48 +23,40 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ predictions: [] });
   }
 
-  if (!GOOGLE_API_KEY) {
+  if (!RADAR_KEY) {
     return NextResponse.json(
-      { error: "Google Maps API key not configured" },
+      { error: "Radar API key not configured" },
       { status: 500 }
     );
   }
 
   try {
     const params = new URLSearchParams({
-      input,
-      types: "address",
-      components: "country:us",
-      key: GOOGLE_API_KEY,
+      query: input,
+      layers: "address",
+      country: "US",
+      limit: "6",
     });
 
     const res = await fetch(
-      `https://maps.googleapis.com/maps/api/place/autocomplete/json?${params}`,
-      { next: { revalidate: 0 } }
+      `https://api.radar.io/v1/search/autocomplete?${params}`,
+      {
+        headers: { Authorization: RADAR_KEY },
+        next: { revalidate: 0 },
+      }
     );
 
     const data = await res.json();
+    const addresses: RadarAddress[] = data.addresses || [];
 
-    if (data.status !== "OK" && data.status !== "ZERO_RESULTS") {
-      console.error("Places API error:", data.status, data.error_message);
-      return NextResponse.json({ predictions: [] });
-    }
-
-    const predictions = (data.predictions || []).map(
-      (p: {
-        description: string;
-        place_id: string;
-        structured_formatting: {
-          main_text: string;
-          secondary_text: string;
-        };
-      }) => ({
-        description: p.description,
-        placeId: p.place_id,
-        mainText: p.structured_formatting.main_text,
-        secondaryText: p.structured_formatting.secondary_text,
-      })
-    );
+    const predictions = addresses.map((a) => ({
+      mainText: a.addressLabel || `${a.number} ${a.street}`,
+      secondaryText: [a.city, a.stateCode, a.postalCode]
+        .filter(Boolean)
+        .join(", "),
+      description: a.formattedAddress,
+      placeId: `${a.number}-${a.street}-${a.postalCode}`,
+    }));
 
     return NextResponse.json({ predictions });
   } catch (err) {
