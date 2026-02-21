@@ -105,38 +105,55 @@ export default function AddressPicker({ value, onChange }: Props) {
 
     setIsLoading(true);
     try {
-      // Use structured search when query starts with a house number
-      // so Nominatim returns addresses instead of cities
-      const params: Record<string, string> = {
+      const baseParams = {
         format: "json",
         addressdetails: "1",
         countrycodes: "us",
-        limit: "8",
+        limit: "6",
       };
+      const headers = { "Accept-Language": "en" };
+      const base = "https://nominatim.openstreetmap.org/search?";
 
+      // Always do free-text search
+      const freeTextReq = fetch(
+        base + new URLSearchParams({ ...baseParams, q: query }),
+        { headers }
+      );
+
+      // If query starts with a number, also do structured street search
+      let structuredReq: Promise<Response> | null = null;
       if (startsWithNum) {
-        // Split on comma to separate street from city/state
         const parts = query.split(",").map((p) => p.trim());
-        params.street = parts[0];
-        if (parts[1]) params.city = parts[1];
-        if (parts[2]) params.state = parts[2];
-      } else {
-        params.q = query;
+        const structured: Record<string, string> = {
+          ...baseParams,
+          street: parts[0],
+        };
+        if (parts[1]) structured.city = parts[1];
+        if (parts[2]) structured.state = parts[2];
+        structuredReq = fetch(base + new URLSearchParams(structured), {
+          headers,
+        });
       }
 
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?` +
-          new URLSearchParams(params),
-        {
-          headers: {
-            "Accept-Language": "en",
-          },
-        }
+      // Run in parallel, merge results
+      const responses = await Promise.all(
+        [freeTextReq, structuredReq].filter(Boolean)
       );
-      const data: NominatimResult[] = await res.json();
+      const allResults: NominatimResult[] = [];
+      const seenIds = new Set<number>();
+      for (const res of responses) {
+        const data: NominatimResult[] = await res!.json();
+        for (const r of data) {
+          if (!seenIds.has(r.place_id)) {
+            seenIds.add(r.place_id);
+            allResults.push(r);
+          }
+        }
+      }
+
       // Sort so specific address matches rank above city/area results
-      data.sort((a, b) => scoreResult(b, query) - scoreResult(a, query));
-      setSuggestions(data.slice(0, 5));
+      allResults.sort((a, b) => scoreResult(b, query) - scoreResult(a, query));
+      setSuggestions(allResults.slice(0, 5));
     } catch {
       setSuggestions([]);
     } finally {
