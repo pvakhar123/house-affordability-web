@@ -217,6 +217,13 @@ export default function ResultsDashboard({ report, onReset, summaryLoading, user
           </div>
         </StreamFadeIn>
 
+        {/* Report Feedback */}
+        {hasCore && (
+          <StreamFadeIn delay={50}>
+            <ReportFeedback traceId={traceId} />
+          </StreamFadeIn>
+        )}
+
         {/* Download / Email Actions */}
         {!summaryLoading && report.generatedAt && (
           <StreamFadeIn delay={100}>
@@ -350,13 +357,6 @@ export default function ResultsDashboard({ report, onReset, summaryLoading, user
                 ))}
               </ul>
             </div>
-          </StreamFadeIn>
-        )}
-
-        {/* Report Feedback */}
-        {hasCore && (
-          <StreamFadeIn delay={100}>
-            <ReportFeedback traceId={traceId} />
           </StreamFadeIn>
         )}
 
