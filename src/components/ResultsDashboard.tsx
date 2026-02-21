@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import type { FinalReport } from "@/lib/types";
 import AffordabilityCard from "./AffordabilityCard";
 import MarketSnapshotCard from "./MarketSnapshotCard";
@@ -155,34 +155,60 @@ function ReportFeedback({ traceId }: { traceId?: string }) {
 export default function ResultsDashboard({ report, onReset, summaryLoading, userLocation, traceId }: Props) {
   const hasCore = report.affordability && report.riskAssessment && report.recommendations;
   const hasSummary = !!report.summary && !summaryLoading;
+  const [heroImage, setHeroImage] = useState<string | null>(null);
+
+  const displayLocation = report.propertyAnalysis?.property.address || userLocation || "";
+
+  useEffect(() => {
+    if (!displayLocation) return;
+    fetch(`/api/location-image?location=${encodeURIComponent(displayLocation)}`)
+      .then((r) => r.json())
+      .then((data) => { if (data.imageUrl) setHeroImage(data.imageUrl); })
+      .catch(() => {});
+  }, [displayLocation]);
 
   return (
     <>
       {/* Main content */}
       <div className="space-y-6" style={{ marginRight: "clamp(0px, calc(100vw - 1280px + 400px), 400px)" }}>
-        {/* Header */}
+        {/* Hero Banner */}
         <StreamFadeIn>
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900">
-                {report.propertyAnalysis?.property.address
-                  ? `Report for ${report.propertyAnalysis.property.address}`
-                  : userLocation
-                    ? `Report for ${userLocation}`
-                    : "Your Home Research Report"}
-              </h2>
-              {report.generatedAt && (
-                <p className="text-sm text-gray-500">
-                  Generated {new Date(report.generatedAt).toLocaleString()}
-                </p>
+          <div className="relative rounded-xl overflow-hidden shadow-sm">
+            {/* Background image */}
+            <div className="h-48 sm:h-56 bg-gradient-to-br from-blue-900 to-blue-700">
+              {heroImage && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={heroImage}
+                  alt={displayLocation}
+                  className="w-full h-full object-cover"
+                  onError={() => setHeroImage(null)}
+                />
               )}
+              {/* Gradient overlay */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
             </div>
-            <button
-              onClick={onReset}
-              className="px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
-            >
-              New Analysis
-            </button>
+            {/* Content overlay */}
+            <div className="absolute bottom-0 left-0 right-0 p-5 sm:p-6 flex items-end justify-between">
+              <div>
+                <h2 className="text-xl sm:text-2xl font-bold text-white drop-shadow-lg">
+                  {displayLocation
+                    ? `Report for ${displayLocation}`
+                    : "Your Home Research Report"}
+                </h2>
+                {report.generatedAt && (
+                  <p className="text-sm text-white/80 mt-1">
+                    Generated {new Date(report.generatedAt).toLocaleString()}
+                  </p>
+                )}
+              </div>
+              <button
+                onClick={onReset}
+                className="px-4 py-2 text-sm font-medium text-white bg-white/20 backdrop-blur-sm rounded-lg hover:bg-white/30 transition-colors border border-white/30 flex-shrink-0"
+              >
+                New Analysis
+              </button>
+            </div>
           </div>
         </StreamFadeIn>
 
