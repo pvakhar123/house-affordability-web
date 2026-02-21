@@ -82,6 +82,17 @@ export default function AddressPicker({ value, onChange }: Props) {
       return;
     }
 
+    // If query starts with a number (house number), wait until the street
+    // name portion also has at least 2 characters so Nominatim can match
+    const startsWithNum = /^\d/.test(query);
+    if (startsWithNum) {
+      const streetPart = query.replace(/^\d+\s*/, "");
+      if (streetPart.length < 2) {
+        setSuggestions([]);
+        return;
+      }
+    }
+
     setIsLoading(true);
     try {
       const res = await fetch(
