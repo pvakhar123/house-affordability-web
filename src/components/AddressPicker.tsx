@@ -20,6 +20,7 @@ export default function AddressPicker({ value, onChange }: Props) {
   const [showDropdown, setShowDropdown] = useState(false);
   const [highlightIndex, setHighlightIndex] = useState(-1);
   const [isLoading, setIsLoading] = useState(false);
+  const [noResults, setNoResults] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
@@ -35,14 +36,18 @@ export default function AddressPicker({ value, onChange }: Props) {
     }
 
     setIsLoading(true);
+    setNoResults(false);
     try {
       const res = await fetch(
         `/api/address-autocomplete?input=${encodeURIComponent(query)}`
       );
       const data = await res.json();
-      setSuggestions(data.predictions || []);
+      const results = data.predictions || [];
+      setSuggestions(results);
+      setNoResults(results.length === 0 && query.length >= 3);
     } catch {
       setSuggestions([]);
+      setNoResults(true);
     } finally {
       setIsLoading(false);
     }
@@ -151,7 +156,7 @@ export default function AddressPicker({ value, onChange }: Props) {
           onBlur={handleBlur}
           onKeyDown={handleKeyDown}
           className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-          placeholder="Start typing an address..."
+          placeholder="e.g. 1977 Silva Pl, Santa Clara"
         />
         {isLoading && (
           <div className="absolute right-3 top-2.5">
@@ -177,6 +182,17 @@ export default function AddressPicker({ value, onChange }: Props) {
           </div>
         )}
       </div>
+
+      {/* No results hint */}
+      {showDropdown && noResults && !isLoading && input.trim().length >= 3 && (
+        <div className="absolute z-50 left-0 right-0 mt-1 border border-gray-200 rounded-lg bg-white shadow-lg px-4 py-3">
+          <p className="text-sm text-gray-500">
+            {/^\d+$/.test(input.trim())
+              ? "Add a street name — e.g. \"42048 Main St\""
+              : "No addresses found. Try a more specific address."}
+          </p>
+        </div>
+      )}
 
       {/* Suggestions dropdown */}
       {showDropdown && suggestions.length > 0 && (
