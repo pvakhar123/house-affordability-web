@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
     const encoded = encodeURIComponent(input);
     const params = new URLSearchParams({
       access_token: MAPBOX_TOKEN,
-      types: "address,postcode",
+      types: "address",
       country: "us",
       autocomplete: "true",
       limit: "6",
