@@ -156,6 +156,7 @@ export default function ResultsDashboard({ report, onReset, summaryLoading, user
   const hasCore = report.affordability && report.riskAssessment && report.recommendations;
   const hasSummary = !!report.summary && !summaryLoading;
   const [heroImage, setHeroImage] = useState<string | null>(null);
+  const [satelliteUrl, setSatelliteUrl] = useState<string | null>(null);
 
   const displayLocation = report.propertyAnalysis?.property.address || userLocation || "";
 
@@ -163,7 +164,11 @@ export default function ResultsDashboard({ report, onReset, summaryLoading, user
     if (!displayLocation) return;
     fetch(`/api/location-image?location=${encodeURIComponent(displayLocation)}`)
       .then((r) => r.json())
-      .then((data) => { if (data.imageUrl) setHeroImage(data.imageUrl); })
+      .then((data) => {
+        if (data.propertyImage) setHeroImage(data.propertyImage);
+        else if (data.satelliteUrl) setHeroImage(data.satelliteUrl);
+        if (data.satelliteUrl) setSatelliteUrl(data.satelliteUrl);
+      })
       .catch(() => {});
   }, [displayLocation]);
 
@@ -265,7 +270,7 @@ export default function ResultsDashboard({ report, onReset, summaryLoading, user
 
             <StreamFadeIn delay={report.investmentAnalysis ? 450 : 400}>
               <ExpandableSection title="Market Snapshot">
-                <MarketSnapshotCard data={report.marketSnapshot} />
+                <MarketSnapshotCard data={report.marketSnapshot} satelliteUrl={satelliteUrl} />
               </ExpandableSection>
             </StreamFadeIn>
 

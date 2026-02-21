@@ -5,11 +5,21 @@ function fmt(n: number): string {
   return "$" + Math.round(n).toLocaleString("en-US");
 }
 
-export default function MarketSnapshotCard({ data }: { data: MarketDataResult }) {
+export default function MarketSnapshotCard({ data, satelliteUrl }: { data: MarketDataResult; satelliteUrl?: string | null }) {
   const { mortgageRates: r, medianHomePrices: p, inflationData: inf } = data;
 
   return (
     <div>
+      {satelliteUrl && (
+        <div className="mb-4 rounded-lg overflow-hidden">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={satelliteUrl}
+            alt="Satellite view of the area"
+            className="w-full h-40 object-cover"
+          />
+        </div>
+      )}
       <div className="grid grid-cols-2 gap-4 mb-4">
         <div className="p-3 bg-gray-50 rounded-lg">
           <p className="text-xs text-gray-500">30-Year Fixed</p>
