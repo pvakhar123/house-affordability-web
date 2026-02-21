@@ -1,19 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const RADAR_KEY = process.env.RADAR_PUBLISHABLE_KEY;
+const MAPBOX_TOKEN = process.env.MAPBOX_ACCESS_TOKEN;
 
-interface RadarAddress {
-  formattedAddress: string;
-  addressLabel: string;
-  number: string;
-  street: string;
-  city: string;
-  state: string;
-  stateCode: string;
-  postalCode: string;
-  country: string;
-  countryCode: string;
-  layer: string;
+interface MapboxContext {
+  id: string;
+  text: string;
+  short_code?: string;
+}
+
+interface MapboxFeature {
+  place_name: string;
+  text: string;
+  address?: string;
+  context?: MapboxContext[];
 }
 
 export async function GET(req: NextRequest) {
@@ -23,40 +22,54 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ predictions: [] });
   }
 
-  if (!RADAR_KEY) {
+  if (!MAPBOX_TOKEN) {
     return NextResponse.json(
-      { error: "Radar API key not configured" },
+      { error: "Mapbox access token not configured" },
       { status: 500 }
     );
   }
 
   try {
+    const encoded = encodeURIComponent(input);
     const params = new URLSearchParams({
-      query: input,
-      layers: "address",
-      country: "US",
+      access_token: MAPBOX_TOKEN,
+      types: "address",
+      country: "us",
+      autocomplete: "true",
       limit: "6",
     });
 
     const res = await fetch(
-      `https://api.radar.io/v1/search/autocomplete?${params}`,
-      {
-        headers: { Authorization: RADAR_KEY },
-        next: { revalidate: 0 },
-      }
+      `https://api.mapbox.com/geocoding/v5/mapbox.places/${encoded}.json?${params}`,
+      { next: { revalidate: 0 } }
     );
 
     const data = await res.json();
-    const addresses: RadarAddress[] = data.addresses || [];
+    const features: MapboxFeature[] = data.features || [];
 
-    const predictions = addresses.map((a) => ({
-      mainText: a.addressLabel || `${a.number} ${a.street}`,
-      secondaryText: [a.city, a.stateCode, a.postalCode]
+    const predictions = features.map((f) => {
+      // Build main text: "1977 Silva Place"
+      const mainText = f.address
+        ? `${f.address} ${f.text}`
+        : f.text;
+
+      // Build secondary text from context: "Santa Clara, California, 95054"
+      const city = f.context?.find((c) => c.id.startsWith("place"))?.text;
+      const state = f.context?.find((c) => c.id.startsWith("region"))?.text;
+      const postcode = f.context?.find((c) =>
+        c.id.startsWith("postcode")
+      )?.text;
+      const secondaryText = [city, state, postcode]
         .filter(Boolean)
-        .join(", "),
-      description: a.formattedAddress,
-      placeId: `${a.number}-${a.street}-${a.postalCode}`,
-    }));
+        .join(", ");
+
+      return {
+        mainText,
+        secondaryText,
+        description: f.place_name,
+        placeId: f.place_name,
+      };
+    });
 
     return NextResponse.json({ predictions });
   } catch (err) {
