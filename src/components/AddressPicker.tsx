@@ -7,76 +7,16 @@ interface Props {
   onChange: (address: string) => void;
 }
 
-interface PhotonProperties {
-  osm_id: number;
-  name?: string;
-  housenumber?: string;
-  street?: string;
-  city?: string;
-  state?: string;
-  postcode?: string;
-  country?: string;
-  county?: string;
-  type?: string;
-}
-
-interface PhotonFeature {
-  properties: PhotonProperties;
-}
-
-function formatAddress(props: PhotonProperties): string {
-  const parts: string[] = [];
-
-  if (props.housenumber && props.street) {
-    parts.push(`${props.housenumber} ${props.street}`);
-  } else if (props.street) {
-    parts.push(props.street);
-  } else if (props.name) {
-    parts.push(props.name);
-  }
-
-  if (props.city) parts.push(props.city);
-  if (props.state) parts.push(props.state);
-  if (props.postcode) parts.push(props.postcode);
-
-  return parts.join(", ");
-}
-
-function scoreResult(feature: PhotonFeature, query: string): number {
-  const props = feature.properties;
-  const formatted = formatAddress(props).toLowerCase();
-  const q = query.toLowerCase().trim();
-  const queryHouseNum = q.match(/^\d+/)?.[0];
-
-  let score = 0;
-
-  // Exact house number match
-  if (queryHouseNum && props.housenumber === queryHouseNum) score += 200;
-
-  // Has both house number and street (specific address)
-  if (props.housenumber && props.street) score += 100;
-
-  // Has a street at least
-  if (props.street) score += 40;
-
-  // Has a house number
-  if (props.housenumber) score += 30;
-
-  // Penalize results with no street and no house number (city/state level)
-  if (!props.street && !props.housenumber) score -= 50;
-
-  // Formatted address starts with the query
-  if (formatted.startsWith(q)) score += 50;
-
-  // Contains the full query
-  if (formatted.includes(q)) score += 10;
-
-  return score;
+interface Prediction {
+  description: string;
+  placeId: string;
+  mainText: string;
+  secondaryText: string;
 }
 
 export default function AddressPicker({ value, onChange }: Props) {
   const [input, setInput] = useState(value);
-  const [suggestions, setSuggestions] = useState<PhotonFeature[]>([]);
+  const [suggestions, setSuggestions] = useState<Prediction[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const [highlightIndex, setHighlightIndex] = useState(-1);
   const [isLoading, setIsLoading] = useState(false);
@@ -97,26 +37,10 @@ export default function AddressPicker({ value, onChange }: Props) {
     setIsLoading(true);
     try {
       const res = await fetch(
-        `https://photon.komoot.io/api/?` +
-          new URLSearchParams({
-            q: query,
-            limit: "7",
-            lang: "en",
-            lat: "39.8",
-            lon: "-98.5",
-          })
+        `/api/address-autocomplete?input=${encodeURIComponent(query)}`
       );
       const data = await res.json();
-      const features: PhotonFeature[] = data.features || [];
-
-      // Filter to US only
-      const usResults = features.filter(
-        (f) => f.properties.country === "United States"
-      );
-
-      // Sort: specific addresses first, city-level results last
-      usResults.sort((a, b) => scoreResult(b, query) - scoreResult(a, query));
-      setSuggestions(usResults.slice(0, 5));
+      setSuggestions(data.predictions || []);
     } catch {
       setSuggestions([]);
     } finally {
@@ -130,17 +54,19 @@ export default function AddressPicker({ value, onChange }: Props) {
     setHighlightIndex(-1);
     setShowDropdown(true);
 
-    // Fast debounce for responsive autocomplete
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       fetchSuggestions(val);
     }, 200);
   };
 
-  const selectAddress = (feature: PhotonFeature) => {
-    const formatted = formatAddress(feature.properties);
-    setInput(formatted);
-    onChange(formatted);
+  const selectAddress = (prediction: Prediction) => {
+    // Use mainText + secondaryText without ", USA" suffix
+    const full = prediction.secondaryText
+      ? `${prediction.mainText}, ${prediction.secondaryText.replace(/, USA$/, "")}`
+      : prediction.mainText;
+    setInput(full);
+    onChange(full);
     setSuggestions([]);
     setShowDropdown(false);
     setHighlightIndex(-1);
@@ -255,60 +181,51 @@ export default function AddressPicker({ value, onChange }: Props) {
       {/* Suggestions dropdown */}
       {showDropdown && suggestions.length > 0 && (
         <div className="absolute z-50 left-0 right-0 mt-1 border border-gray-200 rounded-lg bg-white shadow-lg overflow-hidden">
-          {suggestions.map((feature, i) => {
-            const props = feature.properties;
-            const formatted = formatAddress(props);
-            // Show street line + city/state line separately
-            const streetLine = props.housenumber && props.street
-              ? `${props.housenumber} ${props.street}`
-              : props.street || props.name || "";
-            const cityLine = [props.city, props.state, props.postcode]
-              .filter(Boolean)
-              .join(", ");
-            return (
-              <button
-                key={`${props.osm_id}-${i}`}
-                type="button"
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => selectAddress(feature)}
-                onMouseEnter={() => setHighlightIndex(i)}
-                className={`w-full flex items-start gap-3 px-4 py-2.5 text-sm text-left transition-colors ${
-                  i === highlightIndex
-                    ? "bg-blue-50 text-blue-900"
-                    : "text-gray-700 hover:bg-gray-50"
+          {suggestions.map((prediction, i) => (
+            <button
+              key={prediction.placeId}
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => selectAddress(prediction)}
+              onMouseEnter={() => setHighlightIndex(i)}
+              className={`w-full flex items-start gap-3 px-4 py-2.5 text-sm text-left transition-colors ${
+                i === highlightIndex
+                  ? "bg-blue-50 text-blue-900"
+                  : "text-gray-700 hover:bg-gray-50"
+              }`}
+            >
+              <svg
+                className={`w-4 h-4 flex-shrink-0 mt-0.5 ${
+                  i === highlightIndex ? "text-blue-500" : "text-gray-400"
                 }`}
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={1.5}
               >
-                <svg
-                  className={`w-4 h-4 flex-shrink-0 mt-0.5 ${
-                    i === highlightIndex ? "text-blue-500" : "text-gray-400"
-                  }`}
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={1.5}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"
-                  />
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"
-                  />
-                </svg>
-                <div className="min-w-0">
-                  <p className="truncate font-medium">
-                    {highlightMatch(streetLine, input)}
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"
+                />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"
+                />
+              </svg>
+              <div className="min-w-0">
+                <p className="truncate font-medium">
+                  {highlightMatch(prediction.mainText, input)}
+                </p>
+                {prediction.secondaryText && (
+                  <p className="truncate text-xs text-gray-500">
+                    {prediction.secondaryText}
                   </p>
-                  {cityLine && (
-                    <p className="truncate text-xs text-gray-500">{cityLine}</p>
-                  )}
-                </div>
-              </button>
-            );
-          })}
+                )}
+              </div>
+            </button>
+          ))}
         </div>
       )}
 
