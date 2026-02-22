@@ -12,13 +12,14 @@ import {
 
 interface Props {
   onLoad: (report: FinalReport, userLocation?: string) => void;
+  emptyState?: React.ReactNode;
 }
 
 function fmt(n: number): string {
   return "$" + Math.round(n).toLocaleString("en-US");
 }
 
-export default function SavedReportsList({ onLoad }: Props) {
+export default function SavedReportsList({ onLoad, emptyState }: Props) {
   const { data: session } = useSession();
   const [reports, setReports] = useState<SavedReport[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -58,7 +59,7 @@ export default function SavedReportsList({ onLoad }: Props) {
     );
   }
 
-  if (reports.length === 0) return null;
+  if (reports.length === 0) return emptyState ?? null;
 
   const handleDelete = async (id: string) => {
     if (isSignedIn) {
