@@ -10,9 +10,17 @@ const securityHeaders = [
   { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
 ];
 
+const apiVersionHeaders = [
+  { key: "X-API-Version", value: "1.0" },
+  { key: "X-API-Deprecation", value: "false" },
+];
+
 const nextConfig: NextConfig = {
   async headers() {
-    return [{ source: "/(.*)", headers: securityHeaders }];
+    return [
+      { source: "/(.*)", headers: securityHeaders },
+      { source: "/api/:path*", headers: apiVersionHeaders },
+    ];
   },
 };
 

@@ -107,7 +107,8 @@ export default function AffordabilityForm({ onSubmit, isLoading }: Props) {
               <button
                 type="button"
                 onClick={() => setLocationMode("address")}
-                className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium rounded-md transition-all ${
+                aria-pressed={locationMode === "address"}
+                className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium rounded-md transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                   locationMode === "address"
                     ? "bg-white text-gray-900 shadow-sm"
                     : "text-gray-500 hover:text-gray-700"
@@ -122,7 +123,8 @@ export default function AffordabilityForm({ onSubmit, isLoading }: Props) {
               <button
                 type="button"
                 onClick={() => setLocationMode("neighborhood")}
-                className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium rounded-md transition-all ${
+                aria-pressed={locationMode === "neighborhood"}
+                className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium rounded-md transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                   locationMode === "neighborhood"
                     ? "bg-white text-gray-900 shadow-sm"
                     : "text-gray-500 hover:text-gray-700"

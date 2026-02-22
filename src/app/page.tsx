@@ -206,7 +206,8 @@ function HomeContent() {
             {state !== "form" && (
               <button
                 onClick={handleReset}
-                className="text-sm text-blue-600 hover:text-blue-800"
+                aria-label="Start a new analysis"
+                className="text-sm text-blue-600 hover:text-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded"
               >
                 Start Over
               </button>
@@ -216,13 +217,13 @@ function HomeContent() {
       </header>
 
       {/* Main Content */}
-      <main className={`${state === "results" ? "px-6" : "max-w-5xl px-4"} mx-auto py-8`}>
+      <main id="main-content" className={`${state === "results" ? "px-6" : "max-w-5xl px-4"} mx-auto py-8`}>
         {/* Form - stays mounted during form & loading states to preserve data */}
         <div className={state === "form" ? "" : "hidden"}>
           {/* Error banner */}
           {error && (
             <div className="max-w-2xl mx-auto mb-6">
-              <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
+              <div role="alert" className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
                 <svg className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
                 </svg>

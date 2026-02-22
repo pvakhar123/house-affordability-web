@@ -249,6 +249,7 @@ export default function LocationPicker({ value, onChange }: Props) {
                   e.stopPropagation();
                   removeLocation(i);
                 }}
+                aria-label={`Remove ${loc}`}
                 className="ml-0.5 hover:text-red-500 transition-colors"
               >
                 <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -275,6 +276,12 @@ export default function LocationPicker({ value, onChange }: Props) {
             }, 200);
           }}
           onKeyDown={handleKeyDown}
+          role="combobox"
+          aria-label="Search locations"
+          aria-expanded={showDropdown && matches.length > 0}
+          aria-autocomplete="list"
+          aria-controls="location-listbox"
+          aria-activedescendant={highlightIndex >= 0 ? `location-option-${highlightIndex}` : undefined}
           className="flex-1 min-w-[140px] outline-none text-sm bg-transparent placeholder:text-gray-400"
           placeholder={
             value.length === 0
@@ -293,12 +300,18 @@ export default function LocationPicker({ value, onChange }: Props) {
       {showDropdown && matches.length > 0 && (
         <div
           ref={dropdownRef}
+          id="location-listbox"
+          role="listbox"
+          aria-label="Location suggestions"
           className="absolute z-50 left-0 right-0 mt-1 border border-gray-200 rounded-lg bg-white shadow-lg overflow-hidden"
         >
           {matches.map((city, i) => (
             <button
               key={city}
+              id={`location-option-${i}`}
               type="button"
+              role="option"
+              aria-selected={i === highlightIndex}
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => {
                 addLocation(city);

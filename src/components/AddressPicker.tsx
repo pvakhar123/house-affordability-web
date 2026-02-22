@@ -157,11 +157,17 @@ export default function AddressPicker({ value, onChange }: Props) {
           }}
           onBlur={handleBlur}
           onKeyDown={handleKeyDown}
+          role="combobox"
+          aria-label="Search addresses"
+          aria-expanded={showDropdown && suggestions.length > 0}
+          aria-autocomplete="list"
+          aria-controls="address-listbox"
+          aria-activedescendant={highlightIndex >= 0 ? `address-option-${highlightIndex}` : undefined}
           className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
           placeholder="Start typing an address..."
         />
         {isLoading && (
-          <div className="absolute right-3 top-2.5">
+          <div className="absolute right-3 top-2.5" role="status" aria-label="Loading suggestions">
             <svg
               className="animate-spin w-4 h-4 text-gray-400"
               fill="none"
@@ -187,11 +193,19 @@ export default function AddressPicker({ value, onChange }: Props) {
 
       {/* Suggestions dropdown */}
       {showDropdown && suggestions.length > 0 && (
-        <div className="absolute z-50 left-0 right-0 mt-1 border border-gray-200 rounded-lg bg-white shadow-lg overflow-hidden">
+        <div
+          id="address-listbox"
+          role="listbox"
+          aria-label="Address suggestions"
+          className="absolute z-50 left-0 right-0 mt-1 border border-gray-200 rounded-lg bg-white shadow-lg overflow-hidden"
+        >
           {suggestions.map((prediction, i) => (
             <button
               key={prediction.placeId}
+              id={`address-option-${i}`}
               type="button"
+              role="option"
+              aria-selected={i === highlightIndex}
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => selectAddress(prediction)}
               onMouseEnter={() => setHighlightIndex(i)}
