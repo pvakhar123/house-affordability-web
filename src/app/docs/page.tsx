@@ -30,58 +30,53 @@ export default function DocsPage() {
   const next = currentIndex < sections.length - 1 ? sections[currentIndex + 1] : null;
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-30">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <a href="/" className="flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 font-medium">
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
-              </svg>
-              App
-            </a>
-            <span className="text-gray-300">|</span>
-            <h1 className="text-sm font-bold text-gray-900">Documentation</h1>
-          </div>
+    <div className="min-h-screen bg-gray-50 flex">
+      {/* ── Left sidebar nav ── */}
+      <aside className="sticky top-0 h-screen w-60 shrink-0 bg-white border-r border-gray-200 flex flex-col z-30">
+        <div className="p-5 border-b border-gray-200 flex items-center justify-between">
+          <a href="/" className="flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 font-medium">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+            </svg>
+            App
+          </a>
           <span className="text-xs text-gray-400">v1.0</span>
         </div>
-      </header>
-
-      <div className="flex-1 flex max-w-7xl w-full mx-auto">
-        {/* ── Left sidebar nav ── */}
-        <nav className="flex flex-col w-56 shrink-0 border-r border-gray-200 bg-white">
-          <div className="sticky top-[49px] overflow-y-auto py-4 px-3 space-y-0.5">
-            {sections.map((s) => (
-              <button
-                key={s.id}
-                onClick={() => setActive(s.id)}
-                className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg transition-all text-left ${
-                  active === s.id
-                    ? "bg-blue-50 text-blue-700 font-semibold"
-                    : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-                }`}
-              >
-                <svg className={`w-4 h-4 shrink-0 ${active === s.id ? "text-blue-600" : "text-gray-400"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d={s.icon} />
-                </svg>
-                <span className="truncate">{s.title}</span>
-              </button>
-            ))}
-            <div className="pt-4 px-3">
-              <div className="h-1 bg-gray-100 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-blue-500 rounded-full transition-all duration-300"
-                  style={{ width: `${((currentIndex + 1) / sections.length) * 100}%` }}
-                />
-              </div>
-              <p className="text-[10px] text-gray-400 mt-1.5 text-center">{currentIndex + 1} of {sections.length}</p>
-            </div>
-          </div>
+        <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-0.5">
+          {sections.map((s) => (
+            <button
+              key={s.id}
+              onClick={() => setActive(s.id)}
+              className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg transition-all text-left ${
+                active === s.id
+                  ? "bg-blue-50 text-blue-700 font-semibold"
+                  : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+              }`}
+            >
+              <svg className={`w-4 h-4 shrink-0 ${active === s.id ? "text-blue-600" : "text-gray-400"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d={s.icon} />
+              </svg>
+              <span className="truncate">{s.title}</span>
+            </button>
+          ))}
         </nav>
+        <div className="p-4 border-t border-gray-200">
+          <div className="h-1 bg-gray-100 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-blue-500 rounded-full transition-all duration-300"
+              style={{ width: `${((currentIndex + 1) / sections.length) * 100}%` }}
+            />
+          </div>
+          <p className="text-[10px] text-gray-400 mt-1.5 text-center">{currentIndex + 1} of {sections.length}</p>
+        </div>
+      </aside>
 
-        {/* ── Main content area ── */}
-        <main className="flex-1 min-w-0 px-4 sm:px-8 py-8 max-w-4xl">
+      {/* ── Main content area ── */}
+      <div className="flex-1 min-w-0">
+        <header className="bg-white border-b border-gray-200 sticky top-0 z-20 px-8 py-3">
+          <h1 className="text-sm font-bold text-gray-900">Documentation</h1>
+        </header>
+        <main className="px-8 py-8 max-w-4xl">
           {active === "overview" && <OverviewSection />}
           {active === "getting-started" && <GettingStartedSection />}
           {active === "input-form" && <InputFormSection />}
