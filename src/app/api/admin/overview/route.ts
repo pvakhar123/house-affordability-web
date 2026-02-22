@@ -2,8 +2,12 @@ import { NextResponse } from "next/server";
 import { isDbAvailable, getDb } from "@/lib/db";
 import { count, avg, desc, eq } from "drizzle-orm";
 import * as schema from "@/lib/db/schema";
+import { requireAdmin } from "@/lib/admin-auth";
 
 export async function GET() {
+  const denied = await requireAdmin();
+  if (denied) return denied;
+
   if (!isDbAvailable) {
     return NextResponse.json({ error: "Database not configured" }, { status: 503 });
   }

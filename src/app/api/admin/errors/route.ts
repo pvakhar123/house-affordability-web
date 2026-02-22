@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isDbAvailable } from "@/lib/db";
 import { queryErrorLogs } from "@/lib/db/queries";
+import { requireAdmin } from "@/lib/admin-auth";
 
 export async function GET(req: NextRequest) {
+  const denied = await requireAdmin();
+  if (denied) return denied;
+
   if (!isDbAvailable) {
     return NextResponse.json({ error: "Database not configured" }, { status: 503 });
   }
