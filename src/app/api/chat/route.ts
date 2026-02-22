@@ -64,6 +64,7 @@ import {
   checkOutputNumbers,
   GUARDRAIL_SYSTEM_PROMPT_SUFFIX,
 } from "@/lib/guardrails";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 interface ChatRequest {
   message: string;
@@ -601,6 +602,16 @@ function handleAnalyzeProperty(
 }
 
 export async function POST(request: Request) {
+  // Rate limit: 60 chat messages per IP per hour
+  const ip = getClientIp(request);
+  const rl = checkRateLimit(`chat:${ip}`, 60, 3600_000);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "Too many requests. Please slow down." },
+      { status: 429, headers: { "Retry-After": String(Math.ceil(rl.resetMs / 1000)) } },
+    );
+  }
+
   try {
     config.validate();
     const {

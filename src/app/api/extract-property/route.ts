@@ -4,6 +4,7 @@ import { config } from "@/lib/config";
 import type { PropertyInfo } from "@/lib/types";
 import { traceGeneration, flushLangfuse } from "@/lib/langfuse";
 import { withTracking } from "@/lib/db/track";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 const EXTRACTION_PROMPT = `Extract property listing details from the following page content. Return ONLY valid JSON (no markdown, no explanation) with these fields:
 
@@ -28,6 +29,16 @@ Rules:
 - listingPrice is the most important field - try your hardest to find it`;
 
 async function _POST(request: Request) {
+  // Rate limit: 20 extractions per IP per hour
+  const ip = getClientIp(request);
+  const rl = checkRateLimit(`extract-property:${ip}`, 20, 3600_000);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "Too many requests. Please try again later." },
+      { status: 429, headers: { "Retry-After": String(Math.ceil(rl.resetMs / 1000)) } },
+    );
+  }
+
   try {
     config.validate();
 

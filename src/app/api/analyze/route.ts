@@ -5,10 +5,21 @@ import { config } from "@/lib/config";
 import type { UserProfile } from "@/lib/types";
 import { flushLangfuse } from "@/lib/langfuse";
 import { logApiError, logUsageEvent } from "@/lib/db/track";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 export const maxDuration = 300; // 5 minutes for agent processing
 
 export async function POST(request: Request) {
+  // Rate limit: 10 reports per IP per hour
+  const ip = getClientIp(request);
+  const rl = checkRateLimit(`analyze:${ip}`, 10, 3600_000);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "Too many requests. Please try again later." },
+      { status: 429, headers: { "Retry-After": String(Math.ceil(rl.resetMs / 1000)) } },
+    );
+  }
+
   try {
     config.validate();
 

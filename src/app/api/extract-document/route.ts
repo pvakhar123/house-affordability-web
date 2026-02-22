@@ -4,6 +4,7 @@ import { config } from "@/lib/config";
 import type { DocumentExtractionResult } from "@/lib/types";
 import { traceGeneration, flushLangfuse } from "@/lib/langfuse";
 import { withTracking } from "@/lib/db/track";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 interface DocumentPayload {
   data: string;
@@ -62,6 +63,16 @@ const ALLOWED_TYPES = [
 ];
 
 async function _POST(request: Request) {
+  // Rate limit: 20 extractions per IP per hour
+  const ip = getClientIp(request);
+  const rl = checkRateLimit(`extract-document:${ip}`, 20, 3600_000);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "Too many requests. Please try again later." },
+      { status: 429, headers: { "Retry-After": String(Math.ceil(rl.resetMs / 1000)) } },
+    );
+  }
+
   try {
     config.validate();
 
