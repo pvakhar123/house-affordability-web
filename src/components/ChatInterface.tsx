@@ -48,40 +48,172 @@ function fmtPrice(n: number): string {
   return `$${Math.round(n / 1000)}K`;
 }
 
-function buildInitialSuggestions(location: string, maxPrice: number, rate: number): string[] {
-  return [
-    `Can I afford a ${fmtPrice(maxPrice)} house?`,
-    "What are today's mortgage rates?",
-    `What are property taxes in ${location}?`,
-    `Find me homes under ${fmtPrice(maxPrice)} in ${location}`,
-    "What's the difference between FHA and conventional?",
-    `What if rates drop to ${Math.max(rate - 1, 3).toFixed(1)}%?`,
-  ];
+interface CalculatorAction {
+  icon: string;
+  label: string;
+  description: string;
+  prompt: string;
 }
 
-function buildFollowUpPrompts(location: string, maxPrice: number): string[][] {
-  return [
-    [
-      "What are today's mortgage rates?",
-      "What if I increase my down payment?",
-      `What are property taxes in ${location}?`,
-    ],
-    [
-      `Find me homes under ${fmtPrice(maxPrice)} in ${location}`,
-      "How does a 15-year compare to 30-year?",
-      `What's the cost of living in ${location}?`,
-    ],
-    [
-      "What are today's mortgage rates?",
-      "What's my break-even for rent vs buy?",
-      `What are schools like in ${location}?`,
-    ],
-    [
-      `Find me 3-bedroom homes in ${location}`,
-      "What are first-time buyer programs?",
-      `What are property taxes in ${location}?`,
-    ],
-  ];
+function fmtMo(n: number): string {
+  return "$" + Math.round(n).toLocaleString("en-US");
+}
+
+function buildCalculatorActions(report: FinalReport, location: string): CalculatorAction[] {
+  const aff = report.affordability;
+  const rates = report.marketSnapshot?.mortgageRates;
+  const maxPrice = aff?.recommendedHomePrice ?? 400000;
+  const downPayment = aff?.downPaymentAmount ?? 60000;
+  const loanAmount = aff?.loanAmount ?? maxPrice - downPayment;
+  const rate30 = rates?.thirtyYearFixed ?? 6.5;
+  const rate15 = rates?.fifteenYearFixed ?? rate30 - 0.7;
+  const dtiBack = aff?.dtiAnalysis?.backEndRatio ?? 30;
+  const monthlyTotal = aff?.monthlyPayment?.totalMonthly ?? 2000;
+  const prop = report.propertyAnalysis;
+  const rentVsBuy = report.rentVsBuy;
+
+  const actions: CalculatorAction[] = [];
+
+  // Stress Test — tailored by DTI
+  if (dtiBack > 36) {
+    actions.push({
+      icon: "M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z",
+      label: "Stress Test",
+      description: `What if income drops 20% on ${fmtPrice(loanAmount)} loan?`,
+      prompt: `Run a stress test on my ${fmtPrice(loanAmount)} loan at ${rate30.toFixed(1)}%. What happens if my income drops by 20%?`,
+    });
+  } else {
+    actions.push({
+      icon: "M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z",
+      label: "Stress Test",
+      description: `What if rates rise 2% on your ${fmtPrice(loanAmount)} loan?`,
+      prompt: `Run a stress test: what happens if mortgage rates rise 2% on my ${fmtPrice(loanAmount)} loan at ${rate30.toFixed(1)}%?`,
+    });
+  }
+
+  // Loan Comparison
+  actions.push({
+    icon: "M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5",
+    label: "Loan Comparison",
+    description: `15yr at ${rate15.toFixed(1)}% vs 30yr at ${rate30.toFixed(1)}%`,
+    prompt: `Compare a 15-year mortgage at ${rate15.toFixed(1)}% vs a 30-year at ${rate30.toFixed(1)}% for a ${fmtPrice(maxPrice)} home with ${fmtPrice(downPayment)} down. Show me the monthly payment difference and total interest savings.`,
+  });
+
+  // Rent vs Buy
+  const rentAmount = rentVsBuy?.currentRent ?? Math.round(monthlyTotal * 0.7);
+  actions.push({
+    icon: "M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25",
+    label: "Rent vs Buy",
+    description: `${fmtMo(rentAmount)}/mo rent vs buying at ${fmtPrice(maxPrice)}`,
+    prompt: `Compare renting at ${fmtMo(rentAmount)} per month vs buying a ${fmtPrice(maxPrice)} home with ${fmtPrice(downPayment)} down at ${rate30.toFixed(1)}% over 7 years. Which is better financially?`,
+  });
+
+  // More Down Payment
+  const higherDown = Math.round(downPayment * 1.33);
+  actions.push({
+    icon: "M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z",
+    label: "More Down Payment",
+    description: `What if you put ${fmtPrice(higherDown)} down instead?`,
+    prompt: `Recalculate my affordability if I increase my down payment from ${fmtPrice(downPayment)} to ${fmtPrice(higherDown)}. How does it change my max price, monthly payment, and PMI?`,
+  });
+
+  // Live Rates
+  actions.push({
+    icon: "M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z",
+    label: "Live Rates",
+    description: "Today's rates and impact on your budget",
+    prompt: "What are today's mortgage rates and how do they compare to when my analysis was run? How would current rates change my buying power?",
+  });
+
+  // Property Deep Dive (conditional)
+  if (prop) {
+    const addr = prop.property?.address || "the property";
+    const price = prop.property?.listingPrice || maxPrice;
+    actions.push({
+      icon: "M15 10.5a3 3 0 11-6 0 3 3 0 016 0zM19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z",
+      label: "Property Deep Dive",
+      description: `Analyze ${typeof addr === "string" && addr.length > 25 ? addr.slice(0, 22) + "..." : addr}`,
+      prompt: `Give me a detailed breakdown of whether I can afford ${addr} at ${fmtPrice(price)}. Include the monthly payment, how it compares to my max budget, and any risks.`,
+    });
+  }
+
+  // Find Homes (conditional on location)
+  if (location !== "your area") {
+    actions.push({
+      icon: "M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z",
+      label: "Find Homes",
+      description: `Homes under ${fmtPrice(maxPrice)} in ${location}`,
+      prompt: `Find me homes for sale under ${fmtPrice(maxPrice)} in ${location}. Show me at least 3 listings with details.`,
+    });
+  }
+
+  // Mortgage Knowledge (tailored to eligible loan options)
+  const loanOptions = report.recommendations?.loanOptions;
+  const hasFHA = loanOptions?.some((o) => o.type === "fha" && o.eligible);
+  const hasVA = loanOptions?.some((o) => o.type === "va" && o.eligible);
+  if (hasFHA) {
+    actions.push({
+      icon: "M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25",
+      label: "FHA Loans",
+      description: "You may qualify — learn the details",
+      prompt: "Explain FHA loans in detail. What are the requirements, down payment minimums, mortgage insurance costs, and loan limits? Do I qualify based on my profile?",
+    });
+  } else if (hasVA) {
+    actions.push({
+      icon: "M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25",
+      label: "VA Loans",
+      description: "You may qualify — learn the details",
+      prompt: "Explain VA loans in detail. What are the eligibility requirements, funding fees, and benefits compared to conventional loans? How does it affect my buying power?",
+    });
+  } else {
+    actions.push({
+      icon: "M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25",
+      label: "PMI Explained",
+      description: "When can you drop mortgage insurance?",
+      prompt: "What is PMI, how much does it cost me monthly, and when can I remove it? What strategies can I use to avoid PMI sooner?",
+    });
+  }
+
+  return actions;
+}
+
+/** Context-aware follow-up prompts that avoid repeating already-discussed topics */
+function buildSmartFollowUps(
+  report: FinalReport,
+  location: string,
+  messageTexts: string[],
+): string[] {
+  const aff = report.affordability;
+  const rates = report.marketSnapshot?.mortgageRates;
+  const maxPrice = aff?.recommendedHomePrice ?? 400000;
+  const rate30 = rates?.thirtyYearFixed ?? 6.5;
+  const loanAmount = aff?.loanAmount ?? maxPrice - (aff?.downPaymentAmount ?? 60000);
+
+  const joined = messageTexts.join(" ").toLowerCase();
+  const pool: string[] = [];
+
+  if (!joined.includes("stress test"))
+    pool.push(`Stress test my ${fmtPrice(loanAmount)} loan if rates rise 1.5%`);
+  if (!joined.includes("15-year") && !joined.includes("15 year") && !joined.includes("compare"))
+    pool.push(`Compare 15-year vs 30-year for my ${fmtPrice(maxPrice)} budget`);
+  if (!joined.includes("rent"))
+    pool.push("Should I rent or buy? Run a 7-year comparison");
+  if (!joined.includes("find") && !joined.includes("search") && !joined.includes("homes for sale") && location !== "your area")
+    pool.push(`Find homes under ${fmtPrice(maxPrice)} in ${location}`);
+  if (!joined.includes("rate"))
+    pool.push("What are today's mortgage rates?");
+  if (!joined.includes("down payment"))
+    pool.push("What if I increase my down payment by 33%?");
+  if (!joined.includes("fha") && !joined.includes("va") && !joined.includes("conventional"))
+    pool.push("What loan programs am I eligible for?");
+  if (!joined.includes("pmi") && !joined.includes("mortgage insurance"))
+    pool.push("When can I drop PMI?");
+  if (location !== "your area" && !joined.includes("school") && !joined.includes("neighborhood"))
+    pool.push(`What are schools and neighborhoods like in ${location}?`);
+  if (!joined.includes("drop"))
+    pool.push(`What if rates drop to ${Math.max(rate30 - 1, 4).toFixed(1)}%?`);
+
+  return pool.slice(0, 3);
 }
 
 /** Render inline formatting: **bold**, $amounts, percentages */
@@ -197,16 +329,10 @@ export default function ChatInterface({ report, userLocation }: { report: FinalR
 
   // Extract user context from the report
   const location = userLocation || "your area";
-  const maxPrice = report.affordability?.recommendedHomePrice ?? 400000;
-  const currentRate = report.marketSnapshot?.mortgageRates?.thirtyYearFixed ?? 6.5;
 
-  const initialSuggestions = useMemo(
-    () => buildInitialSuggestions(location, maxPrice, currentRate),
-    [location, maxPrice, currentRate]
-  );
-  const followUpPrompts = useMemo(
-    () => buildFollowUpPrompts(location, maxPrice),
-    [location, maxPrice]
+  const calculatorActions = useMemo(
+    () => buildCalculatorActions(report, location),
+    [report, location]
   );
 
   useEffect(() => {
@@ -232,10 +358,13 @@ export default function ChatInterface({ report, userLocation }: { report: FinalR
     return () => el.removeEventListener("wheel", handler);
   }, []);
 
-  // Pick follow-up prompts based on how many exchanges so far (cycle through sets)
-  const exchangeCount = Math.floor(messages.length / 2);
-  const followUpIndex = exchangeCount % followUpPrompts.length;
-  const currentFollowUps = followUpPrompts[followUpIndex];
+  // Build smart follow-ups based on what's been discussed
+  const messageTexts = messages.map((m) => m.content);
+  const currentFollowUps = useMemo(
+    () => buildSmartFollowUps(report, location, messageTexts),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [report, location, messages.length]
+  );
 
   const rateChatMessage = useCallback((messageIndex: number, rating: "up" | "down") => {
     setRatings((prev) => {
@@ -425,24 +554,44 @@ export default function ChatInterface({ report, userLocation }: { report: FinalR
         ref={scrollContainerRef}
         className="flex-1 overflow-y-auto min-h-0 overscroll-contain"
       >
-        {/* Initial suggestions (show when no messages) */}
+        {/* Calculator actions (show when no messages) */}
         {messages.length === 0 && (
-          <div className="px-5 py-4">
-            <p className="text-xs font-medium text-gray-400 mb-2 uppercase tracking-wide">
-              Try asking
+          <div className="px-4 py-4">
+            <p className="text-xs font-medium text-gray-400 mb-3 uppercase tracking-wide">
+              Quick Calculators
             </p>
-            <div className="flex flex-wrap gap-2">
-              {initialSuggestions.map((s) => (
+            <div className="grid grid-cols-2 gap-2">
+              {calculatorActions.slice(0, 6).map((action) => (
                 <button
-                  key={s}
-                  onClick={() => sendMessage(s)}
+                  key={action.label}
+                  onClick={() => sendMessage(action.prompt)}
                   disabled={isLoading}
-                  className="text-xs px-3 py-1.5 bg-gray-100 text-gray-700 rounded-full hover:bg-blue-100 hover:text-blue-700 transition-colors disabled:opacity-50 text-left"
+                  className="text-left p-3 rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50/50 transition-colors disabled:opacity-50 group"
                 >
-                  {s}
+                  <div className="flex items-center gap-2 mb-1">
+                    <svg className="w-4 h-4 text-blue-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d={action.icon} />
+                    </svg>
+                    <span className="text-xs font-semibold text-gray-900 group-hover:text-blue-700">{action.label}</span>
+                  </div>
+                  <p className="text-[11px] text-gray-500 leading-snug line-clamp-2">{action.description}</p>
                 </button>
               ))}
             </div>
+            {calculatorActions.length > 6 && (
+              <div className="flex flex-wrap gap-1.5 mt-3">
+                {calculatorActions.slice(6).map((action) => (
+                  <button
+                    key={action.label}
+                    onClick={() => sendMessage(action.prompt)}
+                    disabled={isLoading}
+                    className="text-xs px-3 py-1.5 bg-gray-100 text-gray-700 rounded-full hover:bg-blue-100 hover:text-blue-700 transition-colors disabled:opacity-50"
+                  >
+                    {action.label}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
