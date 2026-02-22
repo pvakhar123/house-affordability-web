@@ -5,6 +5,7 @@ import { useState } from "react";
 type Section = { id: string; title: string; icon: string };
 
 const sections: Section[] = [
+  { id: "product", title: "Product", icon: "M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" },
   { id: "architecture", title: "Architecture", icon: "M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 7.5h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z" },
   { id: "agents", title: "Agent Pipeline", icon: "M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z" },
   { id: "math", title: "Financial Math", icon: "M15.75 15.75V18m-7.5-6.75h.008v.008H8.25v-.008zm0 2.25h.008v.008H8.25V13.5zm0 2.25h.008v.008H8.25v-.008zm0 2.25h.008v.008H8.25V18zm2.498-6.75h.007v.008h-.007v-.008zm0 2.25h.007v.008h-.007V13.5zm0 2.25h.007v.008h-.007v-.008zm0 2.25h.007v.008h-.007V18zm2.504-6.75h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008V13.5zm0 2.25h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008V18zm2.498-6.75h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008V13.5zM8.25 6h7.5v2.25h-7.5V6zM12 2.25c-1.892 0-3.758.11-5.593.322C5.307 2.7 4.5 3.65 4.5 4.757V19.5a2.25 2.25 0 002.25 2.25h10.5a2.25 2.25 0 002.25-2.25V4.757c0-1.108-.806-2.057-1.907-2.185A48.507 48.507 0 0012 2.25z" },
@@ -59,6 +60,7 @@ export default function InternalDocsPage() {
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-8 py-8 max-w-4xl">
+        {active === "product" && <ProductDocSection />}
         {active === "architecture" && <ArchitectureSection />}
         {active === "agents" && <AgentPipelineSection />}
         {active === "math" && <FinancialMathSection />}
@@ -141,6 +143,255 @@ function Table({ headers, rows }: { headers: string[]; rows: string[][] }) {
 /* ═══════════════════════════════════════════
    Section components
    ═══════════════════════════════════════════ */
+
+function ProductDocSection() {
+  return (
+    <>
+      <h2 className="text-2xl font-bold text-gray-900 mb-4">Product Documentation</h2>
+      <Info>Complete feature inventory covering all user-facing capabilities, interactions, and requirements.</Info>
+
+      <Card title="Core Analysis Form">
+        <p className="text-sm text-gray-600 mb-3">The main page (<Code>/</Code>) collects financial and property data, then streams a full affordability analysis in three phases.</p>
+        <p className="text-xs font-semibold text-gray-500 uppercase mt-4 mb-2">Location Fields</p>
+        <Table
+          headers={["Field", "Type", "Notes"]}
+          rows={[
+            ["Location Mode", "Toggle", "\"Specific Address\" or \"Neighborhood\""],
+            ["Specific Address", "Autocomplete", "Mapbox-powered, up to 6 US address suggestions"],
+            ["Neighborhood Tags", "Multi-tag input", "Search 250+ US cities or add custom"],
+            ["Include 5-mile radius", "Checkbox", "Appends \"surrounding areas\" context"],
+            ["Loan Type", "Select", "30yr fixed (default), 15yr, 20yr, 5/1 ARM, 7/1 ARM"],
+            ["Military Veteran", "Checkbox", "Unlocks VA loan analysis"],
+            ["First-Time Buyer", "Checkbox", "Enables FHA / first-time programs"],
+          ]}
+        />
+        <p className="text-xs font-semibold text-gray-500 uppercase mt-4 mb-2">Financial Profile (* = required)</p>
+        <Table
+          headers={["Field", "Required", "Default"]}
+          rows={[
+            ["Annual Gross Income*", "Yes", "$120,000"],
+            ["Additional Annual Income", "No", "—"],
+            ["Down Payment Savings*", "Yes", "$60,000"],
+            ["Emergency Fund", "No", "$20,000"],
+            ["Monthly Debt Payments*", "Yes", "$500"],
+            ["Monthly Living Expenses", "No", "$3,000"],
+            ["Current Rent", "No", "$2,500"],
+            ["Credit Score*", "Yes", "740 (range 300–850)"],
+          ]}
+        />
+        <p className="text-xs font-semibold text-gray-500 uppercase mt-4 mb-2">Property Details (address mode only, all optional)</p>
+        <Table
+          headers={["Field", "Notes"]}
+          rows={[
+            ["Listing Price", "Triggers property-specific verdict"],
+            ["Annual Property Tax", "Defaults to ~1.1% of price"],
+            ["Monthly HOA", "Included in payment calculation"],
+            ["Square Footage", "Used for price/sqft display"],
+          ]}
+        />
+        <p className="text-xs font-semibold text-gray-500 uppercase mt-4 mb-2">Investment Analysis (toggle)</p>
+        <Table
+          headers={["Field", "Default"]}
+          rows={[
+            ["Expected Monthly Rent", "Auto-estimate from area data"],
+            ["Property Management %", "10%"],
+            ["Vacancy Rate %", "8%"],
+            ["CapEx Reserve %", "5%"],
+          ]}
+        />
+      </Card>
+
+      <Card title="Results Dashboard">
+        <p className="text-sm text-gray-600 mb-3">After analysis, results stream in progressively. The dashboard renders these cards in order:</p>
+        <Table
+          headers={["#", "Card", "Condition"]}
+          rows={[
+            ["1", "Hero Banner — Location photo or satellite map", "Always"],
+            ["2", "Report Feedback — Thumbs up/down", "Always"],
+            ["3", "Report Actions — PDF, Save, Share Link, Email", "Always"],
+            ["4", "Property Verdict — Comfortable / Tight / Stretch / Over Budget", "Specific property analyzed"],
+            ["5", "Core Affordability — Max price, recommended, PITI, DTI", "Always"],
+            ["6", "Investment Analysis — Cash flow, cap rate, CoC, 10-yr projections", "Investment toggle on"],
+            ["7", "Budget Simulator — Interactive sliders for what-if scenarios", "Always"],
+            ["8", "Market Snapshot — Live rates, prices, inflation, 10-yr charts", "Always"],
+            ["9", "Neighborhood Info — Schools, transit, safety, walkability", "Recognized metro area"],
+            ["10", "Risk Assessment — Risk flags, stress tests, emergency fund", "Always"],
+            ["11", "Rent vs. Buy — 5/10-yr cost comparison, break-even year", "Current rent provided"],
+            ["12", "Loan Programs — Conventional, FHA, VA, USDA eligibility", "Always"],
+            ["13", "5-Year Equity Buildup — Amortization table", "Always"],
+            ["14", "Matching Properties — Up to 3 real listings within budget", "RapidAPI key configured"],
+            ["15", "AI Summary — Narrative analysis from Claude Sonnet", "Always"],
+            ["16", "AI Chat — Contextual follow-up Q&A", "Always"],
+          ]}
+        />
+      </Card>
+
+      <Card title="Smart Fill — Document Upload">
+        <p className="text-sm text-gray-600 mb-3">Users upload pay stubs, W-2s, bank statements, or tax returns. AI extracts financial fields with confidence scores (High/Medium/Low).</p>
+        <Table
+          headers={["Document Type", "Extraction"]}
+          rows={[
+            ["Pay Stubs", "Annualizes per-period gross (biweekly ×26, semi-monthly ×24, monthly ×12)"],
+            ["W-2 Forms", "Uses Box 1 wages"],
+            ["Bank Statements", "Account balances, monthly expenses"],
+            ["Tax Returns (1040)", "Reported income figures"],
+          ]}
+        />
+        <p className="text-sm text-gray-600 mt-3">Extracted fields: income, additional income, debt payments, savings, credit score, expenses. Users can apply individually or bulk-apply. Files: PNG, JPG, WebP, GIF, PDF. Max 10MB/file, up to 5 files in parallel. Documents are processed in-memory only, never stored.</p>
+      </Card>
+
+      <Card title="Property Import from URL">
+        <p className="text-sm text-gray-600">Paste a real estate listing URL → AI extracts address, price, tax, HOA, sqft, beds, baths, year built, and property type. Endpoint: <Code>POST /api/extract-property</Code>. Fetches page HTML (10s timeout), strips scripts, truncates to 50K chars, sends to Claude for JSON extraction.</p>
+      </Card>
+
+      <Card title="AI Chat">
+        <p className="text-sm text-gray-600 mb-3">Context-aware chat with full report embedded in system prompt. Token-by-token SSE streaming with tool use.</p>
+        <Table
+          headers={["Tool", "Source", "Purpose"]}
+          rows={[
+            ["recalculate_affordability", "JS math", "Recalculate with different income/debt/rate"],
+            ["calculate_payment_for_price", "JS math", "Full PITI breakdown for any price"],
+            ["compare_scenarios", "JS math", "Side-by-side loan comparison"],
+            ["stress_test", "JS math", "Rate hike / income loss simulation"],
+            ["rent_vs_buy", "JS math", "Rent vs. buy over N years"],
+            ["analyze_property", "JS math", "Verdict for a specific listing price"],
+            ["lookup_mortgage_info", "RAG", "Search curated mortgage knowledge base"],
+            ["get_current_rates", "FRED API", "Live 30yr/15yr/ARM rates"],
+            ["search_properties", "Zillow API", "Real listings by city/price/beds"],
+            ["get_area_info", "Static data", "Tax rates, schools, cost of living"],
+          ]}
+        />
+        <p className="text-sm text-gray-600 mt-3">Max 5 tool-use iterations per request. Quick-start suggestion chips and follow-up prompts generated dynamically. Thumbs up/down on each response.</p>
+      </Card>
+
+      <Card title="Report Actions">
+        <Table
+          headers={["Action", "How It Works"]}
+          rows={[
+            ["Download PDF", "Client-side via jsPDF — generates and downloads affordability-report.pdf"],
+            ["Save Report", "Signed-in: saves to DB via POST /api/saved-reports. Anonymous: localStorage (max 10)"],
+            ["Copy Share Link", "Compresses report via CompressionStream + base64url into ?report= URL param"],
+            ["Email Report", "POST /api/email-report — formatted HTML email via Resend transactional service"],
+          ]}
+        />
+      </Card>
+
+      <Card title="Saved Reports">
+        <p className="text-sm text-gray-600 mb-3">Page: <Code>/saved-reports</Code>. Users can view, rename, delete, and reload saved analyses.</p>
+        <Table
+          headers={["Endpoint", "Method", "Purpose"]}
+          rows={[
+            ["/api/saved-reports", "GET", "List user's saved reports"],
+            ["/api/saved-reports", "POST", "Save a new report"],
+            ["/api/saved-reports/[id]", "PATCH", "Rename a report"],
+            ["/api/saved-reports/[id]", "DELETE", "Delete a report (ownership verified)"],
+          ]}
+        />
+        <p className="text-sm text-gray-600 mt-3">Tier limits: Free = 3 saved, Pro = unlimited. Click a report → loads into the full dashboard via sessionStorage.</p>
+      </Card>
+
+      <Card title="Budget Simulator">
+        <p className="text-sm text-gray-600 mb-3">Interactive sliders in the results dashboard. No API calls — pure client-side recalculation using the same financial math library.</p>
+        <Table
+          headers={["Slider", "Range", "Step"]}
+          rows={[
+            ["Annual Income", "$30K–$500K", "$5K"],
+            ["Monthly Debt", "$0–$5K", "$50"],
+            ["Down Payment", "$0–$500K", "$5K"],
+            ["Emergency Fund", "$0–$200K", "$5K"],
+            ["Closing Costs Budget", "$0–$50K", "$1K"],
+          ]}
+        />
+        <p className="text-sm text-gray-600 mt-3">Live outputs: readiness score (0–100), max price delta, monthly payment delta, DTI, contextual tips. Reset button returns to original values.</p>
+      </Card>
+
+      <Card title="Matching Properties">
+        <p className="text-sm text-gray-600 mb-3">Up to 3 real listings from Realtor API, categorized by budget fit:</p>
+        <ul className="list-disc list-inside text-sm text-gray-600 space-y-1">
+          <li><strong>Below budget</strong> — &lt;95% of recommended price</li>
+          <li><strong>Sweet spot</strong> — 90–110% of recommended price</li>
+          <li><strong>Stretch buy</strong> — 85–105% of max affordable price</li>
+        </ul>
+        <p className="text-sm text-gray-600 mt-3">Each card shows: photo, address, price, beds/baths, sqft, estimated monthly payment, and highlight tags (new listing, price cut, new build). Requires <Code>RAPIDAPI_KEY</Code>.</p>
+      </Card>
+
+      <Card title="RAG Knowledge Base Demo">
+        <p className="text-sm text-gray-600 mb-3">Standalone page at <Code>/rag-demo</Code>. Users ask general mortgage questions, answered via BM25 retrieval over 14 curated documents. Shows answer with cited sources and relevance scores.</p>
+        <p className="text-xs font-semibold text-gray-500 uppercase mt-3 mb-2">Example Questions</p>
+        <ul className="list-disc list-inside text-sm text-gray-600 space-y-1">
+          <li>Minimum down payment for FHA loan?</li>
+          <li>How does credit score affect mortgage rates?</li>
+          <li>Difference between PMI and MIP?</li>
+          <li>ARM vs. fixed rate mortgage?</li>
+          <li>What are closing costs?</li>
+          <li>First-time homebuyer programs?</li>
+          <li>What is DTI?</li>
+          <li>How to avoid PMI?</li>
+        </ul>
+      </Card>
+
+      <Card title="MCP Server & GPT-Compatible API">
+        <p className="text-sm text-gray-600 mb-3">6 calculator tools exposed via Model Context Protocol (stdio + SSE) for Claude Desktop and other MCP clients. Same tools available as REST endpoints at <Code>/api/gpt/[tool]</Code> for GPT Actions and other integrations.</p>
+        <Table
+          headers={["Tool / Endpoint", "Function"]}
+          rows={[
+            ["calculate_affordability", "Max price + payment breakdown from income/debts/savings"],
+            ["analyze_property", "Property-specific verdict at a given price"],
+            ["compare_scenarios", "Side-by-side loan comparison"],
+            ["stress_test", "Rate hike + income loss simulations"],
+            ["rent_vs_buy", "Rent vs. buy over N years"],
+            ["lookup_mortgage_info", "RAG knowledge base search"],
+          ]}
+        />
+      </Card>
+
+      <Card title="All User-Facing Routes">
+        <Table
+          headers={["Route", "Description", "Auth"]}
+          rows={[
+            ["/", "Main affordability analysis form + results", "No"],
+            ["/saved-reports", "View / manage saved reports", "Yes"],
+            ["/docs", "In-app documentation (11 sections)", "No"],
+            ["/pricing", "Free vs. Pro plan comparison", "No"],
+            ["/rag-demo", "Mortgage knowledge base Q&A", "No"],
+            ["/privacy", "Privacy policy", "No"],
+            ["/terms", "Terms of service", "No"],
+          ]}
+        />
+      </Card>
+
+      <Card title="Tier Limits Summary">
+        <Table
+          headers={["Feature", "Free", "Pro"]}
+          rows={[
+            ["Reports / month", "1", "20"],
+            ["Chat messages / day", "20", "Unlimited"],
+            ["Saved reports", "3", "Unlimited"],
+            ["Anonymous (no sign-in)", "1 report/day/IP", "—"],
+            ["AI agents & tools", "All", "All"],
+            ["Real-time market data", "Yes", "Yes"],
+            ["Shareable report links", "Yes", "Yes"],
+            ["Priority support", "No", "Yes"],
+          ]}
+        />
+        <p className="text-sm text-gray-600 mt-3">When a limit is hit, the client receives a <Code>403 limit_reached</Code> response and shows the <Code>UpgradePrompt</Code> modal — either &quot;Sign in&quot; (anonymous) or &quot;View Pro Plans&quot; (free tier).</p>
+      </Card>
+
+      <Card title="Rate Limits (abuse prevention)">
+        <Table
+          headers={["Endpoint", "Limit", "Window"]}
+          rows={[
+            ["/api/analyze", "10 requests", "per hour per IP"],
+            ["/api/chat", "60 messages", "per hour per IP"],
+            ["/api/extract-document", "20 requests", "per hour per IP"],
+            ["/api/extract-property", "20 requests", "per hour per IP"],
+          ]}
+        />
+        <Warn>Rate limits are per-process (in-memory sliding window). Each serverless cold start gets its own map — not shared across instances.</Warn>
+      </Card>
+    </>
+  );
+}
 
 function ArchitectureSection() {
   return (
