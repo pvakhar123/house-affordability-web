@@ -3,13 +3,15 @@
 import { useSession } from "next-auth/react";
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 import BuyingPowerCard from "@/components/dashboard/BuyingPowerCard";
 import UsageTierCard from "@/components/dashboard/UsageTierCard";
 import RateWatchCard from "@/components/dashboard/RateWatchCard";
 import AffordabilityTrendChart from "@/components/dashboard/AffordabilityTrendChart";
 import DashboardReportsList from "@/components/dashboard/DashboardReportsList";
 import DashboardRecommendationsCard from "@/components/dashboard/DashboardRecommendationsCard";
-import FloatingChatWidget from "@/components/dashboard/FloatingChatWidget";
+import ChatInterface from "@/components/ChatInterface";
+import type { FinalReport } from "@/lib/types";
 import type { UsageStatus } from "@/lib/tier";
 
 interface DashboardData {
@@ -55,13 +57,45 @@ function Skeleton() {
   );
 }
 
+function ChatPlaceholder() {
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm flex flex-col h-full items-center justify-center px-6">
+      <svg className="w-10 h-10 text-gray-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
+      </svg>
+      <p className="text-sm font-medium text-gray-600 mb-1">AI Chat Assistant</p>
+      <p className="text-xs text-gray-400 text-center mb-3">Run an analysis to unlock chat with AI-powered calculators</p>
+      <Link
+        href="/analyze"
+        className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-colors"
+      >
+        Start Analysis
+      </Link>
+    </div>
+  );
+}
+
+function ChatLoading() {
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm flex flex-col h-full items-center justify-center">
+      <div className="w-8 h-8 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-3" />
+      <p className="text-sm text-gray-500">Loading your analysis...</p>
+    </div>
+  );
+}
+
 export default function DashboardClient() {
   const { data: session, status } = useSession();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const searchParams = useSearchParams();
   const [showUpgradeBanner, setShowUpgradeBanner] = useState(false);
-  const [chatPrompt, setChatPrompt] = useState<string | null>(null);
+  const [chatPrompt, setChatPrompt] = useState<string | undefined>();
+
+  // Chat report state
+  const [chatReport, setChatReport] = useState<FinalReport | null>(null);
+  const [chatLocation, setChatLocation] = useState<string | undefined>();
+  const [chatLoading, setChatLoading] = useState(false);
 
   useEffect(() => {
     if (searchParams.get("upgrade") === "success") {
@@ -90,6 +124,24 @@ export default function DashboardClient() {
     }
   }, [status, fetchDashboard]);
 
+  // Fetch the full report for chat once we know the latest report ID
+  useEffect(() => {
+    const latestId = data?.reports[0]?.id;
+    if (!latestId || chatReport || chatLoading) return;
+
+    setChatLoading(true);
+    fetch(`/api/saved-reports/${latestId}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((result) => {
+        if (result) {
+          setChatReport(result.report);
+          setChatLocation(result.userLocation ?? undefined);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setChatLoading(false));
+  }, [data?.reports, chatReport, chatLoading]);
+
   if (status === "loading" || (status === "authenticated" && loading)) {
     return <Skeleton />;
   }
@@ -108,97 +160,117 @@ export default function DashboardClient() {
     );
   }
 
+  const hasReports = (data?.reports.length ?? 0) > 0;
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Page header */}
-      <div className="bg-gray-50 border-b border-gray-200">
-        <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">Dashboard</h1>
-            {data?.user.name && (
-              <p className="text-sm text-gray-500">Welcome back, {data.user.name.split(" ")[0]}</p>
-            )}
-          </div>
-          <a
-            href="/analyze"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-            </svg>
-            New Analysis
-          </a>
-        </div>
-      </div>
-
-      <div className="max-w-5xl mx-auto px-4 py-6 space-y-4">
-        {showUpgradeBanner && (
-          <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-3 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <svg className="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <p className="text-sm text-green-800 font-medium">
-                Welcome to Pro! Your upgrade is active.
-              </p>
+    <>
+      <div className="min-h-screen bg-gray-50" style={{ marginRight: hasReports ? "clamp(0px, calc(100vw - 1280px + 400px), 400px)" : undefined }}>
+        {/* Page header */}
+        <div className="bg-gray-50 border-b border-gray-200">
+          <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
+            <div>
+              <h1 className="text-xl font-bold text-gray-900">Dashboard</h1>
+              {data?.user.name && (
+                <p className="text-sm text-gray-500">Welcome back, {data.user.name.split(" ")[0]}</p>
+              )}
             </div>
-            <button onClick={() => setShowUpgradeBanner(false)} className="text-green-600 hover:text-green-800">
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            <a
+              href="/analyze"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
               </svg>
-            </button>
+              New Analysis
+            </a>
           </div>
-        )}
-
-        {/* Row 1: Buying Power + Usage */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <BuyingPowerCard
-            latestMaxPrice={data?.buyingPower.latestMaxPrice ?? null}
-            latestMonthlyPayment={data?.buyingPower.latestMonthlyPayment ?? null}
-            rateDelta={data?.buyingPower.rateDelta ?? null}
-            currentRate={data?.buyingPower.currentRate ?? null}
-          />
-          <UsageTierCard
-            usage={data?.usage ?? null}
-            tier={data?.user.tier ?? "free"}
-          />
         </div>
 
-        {/* Row 2: Recommendations & Quick Actions */}
-        {data && data.reports.length > 0 && (
-          <DashboardRecommendationsCard
-            buyingPower={data.buyingPower}
-            latestReportSavedAt={data.reports[0]?.savedAt ?? null}
-            onChatPrompt={(prompt) => setChatPrompt(prompt)}
-          />
-        )}
+        <div className="max-w-5xl mx-auto px-4 py-6 space-y-4">
+          {showUpgradeBanner && (
+            <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <svg className="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p className="text-sm text-green-800 font-medium">
+                  Welcome to Pro! Your upgrade is active.
+                </p>
+              </div>
+              <button onClick={() => setShowUpgradeBanner(false)} className="text-green-600 hover:text-green-800">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          )}
 
-        {/* Row 3: Rate Watch + Affordability Trend */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <RateWatchCard
-            current30yr={data?.rates.current30yr ?? null}
-            current15yr={data?.rates.current15yr ?? null}
-            history30yr={data?.rates.history30yr ?? []}
-          />
-          <AffordabilityTrendChart
+          {/* Row 1: Buying Power + Usage */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <BuyingPowerCard
+              latestMaxPrice={data?.buyingPower.latestMaxPrice ?? null}
+              latestMonthlyPayment={data?.buyingPower.latestMonthlyPayment ?? null}
+              rateDelta={data?.buyingPower.rateDelta ?? null}
+              currentRate={data?.buyingPower.currentRate ?? null}
+            />
+            <UsageTierCard
+              usage={data?.usage ?? null}
+              tier={data?.user.tier ?? "free"}
+            />
+          </div>
+
+          {/* Row 2: Recommendations & Quick Actions */}
+          {data && hasReports && (
+            <DashboardRecommendationsCard
+              buyingPower={data.buyingPower}
+              latestReportSavedAt={data.reports[0]?.savedAt ?? null}
+              onChatPrompt={(prompt) => setChatPrompt(prompt)}
+            />
+          )}
+
+          {/* Row 3: Rate Watch + Affordability Trend */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <RateWatchCard
+              current30yr={data?.rates.current30yr ?? null}
+              current15yr={data?.rates.current15yr ?? null}
+              history30yr={data?.rates.history30yr ?? []}
+            />
+            <AffordabilityTrendChart
+              reports={data?.reports ?? []}
+            />
+          </div>
+
+          {/* Row 4: Saved Reports */}
+          <DashboardReportsList
             reports={data?.reports ?? []}
           />
-        </div>
 
-        {/* Row 4: Saved Reports */}
-        <DashboardReportsList
-          reports={data?.reports ?? []}
-        />
+          {/* Chat - below content on smaller screens */}
+          <div className="block xl:hidden" style={{ height: "500px" }}>
+            {chatLoading ? (
+              <ChatLoading />
+            ) : chatReport ? (
+              <ChatInterface report={chatReport} userLocation={chatLocation} initialPrompt={chatPrompt} />
+            ) : (
+              <ChatPlaceholder />
+            )}
+          </div>
+        </div>
       </div>
 
-      {/* Floating Chat Widget */}
-      {data && (
-        <FloatingChatWidget
-          latestReportId={data.reports[0]?.id ?? null}
-          initialPrompt={chatPrompt}
-          onPromptConsumed={() => setChatPrompt(null)}
-        />
-      )}
-    </div>
+      {/* Chat - fixed right column on xl+ */}
+      <div
+        style={{ zIndex: 40 }}
+        className="fixed right-0 top-0 bottom-0 w-[390px] p-4 pl-0 max-xl:hidden"
+      >
+        {chatLoading ? (
+          <ChatLoading />
+        ) : chatReport ? (
+          <ChatInterface report={chatReport} userLocation={chatLocation} initialPrompt={chatPrompt} />
+        ) : (
+          <ChatPlaceholder />
+        )}
+      </div>
+    </>
   );
 }
