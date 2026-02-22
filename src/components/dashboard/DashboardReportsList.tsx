@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 interface ReportItem {
@@ -19,6 +21,26 @@ function fmt(n: number): string {
 }
 
 export default function DashboardReportsList({ reports }: Props) {
+  const router = useRouter();
+  const [loadingId, setLoadingId] = useState<string | null>(null);
+
+  const handleClick = async (id: string) => {
+    if (loadingId) return;
+    setLoadingId(id);
+    try {
+      const res = await fetch(`/api/saved-reports/${id}`);
+      if (!res.ok) throw new Error("Failed to fetch");
+      const data = await res.json();
+      sessionStorage.setItem("loadReport", JSON.stringify({
+        report: data.report,
+        userLocation: data.userLocation,
+      }));
+      router.push("/analyze");
+    } catch {
+      setLoadingId(null);
+    }
+  };
+
   if (reports.length === 0) {
     return (
       <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
@@ -51,16 +73,18 @@ export default function DashboardReportsList({ reports }: Props) {
           <h3 className="text-sm font-semibold text-gray-900">Saved Reports</h3>
           <span className="text-xs text-gray-400">{reports.length} total</span>
         </div>
-        <Link href="/" className="text-xs text-blue-600 hover:text-blue-800">
+        <Link href="/analyze" className="text-xs text-blue-600 hover:text-blue-800">
           New Analysis
         </Link>
       </div>
 
       <div className="divide-y divide-gray-100">
         {reports.map((report) => (
-          <div
+          <button
             key={report.id}
-            className="px-5 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors"
+            onClick={() => handleClick(report.id)}
+            disabled={loadingId !== null}
+            className="w-full px-5 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors text-left cursor-pointer disabled:opacity-60"
           >
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-gray-900 truncate">{report.name}</p>
@@ -80,7 +104,14 @@ export default function DashboardReportsList({ reports }: Props) {
                 )}
               </div>
             </div>
-          </div>
+            {loadingId === report.id ? (
+              <div className="w-4 h-4 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin flex-shrink-0" />
+            ) : (
+              <svg className="w-4 h-4 text-gray-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+              </svg>
+            )}
+          </button>
         ))}
       </div>
     </div>

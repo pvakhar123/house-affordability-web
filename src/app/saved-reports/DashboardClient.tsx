@@ -8,6 +8,8 @@ import UsageTierCard from "@/components/dashboard/UsageTierCard";
 import RateWatchCard from "@/components/dashboard/RateWatchCard";
 import AffordabilityTrendChart from "@/components/dashboard/AffordabilityTrendChart";
 import DashboardReportsList from "@/components/dashboard/DashboardReportsList";
+import DashboardRecommendationsCard from "@/components/dashboard/DashboardRecommendationsCard";
+import FloatingChatWidget from "@/components/dashboard/FloatingChatWidget";
 import type { UsageStatus } from "@/lib/tier";
 
 interface DashboardData {
@@ -59,6 +61,7 @@ export default function DashboardClient() {
   const [loading, setLoading] = useState(true);
   const searchParams = useSearchParams();
   const [showUpgradeBanner, setShowUpgradeBanner] = useState(false);
+  const [chatPrompt, setChatPrompt] = useState<string | null>(null);
 
   useEffect(() => {
     if (searchParams.get("upgrade") === "success") {
@@ -161,7 +164,16 @@ export default function DashboardClient() {
           />
         </div>
 
-        {/* Row 2: Rate Watch + Affordability Trend */}
+        {/* Row 2: Recommendations & Quick Actions */}
+        {data && data.reports.length > 0 && (
+          <DashboardRecommendationsCard
+            buyingPower={data.buyingPower}
+            latestReportSavedAt={data.reports[0]?.savedAt ?? null}
+            onChatPrompt={(prompt) => setChatPrompt(prompt)}
+          />
+        )}
+
+        {/* Row 3: Rate Watch + Affordability Trend */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <RateWatchCard
             current30yr={data?.rates.current30yr ?? null}
@@ -173,11 +185,20 @@ export default function DashboardClient() {
           />
         </div>
 
-        {/* Row 3: Saved Reports */}
+        {/* Row 4: Saved Reports */}
         <DashboardReportsList
           reports={data?.reports ?? []}
         />
       </div>
+
+      {/* Floating Chat Widget */}
+      {data && (
+        <FloatingChatWidget
+          latestReportId={data.reports[0]?.id ?? null}
+          initialPrompt={chatPrompt}
+          onPromptConsumed={() => setChatPrompt(null)}
+        />
+      )}
     </div>
   );
 }

@@ -316,10 +316,11 @@ function renderFormattedText(text: string): React.ReactNode {
   return <>{elements}</>;
 }
 
-export default function ChatInterface({ report, userLocation }: { report: FinalReport; userLocation?: string }) {
+export default function ChatInterface({ report, userLocation, initialPrompt }: { report: FinalReport; userLocation?: string; initialPrompt?: string }) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const initialPromptSent = useRef(false);
   const [conversationSummary, setConversationSummary] = useState<string | null>(null);
   const [sessionMemory, setSessionMemory] = useState<SessionMemory | null>(null);
   const [ratings, setRatings] = useState<Record<number, Rating>>({});
@@ -526,6 +527,15 @@ export default function ChatInterface({ report, userLocation }: { report: FinalR
       inputRef.current?.focus();
     }
   };
+
+  // Auto-send initial prompt from external trigger (e.g. dashboard recommendation)
+  useEffect(() => {
+    if (initialPrompt && !initialPromptSent.current && !isLoading && messages.length === 0) {
+      initialPromptSent.current = true;
+      sendMessage(initialPrompt);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialPrompt]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

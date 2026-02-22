@@ -605,6 +605,24 @@ export async function getUserSavedReports(userId: string) {
   }));
 }
 
+export async function getSavedReportById(id: string, userId: string) {
+  const db = getDb();
+  const [row] = await db
+    .select()
+    .from(schema.savedReports)
+    .where(and(eq(schema.savedReports.id, id), eq(schema.savedReports.userId, userId)));
+
+  if (!row) return null;
+
+  return {
+    id: row.id,
+    name: row.name,
+    savedAt: row.savedAt.toISOString(),
+    report: row.report as FinalReport,
+    userLocation: row.userLocation,
+  };
+}
+
 export async function insertSavedReport(entry: {
   userId: string;
   name: string;
