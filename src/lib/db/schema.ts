@@ -117,6 +117,21 @@ export const usageEvents = pgTable("usage_events", {
   metadata: jsonb("metadata").$type<Record<string, unknown>>(),
 });
 
+// ── llm_costs ──────────────────────────────────────────────
+// Per-LLM-call token usage and computed dollar cost
+
+export const llmCosts = pgTable("llm_costs", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  timestamp: timestamp("timestamp", { withTimezone: true }).notNull().defaultNow(),
+  traceName: text("trace_name").notNull(),
+  model: text("model").notNull(),
+  inputTokens: integer("input_tokens").notNull(),
+  outputTokens: integer("output_tokens").notNull(),
+  cacheCreationTokens: integer("cache_creation_tokens").notNull().default(0),
+  cacheReadTokens: integer("cache_read_tokens").notNull().default(0),
+  totalCost: real("total_cost").notNull(), // USD
+});
+
 // ── error_logs ──────────────────────────────────────────────
 // Persists API route errors for operational visibility
 

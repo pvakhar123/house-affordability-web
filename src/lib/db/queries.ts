@@ -477,6 +477,115 @@ export async function queryErrorLogs(opts?: {
   };
 }
 
+// ── LLM Costs ──────────────────────────────────────────────
+
+export async function insertLlmCost(entry: {
+  traceName: string;
+  model: string;
+  inputTokens: number;
+  outputTokens: number;
+  cacheCreationTokens: number;
+  cacheReadTokens: number;
+  totalCost: number;
+}) {
+  const db = getDb();
+  await db.insert(schema.llmCosts).values({
+    traceName: entry.traceName,
+    model: entry.model,
+    inputTokens: entry.inputTokens,
+    outputTokens: entry.outputTokens,
+    cacheCreationTokens: entry.cacheCreationTokens,
+    cacheReadTokens: entry.cacheReadTokens,
+    totalCost: entry.totalCost,
+  });
+}
+
+export async function queryLlmCosts(opts?: { since?: string }) {
+  const db = getDb();
+
+  const where = opts?.since
+    ? gte(schema.llmCosts.timestamp, new Date(opts.since))
+    : undefined;
+
+  // Totals
+  const [totals] = await db
+    .select({
+      callCount: count(),
+      totalCost: sql<string>`COALESCE(SUM(${schema.llmCosts.totalCost}), 0)`,
+      totalInputTokens: sql<string>`COALESCE(SUM(${schema.llmCosts.inputTokens}), 0)`,
+      totalOutputTokens: sql<string>`COALESCE(SUM(${schema.llmCosts.outputTokens}), 0)`,
+    })
+    .from(schema.llmCosts)
+    .where(where);
+
+  // By model
+  const byModel = await db
+    .select({
+      model: schema.llmCosts.model,
+      callCount: count(),
+      cost: sql<string>`COALESCE(SUM(${schema.llmCosts.totalCost}), 0)`,
+    })
+    .from(schema.llmCosts)
+    .where(where)
+    .groupBy(schema.llmCosts.model)
+    .orderBy(desc(sql`SUM(${schema.llmCosts.totalCost})`));
+
+  // By day
+  const byDay = await db
+    .select({
+      day: sql<string>`DATE_TRUNC('day', ${schema.llmCosts.timestamp})::text`,
+      cost: sql<string>`COALESCE(SUM(${schema.llmCosts.totalCost}), 0)`,
+      callCount: count(),
+    })
+    .from(schema.llmCosts)
+    .where(where)
+    .groupBy(sql`DATE_TRUNC('day', ${schema.llmCosts.timestamp})`)
+    .orderBy(sql`DATE_TRUNC('day', ${schema.llmCosts.timestamp})`);
+
+  // By trace name (endpoint)
+  const byTrace = await db
+    .select({
+      traceName: schema.llmCosts.traceName,
+      callCount: count(),
+      cost: sql<string>`COALESCE(SUM(${schema.llmCosts.totalCost}), 0)`,
+    })
+    .from(schema.llmCosts)
+    .where(where)
+    .groupBy(schema.llmCosts.traceName)
+    .orderBy(desc(sql`SUM(${schema.llmCosts.totalCost})`));
+
+  // Recent calls
+  const recentCalls = await db
+    .select()
+    .from(schema.llmCosts)
+    .where(where)
+    .orderBy(desc(schema.llmCosts.timestamp))
+    .limit(50);
+
+  return {
+    totals: {
+      callCount: totals.callCount,
+      totalCost: Number(totals.totalCost),
+      totalInputTokens: Number(totals.totalInputTokens),
+      totalOutputTokens: Number(totals.totalOutputTokens),
+    },
+    byModel: byModel.map((r) => ({ model: r.model, callCount: r.callCount, cost: Number(r.cost) })),
+    byDay: byDay.map((r) => ({ day: r.day, cost: Number(r.cost), callCount: r.callCount })),
+    byTrace: byTrace.map((r) => ({ traceName: r.traceName, callCount: r.callCount, cost: Number(r.cost) })),
+    recentCalls: recentCalls.map((r) => ({
+      id: r.id,
+      timestamp: r.timestamp.toISOString(),
+      traceName: r.traceName,
+      model: r.model,
+      inputTokens: r.inputTokens,
+      outputTokens: r.outputTokens,
+      cacheCreationTokens: r.cacheCreationTokens,
+      cacheReadTokens: r.cacheReadTokens,
+      totalCost: r.totalCost,
+    })),
+  };
+}
+
 // ── Saved Reports ────────────────────────────────────────────
 
 export async function getUserSavedReports(userId: string) {

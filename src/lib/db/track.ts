@@ -1,5 +1,5 @@
 import { isDbAvailable } from "./index";
-import { insertUsageEvent, insertErrorLog } from "./queries";
+import { insertUsageEvent, insertErrorLog, insertLlmCost } from "./queries";
 
 // ── withTracking() — wrapper for standard (non-streaming) route handlers ──
 
@@ -71,4 +71,58 @@ export function logUsageEvent(
     durationMs,
     metadata,
   }).catch((e) => console.error("[track] Usage log failed:", e));
+}
+
+// ── LLM cost logging ──
+
+// Pricing per million tokens (USD)
+const LLM_PRICING: Record<string, { input: number; output: number; cacheWrite: number; cacheRead: number }> = {
+  "claude-haiku-4-5": { input: 1, output: 5, cacheWrite: 1.25, cacheRead: 0.1 },
+  "claude-sonnet-4-5": { input: 3, output: 15, cacheWrite: 3.75, cacheRead: 0.3 },
+  // Fallback for unknown models
+  "default": { input: 1, output: 5, cacheWrite: 1.25, cacheRead: 0.1 },
+};
+
+function getPricing(model: string) {
+  for (const prefix of Object.keys(LLM_PRICING)) {
+    if (prefix !== "default" && model.startsWith(prefix)) return LLM_PRICING[prefix];
+  }
+  return LLM_PRICING["default"];
+}
+
+export function calculateLlmCost(
+  model: string,
+  inputTokens: number,
+  outputTokens: number,
+  cacheCreationTokens = 0,
+  cacheReadTokens = 0,
+): number {
+  const p = getPricing(model);
+  return (
+    (inputTokens * p.input +
+      outputTokens * p.output +
+      cacheCreationTokens * p.cacheWrite +
+      cacheReadTokens * p.cacheRead) / 1_000_000
+  );
+}
+
+export function logLlmCost(
+  traceName: string,
+  model: string,
+  inputTokens: number,
+  outputTokens: number,
+  cacheCreationTokens = 0,
+  cacheReadTokens = 0,
+): void {
+  if (!isDbAvailable) return;
+  const totalCost = calculateLlmCost(model, inputTokens, outputTokens, cacheCreationTokens, cacheReadTokens);
+  insertLlmCost({
+    traceName,
+    model,
+    inputTokens,
+    outputTokens,
+    cacheCreationTokens,
+    cacheReadTokens,
+    totalCost,
+  }).catch((e) => console.error("[track] LLM cost log failed:", e));
 }

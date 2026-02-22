@@ -1,5 +1,6 @@
 import { Langfuse } from "langfuse";
 import type Anthropic from "@anthropic-ai/sdk";
+import { logLlmCost } from "./db/track";
 
 // ─── Singleton Instance ────────────────────────────────────────
 let instance: Langfuse | null = null;
@@ -97,6 +98,16 @@ export async function traceGeneration(
       },
     });
 
+    // Log cost to local DB
+    logLlmCost(
+      trace.name,
+      params.model,
+      response.usage.input_tokens,
+      response.usage.output_tokens,
+      (usage.cache_creation_input_tokens as number) || 0,
+      (usage.cache_read_input_tokens as number) || 0,
+    );
+
     return response;
   } catch (error) {
     generation.end({
@@ -153,6 +164,16 @@ export function createStreamTrace(input: StreamTraceInput) {
               cacheReadTokens: usage.cache_read_input_tokens,
             },
           });
+
+          // Log cost to local DB
+          logLlmCost(
+            iterationName,
+            input.model,
+            response.usage.input_tokens,
+            response.usage.output_tokens,
+            (usage.cache_creation_input_tokens as number) || 0,
+            (usage.cache_read_input_tokens as number) || 0,
+          );
         },
         error(err: unknown) {
           generation.end({
