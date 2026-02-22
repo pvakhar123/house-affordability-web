@@ -26,7 +26,7 @@ export default function BuyingPowerCard({ latestMaxPrice, latestMonthlyPayment, 
         <div className="text-center py-6">
           <p className="text-sm text-gray-500 mb-3">Run your first analysis to see your buying power</p>
           <Link
-            href="/"
+            href="/analyze"
             className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -48,7 +48,7 @@ export default function BuyingPowerCard({ latestMaxPrice, latestMonthlyPayment, 
           </svg>
           <h3 className="text-sm font-semibold text-gray-900">Your Buying Power</h3>
         </div>
-        <Link href="/" className="text-xs text-blue-600 hover:text-blue-800">
+        <Link href="/analyze" className="text-xs text-blue-600 hover:text-blue-800">
           Re-analyze
         </Link>
       </div>

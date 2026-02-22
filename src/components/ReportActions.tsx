@@ -56,7 +56,7 @@ export default function ReportActions({ report, userLocation }: Props) {
     setShareError("");
     try {
       const encoded = await compressReport(report);
-      const url = `${window.location.origin}?report=${encoded}`;
+      const url = `${window.location.origin}/analyze?report=${encoded}`;
       await navigator.clipboard.writeText(url);
       setShareStatus("copied");
       setTimeout(() => setShareStatus("idle"), 2000);

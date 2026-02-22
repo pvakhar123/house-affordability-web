@@ -423,7 +423,7 @@ function SavedReportsSection() {
         </Card>
         <Card title="Saved Reports Page">
           <p className="text-sm text-gray-600">
-            Sign in with Google to access the <a href="/saved-reports" className="text-blue-600 hover:underline">Saved Reports</a> page. Here you can view, rename, add notes to, or delete any previously saved report. Click any report to reload it in the full dashboard view.
+            Sign in with Google to access your <a href="/" className="text-blue-600 hover:underline">Dashboard</a> where you can view, rename, add notes to, or delete any previously saved report. Click any report to reload it in the full dashboard view.
           </p>
         </Card>
       </div>
