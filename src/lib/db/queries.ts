@@ -643,3 +643,46 @@ export async function renameSavedReport(id: string, userId: string, name: string
     .set({ name })
     .where(and(eq(schema.savedReports.id, id), eq(schema.savedReports.userId, userId)));
 }
+
+// ── Data Retention — Automated Purge ─────────────────────────
+// Retention periods (SOC 2 compliance):
+//   usage_events, error_logs, llm_costs: 90 days
+//   feedback: 365 days
+//   eval_results, judge_scores: 180 days
+
+export async function purgeExpiredData() {
+  const db = getDb();
+  const now = new Date();
+
+  const daysAgo = (d: number) => new Date(now.getTime() - d * 86_400_000);
+
+  const results = await Promise.all([
+    db.delete(schema.usageEvents).where(
+      sql`${schema.usageEvents.timestamp} < ${daysAgo(90)}`
+    ),
+    db.delete(schema.errorLogs).where(
+      sql`${schema.errorLogs.timestamp} < ${daysAgo(90)}`
+    ),
+    db.delete(schema.llmCosts).where(
+      sql`${schema.llmCosts.timestamp} < ${daysAgo(90)}`
+    ),
+    db.delete(schema.feedback).where(
+      sql`${schema.feedback.timestamp} < ${daysAgo(365)}`
+    ),
+    db.delete(schema.evalResults).where(
+      sql`${schema.evalResults.timestamp} < ${daysAgo(180)}`
+    ),
+    db.delete(schema.judgeScores).where(
+      sql`${schema.judgeScores.timestamp} < ${daysAgo(180)}`
+    ),
+  ]);
+
+  return {
+    usageEvents: results[0].rowCount ?? 0,
+    errorLogs: results[1].rowCount ?? 0,
+    llmCosts: results[2].rowCount ?? 0,
+    feedback: results[3].rowCount ?? 0,
+    evalResults: results[4].rowCount ?? 0,
+    judgeScores: results[5].rowCount ?? 0,
+  };
+}

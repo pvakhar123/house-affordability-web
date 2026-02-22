@@ -7,6 +7,8 @@ import { flushLangfuse } from "@/lib/langfuse";
 import { logApiError, logUsageEvent } from "@/lib/db/track";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { analyzeInputSchema } from "@/lib/schemas";
+import { auth } from "@/lib/auth";
+import { checkUsage, incrementUsage, type Tier } from "@/lib/tier";
 
 export const maxDuration = 300; // 5 minutes for agent processing
 
@@ -19,6 +21,30 @@ export async function POST(request: Request) {
       { error: "Too many requests. Please try again later." },
       { status: 429, headers: { "Retry-After": String(Math.ceil(rl.resetMs / 1000)) } },
     );
+  }
+
+  // Tier-based usage gating
+  const session = await auth();
+  const userId = session?.user?.id;
+  const tier: Tier = (session?.user?.tier as Tier) ?? "free";
+
+  if (userId) {
+    const usage = await checkUsage(userId, tier, "analyze");
+    if (!usage.allowed) {
+      return NextResponse.json(
+        { error: "limit_reached", message: usage.upgradeReason, usageStatus: usage.usageStatus },
+        { status: 403 },
+      );
+    }
+  } else {
+    // Anonymous users: 1 report per day per IP
+    const anonRl = checkRateLimit(`analyze-anon:${ip}`, 1, 86_400_000);
+    if (!anonRl.allowed) {
+      return NextResponse.json(
+        { error: "limit_reached", message: "Sign in to get 1 free report per month, or upgrade to Pro for 20.", requiresAuth: true },
+        { status: 403 },
+      );
+    }
   }
 
   try {
@@ -57,6 +83,9 @@ export async function POST(request: Request) {
           }
 
           logUsageEvent("/api/analyze", "POST", 200, Date.now() - streamStart, { location: userProfile.targetLocation });
+          if (userId) {
+            incrementUsage(userId, "analyze").catch((err) => console.error("[tier] increment error:", err));
+          }
           controller.close();
         } catch (error) {
           console.error("Analysis error:", error);

@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, real, jsonb, boolean, integer, primaryKey } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, real, jsonb, boolean, integer, primaryKey, uniqueIndex } from "drizzle-orm/pg-core";
 
 // ── Auth: users ─────────────────────────────────────────────
 // Required by @auth/drizzle-adapter for NextAuth v5
@@ -9,6 +9,12 @@ export const users = pgTable("users", {
   email: text("email").notNull(),
   emailVerified: timestamp("emailVerified", { mode: "date" }),
   image: text("image"),
+  // Tier system
+  tier: text("tier").notNull().default("free"),
+  tierUpdatedAt: timestamp("tier_updated_at", { withTimezone: true }),
+  tierUpdatedBy: text("tier_updated_by"),
+  stripeCustomerId: text("stripe_customer_id"),
+  stripeSubscriptionId: text("stripe_subscription_id"),
 });
 
 // ── Auth: accounts ──────────────────────────────────────────
@@ -143,4 +149,31 @@ export const errorLogs = pgTable("error_logs", {
   stack: text("stack"),
   timestamp: timestamp("timestamp", { withTimezone: true }).notNull().defaultNow(),
   metadata: jsonb("metadata").$type<Record<string, unknown>>(),
+});
+
+// ── user_usage ──────────────────────────────────────────────
+// Per-user usage counters for tier enforcement (one row per user/action/period)
+
+export const userUsage = pgTable("user_usage", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  action: text("action").notNull(),           // "analyze" | "chat"
+  periodStart: timestamp("period_start", { withTimezone: true }).notNull(),
+  count: integer("count").notNull().default(0),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  uniqueIndex("user_usage_unique_idx").on(table.userId, table.action, table.periodStart),
+]);
+
+// ── tier_change_log ─────────────────────────────────────────
+// Audit trail for tier changes (admin upgrades, future Stripe webhooks)
+
+export const tierChangeLog = pgTable("tier_change_log", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  previousTier: text("previous_tier").notNull(),
+  newTier: text("new_tier").notNull(),
+  reason: text("reason").notNull(),            // "admin_manual" | "stripe_webhook" | "system_downgrade"
+  changedBy: text("changed_by"),
+  timestamp: timestamp("timestamp", { withTimezone: true }).notNull().defaultNow(),
 });

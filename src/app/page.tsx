@@ -9,6 +9,7 @@ import ResultsDashboard from "@/components/ResultsDashboard";
 import type { UserProfile, FinalReport } from "@/lib/types";
 import ThemeToggle from "@/components/ThemeToggle";
 import UserMenu from "@/components/UserMenu";
+import UpgradePrompt from "@/components/UpgradePrompt";
 import { decompressReport } from "@/lib/share-report";
 import { addRecentSearch } from "@/lib/recent-searches";
 type AppState = "form" | "loading" | "results";
@@ -23,6 +24,7 @@ function HomeContent() {
   const [userLocation, setUserLocation] = useState("");
   const [reportTraceId, setReportTraceId] = useState<string | undefined>();
   const [sharedLoading, setSharedLoading] = useState(false);
+  const [upgradePrompt, setUpgradePrompt] = useState<{ message: string; requiresAuth?: boolean } | null>(null);
   const searchParams = useSearchParams();
 
   // Load shared report from URL param
@@ -84,6 +86,11 @@ function HomeContent() {
 
       if (!res.ok) {
         const data = await res.json();
+        if (data.error === "limit_reached") {
+          setUpgradePrompt({ message: data.message, requiresAuth: data.requiresAuth });
+          setState("form");
+          return;
+        }
         throw new Error(data.error || "Analysis failed");
       }
 
@@ -275,15 +282,28 @@ function HomeContent() {
           </p>
           <div className="flex items-center justify-between text-xs text-gray-400">
             <span>&copy; {new Date().getFullYear()} AI Home Research</span>
-            <a
-              href="mailto:pareshv23@gmail.com"
-              className="text-gray-500 hover:text-blue-600 transition-colors"
-            >
-              Contact Me
-            </a>
+            <div className="flex items-center gap-3">
+              <a href="/privacy" className="text-gray-500 hover:text-blue-600 transition-colors">Privacy</a>
+              <a href="/terms" className="text-gray-500 hover:text-blue-600 transition-colors">Terms</a>
+              <a href="/docs" className="text-gray-500 hover:text-blue-600 transition-colors">Docs</a>
+              <a
+                href="mailto:pareshv23@gmail.com"
+                className="text-gray-500 hover:text-blue-600 transition-colors"
+              >
+                Contact
+              </a>
+            </div>
           </div>
         </div>
       </footer>
+
+      {upgradePrompt && (
+        <UpgradePrompt
+          message={upgradePrompt.message}
+          requiresAuth={upgradePrompt.requiresAuth}
+          onDismiss={() => setUpgradePrompt(null)}
+        />
+      )}
     </div>
   );
 }

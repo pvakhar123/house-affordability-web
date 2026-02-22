@@ -73,9 +73,18 @@ export default function UserMenu() {
       {open && (
         <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
           <div className="px-4 py-2 border-b border-gray-100">
-            <p className="text-sm font-medium text-gray-900 truncate">
-              {session.user.name}
-            </p>
+            <div className="flex items-center gap-2">
+              <p className="text-sm font-medium text-gray-900 truncate">
+                {session.user.name}
+              </p>
+              <span className={`inline-flex items-center px-1.5 py-0.5 text-[10px] font-semibold rounded-full ${
+                session.user.tier === "pro"
+                  ? "bg-blue-100 text-blue-700"
+                  : "bg-gray-100 text-gray-500"
+              }`}>
+                {session.user.tier === "pro" ? "PRO" : "FREE"}
+              </span>
+            </div>
             <p className="text-xs text-gray-500 truncate">
               {session.user.email}
             </p>
@@ -89,6 +98,17 @@ export default function UserMenu() {
             </svg>
             Saved Home Reports
           </a>
+          {session.user.tier !== "pro" && (
+            <a
+              href="/pricing"
+              className="flex items-center gap-2 px-4 py-2 text-sm text-blue-600 hover:bg-blue-50 transition-colors font-medium"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 0 0-2.455 2.456Z" />
+              </svg>
+              Upgrade to Pro
+            </a>
+          )}
           <button
             onClick={() => signOut()}
             className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"

@@ -66,6 +66,8 @@ import {
 } from "@/lib/guardrails";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { chatInputSchema } from "@/lib/schemas";
+import { auth } from "@/lib/auth";
+import { checkUsage, incrementUsage, type Tier } from "@/lib/tier";
 
 interface ChatRequest {
   message: string;
@@ -613,6 +615,30 @@ export async function POST(request: Request) {
     );
   }
 
+  // Tier-based usage gating
+  const session = await auth();
+  const userId = session?.user?.id;
+  const tier: Tier = (session?.user?.tier as Tier) ?? "free";
+
+  if (userId) {
+    const usage = await checkUsage(userId, tier, "chat");
+    if (!usage.allowed) {
+      return NextResponse.json(
+        { error: "limit_reached", message: usage.upgradeReason, usageStatus: usage.usageStatus },
+        { status: 403 },
+      );
+    }
+  } else {
+    // Anonymous users: 20 chat messages per day per IP
+    const anonRl = checkRateLimit(`chat-anon:${ip}`, 20, 86_400_000);
+    if (!anonRl.allowed) {
+      return NextResponse.json(
+        { error: "limit_reached", message: "Sign in to continue chatting, or upgrade to Pro for unlimited messages.", requiresAuth: true },
+        { status: 403 },
+      );
+    }
+  }
+
   try {
     config.validate();
     const body = await request.json();
@@ -869,6 +895,9 @@ Be specific with numbers. Keep responses concise. Do not provide legal or bindin
                 }));
                 send("[DONE]");
                 logUsageEvent("/api/chat", "POST", 200, Date.now() - chatStart);
+                if (userId) {
+                  incrementUsage(userId, "chat").catch((err) => console.error("[tier] increment error:", err));
+                }
                 await flushLangfuse();
                 controller.close();
 

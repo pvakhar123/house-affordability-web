@@ -24,7 +24,6 @@ const sections: Section[] = [
 
 export default function DocsPage() {
   const [active, setActive] = useState("overview");
-  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   const currentIndex = sections.findIndex((s) => s.id === active);
   const prev = currentIndex > 0 ? sections[currentIndex - 1] : null;
@@ -42,58 +41,24 @@ export default function DocsPage() {
               </svg>
               App
             </a>
-            <span className="hidden sm:inline text-gray-300">|</span>
-            <h1 className="hidden sm:inline text-sm font-bold text-gray-900">Documentation</h1>
+            <span className="text-gray-300">|</span>
+            <h1 className="text-sm font-bold text-gray-900">Documentation</h1>
           </div>
-          {/* Mobile menu toggle */}
-          <button
-            onClick={() => setMobileNavOpen(!mobileNavOpen)}
-            className="md:hidden flex items-center gap-2 px-3 py-1.5 text-sm text-gray-700 bg-gray-100 rounded-lg"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-            </svg>
-            {sections.find((s) => s.id === active)?.title}
-          </button>
-          <span className="hidden sm:inline text-xs text-gray-400">v1.0</span>
+          <span className="text-xs text-gray-400">v1.0</span>
         </div>
       </header>
 
-      {/* Mobile nav dropdown */}
-      {mobileNavOpen && (
-        <div className="md:hidden bg-white border-b border-gray-200 shadow-lg z-20">
-          <nav className="px-4 py-2">
+      <div className="flex-1 flex max-w-7xl w-full mx-auto">
+        {/* ── Left sidebar nav ── */}
+        <nav className="flex flex-col w-56 shrink-0 border-r border-gray-200 bg-white">
+          <div className="sticky top-[49px] overflow-y-auto py-4 px-3 space-y-0.5">
             {sections.map((s) => (
               <button
                 key={s.id}
-                onClick={() => { setActive(s.id); setMobileNavOpen(false); }}
-                className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-sm rounded-lg transition-colors ${
-                  active === s.id
-                    ? "bg-blue-50 text-blue-700 font-medium"
-                    : "text-gray-600 hover:bg-gray-50"
-                }`}
-              >
-                <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d={s.icon} />
-                </svg>
-                {s.title}
-              </button>
-            ))}
-          </nav>
-        </div>
-      )}
-
-      <div className="flex-1 flex max-w-7xl w-full mx-auto">
-        {/* ── Left sidebar nav (desktop) ── */}
-        <nav className="hidden md:flex flex-col w-60 shrink-0 border-r border-gray-200 bg-white">
-          <div className="sticky top-[57px] overflow-y-auto py-4 px-3 space-y-0.5">
-            {sections.map((s, i) => (
-              <button
-                key={s.id}
                 onClick={() => setActive(s.id)}
-                className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-sm rounded-lg transition-all text-left ${
+                className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg transition-all text-left ${
                   active === s.id
-                    ? "bg-blue-50 text-blue-700 font-semibold shadow-sm"
+                    ? "bg-blue-50 text-blue-700 font-semibold"
                     : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
                 }`}
               >
@@ -101,12 +66,8 @@ export default function DocsPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" d={s.icon} />
                 </svg>
                 <span className="truncate">{s.title}</span>
-                {active === s.id && (
-                  <span className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-600 shrink-0" />
-                )}
               </button>
             ))}
-            {/* Progress indicator */}
             <div className="pt-4 px-3">
               <div className="h-1 bg-gray-100 rounded-full overflow-hidden">
                 <div
