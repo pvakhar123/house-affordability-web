@@ -166,7 +166,6 @@ export default function ResultsDashboard({ report, onReset, summaryLoading, user
       .then((r) => r.json())
       .then((data) => {
         if (data.propertyImage) setHeroImage(data.propertyImage);
-        else if (data.satelliteUrl) setHeroImage(data.satelliteUrl);
         if (data.satelliteUrl) setSatelliteUrl(data.satelliteUrl);
       })
       .catch(() => {});
@@ -178,7 +177,13 @@ export default function ResultsDashboard({ report, onReset, summaryLoading, user
       <div className="space-y-6" style={{ marginRight: "clamp(0px, calc(100vw - 1280px + 400px), 400px)" }}>
         {/* Hero Banner */}
         <StreamFadeIn>
-          <div className="relative rounded-xl overflow-hidden shadow-sm h-48 sm:h-56 bg-gradient-to-br from-blue-900 to-blue-700">
+          <div className="relative rounded-xl overflow-hidden shadow-sm h-44 sm:h-52 bg-gradient-to-br from-slate-800 via-blue-900 to-indigo-900">
+            {/* Subtle pattern when no image */}
+            {!heroImage && (
+              <div className="absolute inset-0 opacity-10" style={{
+                backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")",
+              }} />
+            )}
             {heroImage && (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -189,7 +194,7 @@ export default function ResultsDashboard({ report, onReset, summaryLoading, user
               />
             )}
             {/* Gradient overlay */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
+            <div className={`absolute inset-0 ${heroImage ? "bg-gradient-to-t from-black/70 via-black/30 to-transparent" : "bg-gradient-to-t from-black/40 to-transparent"}`} />
             {/* Content overlay */}
             <div className="absolute bottom-0 left-0 right-0 p-5 sm:p-6 flex items-end justify-between">
               <div>
