@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import { getRecentSearches } from "@/lib/recent-searches";
 
 interface Props {
   value: string;
@@ -20,6 +21,7 @@ export default function AddressPicker({ value, onChange }: Props) {
   const [showDropdown, setShowDropdown] = useState(false);
   const [highlightIndex, setHighlightIndex] = useState(-1);
   const [isLoading, setIsLoading] = useState(false);
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
@@ -27,6 +29,11 @@ export default function AddressPicker({ value, onChange }: Props) {
   useEffect(() => {
     setInput(value);
   }, [value]);
+
+  // Load recent searches on mount
+  useEffect(() => {
+    setRecentSearches(getRecentSearches());
+  }, []);
 
   const fetchSuggestions = useCallback(async (query: string) => {
     if (query.length < 3) {
@@ -232,6 +239,30 @@ export default function AddressPicker({ value, onChange }: Props) {
       <p className="mt-1.5 text-xs text-gray-400">
         Type an address, street, or neighborhood
       </p>
+
+      {/* Recent searches */}
+      {recentSearches.length > 0 && !input && (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          <span className="text-xs text-gray-400 mr-0.5 self-center">Recent:</span>
+          {recentSearches.map((addr) => (
+            <button
+              key={addr}
+              type="button"
+              onClick={() => {
+                setInput(addr);
+                onChange(addr);
+              }}
+              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs bg-gray-100 text-gray-600 rounded-full hover:bg-blue-50 hover:text-blue-700 transition-colors truncate max-w-[200px]"
+              title={addr}
+            >
+              <svg className="w-3 h-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              {addr.length > 30 ? addr.slice(0, 30) + "..." : addr}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

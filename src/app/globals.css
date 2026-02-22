@@ -180,6 +180,39 @@ input[type="number"] {
   color: #a5b4fc;
 }
 
+/* Badge/status -100 backgrounds */
+.dark .bg-green-100 { background-color: #0f2419 !important; }
+.dark .bg-red-100 { background-color: #2d1215 !important; }
+.dark .bg-yellow-100 { background-color: #2d2305 !important; }
+.dark .bg-orange-100 { background-color: #2d1a05 !important; }
+.dark .bg-amber-100 { background-color: #2d2305 !important; }
+.dark .bg-indigo-100 { background-color: #1e1b4b !important; }
+.dark .bg-emerald-100 { background-color: #0f2419 !important; }
+.dark .bg-purple-100 { background-color: #1e1533 !important; }
+
+/* Badge/status border colors */
+.dark .border-green-200 { border-color: #166534 !important; }
+.dark .border-green-300 { border-color: #15803d !important; }
+.dark .border-red-200 { border-color: #991b1b !important; }
+.dark .border-red-300 { border-color: #b91c1c !important; }
+.dark .border-yellow-200 { border-color: #854d0e !important; }
+.dark .border-yellow-300 { border-color: #a16207 !important; }
+.dark .border-orange-200 { border-color: #9a3412 !important; }
+.dark .border-orange-300 { border-color: #c2410c !important; }
+.dark .border-blue-200 { border-color: #1e40af !important; }
+.dark .border-indigo-200 { border-color: #3730a3 !important; }
+.dark .border-amber-200 { border-color: #92400e !important; }
+
+/* Badge text colors */
+.dark .text-green-800 { color: #86efac !important; }
+.dark .text-yellow-800 { color: #fde047 !important; }
+.dark .text-orange-800 { color: #fdba74 !important; }
+.dark .text-blue-800 { color: #93c5fd !important; }
+
+/* Dividers */
+.dark .divide-gray-100 > :not([hidden]) ~ :not([hidden]) { border-color: #1f2937 !important; }
+.dark .divide-gray-200 > :not([hidden]) ~ :not([hidden]) { border-color: #374151 !important; }
+
 /* Scrollbar styling */
 .dark ::-webkit-scrollbar { width: 8px; }
 .dark ::-webkit-scrollbar-track { background: #1f2937; }

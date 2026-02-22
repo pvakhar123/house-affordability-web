@@ -10,6 +10,7 @@ import type { UserProfile, FinalReport } from "@/lib/types";
 import ThemeToggle from "@/components/ThemeToggle";
 import UserMenu from "@/components/UserMenu";
 import { decompressReport } from "@/lib/share-report";
+import { addRecentSearch } from "@/lib/recent-searches";
 type AppState = "form" | "loading" | "results";
 
 // Partial report that builds up as phases stream in
@@ -64,6 +65,10 @@ function HomeContent() {
     setError("");
     setReport(null);
     setUserLocation(profile.targetLocation || "");
+
+    if (profile.targetLocation) {
+      addRecentSearch(profile.targetLocation);
+    }
 
     try {
       const controller = new AbortController();

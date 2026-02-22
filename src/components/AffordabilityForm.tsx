@@ -16,7 +16,7 @@ export default function AffordabilityForm({ onSubmit, isLoading }: Props) {
     annualGrossIncome: "120000",
     additionalIncome: "",
     monthlyDebtPayments: "500",
-    currentMonthlyRent: "",
+    currentMonthlyRent: "2500",
     downPaymentSavings: "60000",
     additionalSavings: "20000",
     creditScore: "740",
