@@ -12,55 +12,59 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    // Geocode to get coordinates for satellite map
-    const encoded = encodeURIComponent(location);
-    const geoRes = await fetch(
-      `https://api.mapbox.com/geocoding/v5/mapbox.places/${encoded}.json?access_token=${MAPBOX_TOKEN}&country=us&limit=1`
-    );
-    const geoData = await geoRes.json();
-    const feature = geoData.features?.[0];
-
-    let satelliteUrl: string | null = null;
-    if (feature) {
-      const [lng, lat] = feature.center;
-      satelliteUrl =
-        `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/static/` +
-        `pin-s+3b82f6(${lng},${lat})/${lng},${lat},14,0/800x300@2x` +
-        `?access_token=${MAPBOX_TOKEN}`;
-    }
-
-    // Try to get property photo from RealtyInUS
-    let propertyImage: string | null = null;
-    if (config.rapidApiKey) {
-      try {
-        // Parse city/state from location for search
-        const parts = location.split(",").map((p) => p.trim());
-        let city = "";
-        let stateCode = "";
-
-        // Walk backwards to find state and city
-        for (let i = parts.length - 1; i >= 0; i--) {
-          const part = parts[i];
-          if (/^\d{5}/.test(part)) continue;
-          const sm = part.match(/^([A-Za-z]{2,})(?:\s+\d{5})?$/);
-          if (sm && !stateCode) {
-            const candidate = sm[1];
-            stateCode =
-              candidate.length === 2
-                ? candidate.toUpperCase()
-                : stateToCode(candidate);
-            continue;
-          }
-          if (!city && stateCode) {
-            city = part;
-            break;
-          }
+    // Run geocoding and property photo search in parallel
+    const [satelliteUrl, propertyImage] = await Promise.all([
+      // 1. Geocode → satellite map URL
+      (async (): Promise<string | null> => {
+        try {
+          const encoded = encodeURIComponent(location);
+          const geoRes = await fetch(
+            `https://api.mapbox.com/geocoding/v5/mapbox.places/${encoded}.json?access_token=${MAPBOX_TOKEN}&country=us&limit=1`,
+            { signal: AbortSignal.timeout(8000) },
+          );
+          const geoData = await geoRes.json();
+          const feature = geoData.features?.[0];
+          if (!feature) return null;
+          const [lng, lat] = feature.center;
+          return (
+            `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/static/` +
+            `pin-s+3b82f6(${lng},${lat})/${lng},${lat},14,0/800x300@2x` +
+            `?access_token=${MAPBOX_TOKEN}`
+          );
+        } catch {
+          return null;
         }
+      })(),
 
-        // Extract street address (first part before first comma)
-        const streetAddress = parts[0] || "";
+      // 2. Property photo from RealtyInUS
+      (async (): Promise<string | null> => {
+        if (!config.rapidApiKey) return null;
+        try {
+          const parts = location.split(",").map((p) => p.trim());
+          let city = "";
+          let stateCode = "";
 
-        if (city && stateCode && streetAddress) {
+          for (let i = parts.length - 1; i >= 0; i--) {
+            const part = parts[i];
+            if (/^\d{5}/.test(part)) continue;
+            const sm = part.match(/^([A-Za-z]{2,})(?:\s+\d{5})?$/);
+            if (sm && !stateCode) {
+              const candidate = sm[1];
+              stateCode =
+                candidate.length === 2
+                  ? candidate.toUpperCase()
+                  : stateToCode(candidate);
+              continue;
+            }
+            if (!city && stateCode) {
+              city = part;
+              break;
+            }
+          }
+
+          const streetAddress = parts[0] || "";
+          if (!city || !stateCode || !streetAddress) return null;
+
           const searchRes = await fetch(
             `https://${REALTOR_HOST}/properties/v3/list`,
             {
@@ -78,36 +82,32 @@ export async function GET(req: NextRequest) {
                 status: ["for_sale", "sold", "ready_to_build"],
               }),
               signal: AbortSignal.timeout(8000),
-            }
+            },
           );
 
-          if (searchRes.ok) {
-            const data = await searchRes.json();
-            const results = data?.data?.home_search?.results || [];
+          if (!searchRes.ok) return null;
+          const data = await searchRes.json();
+          const results = data?.data?.home_search?.results || [];
 
-            // Only use photo if we find an exact address match
-            const houseNum = streetAddress.match(/^\d+/)?.[0] || "";
-            const streetWords = streetAddress.toLowerCase().replace(/^\d+\s*/, "").split(/\s+/).slice(0, 2).join(" ");
+          const houseNum = streetAddress.match(/^\d+/)?.[0] || "";
+          const streetWords = streetAddress.toLowerCase().replace(/^\d+\s*/, "").split(/\s+/).slice(0, 2).join(" ");
 
-            const match = results.find(
-              (r: { location?: { address?: { line?: string } } }) => {
-                const line = r.location?.address?.line?.toLowerCase() || "";
-                return houseNum && line.startsWith(houseNum) && line.includes(streetWords);
-              }
-            );
+          const match = results.find(
+            (r: { location?: { address?: { line?: string } } }) => {
+              const line = r.location?.address?.line?.toLowerCase() || "";
+              return houseNum && line.startsWith(houseNum) && line.includes(streetWords);
+            },
+          );
 
-            if (match?.primary_photo?.href) {
-              propertyImage = match.primary_photo.href.replace(
-                /s\.jpg$/,
-                "od.jpg"
-              );
-            }
+          if (match?.primary_photo?.href) {
+            return match.primary_photo.href.replace(/s\.jpg$/, "od.jpg");
           }
+          return null;
+        } catch {
+          return null;
         }
-      } catch {
-        // Property photo fetch failed — that's fine, satellite is the fallback
-      }
-    }
+      })(),
+    ]);
 
     return NextResponse.json({ propertyImage, satelliteUrl });
   } catch {

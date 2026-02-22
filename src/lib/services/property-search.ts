@@ -61,6 +61,7 @@ export async function searchProperties(params: {
       "X-RapidAPI-Key": apiKey,
       "X-RapidAPI-Host": "zillow-com1.p.rapidapi.com",
     },
+    signal: AbortSignal.timeout(10000),
   });
 
   if (!response.ok) {

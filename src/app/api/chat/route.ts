@@ -802,13 +802,16 @@ Be specific with numbers. Keep responses concise. Do not provide legal or bindin
               });
 
               // Create a streaming request to Claude
-              const stream = client.messages.stream({
-                model: config.model,
-                max_tokens: 2048,
-                system,
-                messages,
-                tools: cachedTools,
-              });
+              const stream = client.messages.stream(
+                {
+                  model: config.model,
+                  max_tokens: 2048,
+                  system,
+                  messages,
+                  tools: cachedTools,
+                },
+                { timeout: 60000 },
+              );
 
               // Stream text deltas to the client as they arrive
               stream.on("text", (text) => {
