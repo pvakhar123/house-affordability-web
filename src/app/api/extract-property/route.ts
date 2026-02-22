@@ -5,6 +5,7 @@ import type { PropertyInfo } from "@/lib/types";
 import { traceGeneration, flushLangfuse } from "@/lib/langfuse";
 import { withTracking } from "@/lib/db/track";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
+import { extractPropertyInputSchema } from "@/lib/schemas";
 
 const EXTRACTION_PROMPT = `Extract property listing details from the following page content. Return ONLY valid JSON (no markdown, no explanation) with these fields:
 
@@ -42,26 +43,15 @@ async function _POST(request: Request) {
   try {
     config.validate();
 
-    const { url } = (await request.json()) as { url: string };
-
-    if (!url || typeof url !== "string") {
-      return NextResponse.json(
-        { error: "URL is required" },
-        { status: 400 }
-      );
+    const body = await request.json();
+    const parsed = extractPropertyInputSchema.safeParse(body);
+    if (!parsed.success) {
+      const msg = parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ");
+      return NextResponse.json({ error: msg }, { status: 400 });
     }
+    const { url } = parsed.data;
 
-    // Validate URL format
-    let parsedUrl: URL;
-    try {
-      parsedUrl = new URL(url);
-    } catch {
-      return NextResponse.json(
-        { error: "Invalid URL format" },
-        { status: 400 }
-      );
-    }
-
+    const parsedUrl = new URL(url);
     if (!["http:", "https:"].includes(parsedUrl.protocol)) {
       return NextResponse.json(
         { error: "Only HTTP/HTTPS URLs are supported" },
@@ -187,9 +177,9 @@ async function _POST(request: Request) {
       );
     }
 
-    const parsed = JSON.parse(jsonMatch[0]);
+    const extracted = JSON.parse(jsonMatch[0]);
 
-    if (!parsed.listingPrice) {
+    if (!extracted.listingPrice) {
       return NextResponse.json(
         {
           success: false,
@@ -203,19 +193,19 @@ async function _POST(request: Request) {
     const property: PropertyInfo = {
       source: "url_extracted",
       sourceUrl: url,
-      address: parsed.address || undefined,
-      listingPrice: Number(parsed.listingPrice),
-      propertyTaxAnnual: parsed.propertyTaxAnnual
-        ? Number(parsed.propertyTaxAnnual)
+      address: extracted.address || undefined,
+      listingPrice: Number(extracted.listingPrice),
+      propertyTaxAnnual: extracted.propertyTaxAnnual
+        ? Number(extracted.propertyTaxAnnual)
         : undefined,
-      hoaMonthly: parsed.hoaMonthly ? Number(parsed.hoaMonthly) : undefined,
-      squareFootage: parsed.squareFootage
-        ? Number(parsed.squareFootage)
+      hoaMonthly: extracted.hoaMonthly ? Number(extracted.hoaMonthly) : undefined,
+      squareFootage: extracted.squareFootage
+        ? Number(extracted.squareFootage)
         : undefined,
-      bedrooms: parsed.bedrooms ? Number(parsed.bedrooms) : undefined,
-      bathrooms: parsed.bathrooms ? Number(parsed.bathrooms) : undefined,
-      yearBuilt: parsed.yearBuilt ? Number(parsed.yearBuilt) : undefined,
-      propertyType: parsed.propertyType || undefined,
+      bedrooms: extracted.bedrooms ? Number(extracted.bedrooms) : undefined,
+      bathrooms: extracted.bathrooms ? Number(extracted.bathrooms) : undefined,
+      yearBuilt: extracted.yearBuilt ? Number(extracted.yearBuilt) : undefined,
+      propertyType: extracted.propertyType || undefined,
     };
 
     await flushLangfuse();

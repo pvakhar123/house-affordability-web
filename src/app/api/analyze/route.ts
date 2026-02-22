@@ -6,6 +6,7 @@ import type { UserProfile } from "@/lib/types";
 import { flushLangfuse } from "@/lib/langfuse";
 import { logApiError, logUsageEvent } from "@/lib/db/track";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
+import { analyzeInputSchema } from "@/lib/schemas";
 
 export const maxDuration = 300; // 5 minutes for agent processing
 
@@ -24,15 +25,12 @@ export async function POST(request: Request) {
     config.validate();
 
     const body = await request.json();
-    const userProfile = body as UserProfile;
-
-    // Basic validation
-    if (!userProfile.annualGrossIncome || !userProfile.creditScore) {
-      return NextResponse.json(
-        { error: "Annual gross income and credit score are required." },
-        { status: 400 }
-      );
+    const parsed = analyzeInputSchema.safeParse(body);
+    if (!parsed.success) {
+      const msg = parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ");
+      return NextResponse.json({ error: msg }, { status: 400 });
     }
+    const userProfile = parsed.data as UserProfile;
 
     const encoder = new TextEncoder();
     const stream = new ReadableStream({

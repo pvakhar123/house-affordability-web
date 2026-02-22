@@ -65,6 +65,7 @@ import {
   GUARDRAIL_SYSTEM_PROMPT_SUFFIX,
 } from "@/lib/guardrails";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
+import { chatInputSchema } from "@/lib/schemas";
 
 interface ChatRequest {
   message: string;
@@ -614,13 +615,19 @@ export async function POST(request: Request) {
 
   try {
     config.validate();
+    const body = await request.json();
+    const parsed = chatInputSchema.safeParse(body);
+    if (!parsed.success) {
+      const msg = parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ");
+      return NextResponse.json({ error: msg }, { status: 400 });
+    }
     const {
       message,
       report,
       history,
       conversationSummary: existingSummary = null,
       sessionMemory: existingMemory = null,
-    } = (await request.json()) as ChatRequest;
+    } = body as ChatRequest;
 
     // ── INPUT GUARDRAIL ──────────────────────────────────────
     // Fast check: length → injection regex → Haiku topic classifier.

@@ -4,6 +4,7 @@ import { paths } from "@/lib/eval/paths";
 import { isDbAvailable } from "@/lib/db";
 import { insertFeedback, queryFeedback } from "@/lib/db/queries";
 import { withTracking } from "@/lib/db/track";
+import { feedbackInputSchema } from "@/lib/schemas";
 
 async function _GET() {
   try {
@@ -42,11 +43,12 @@ async function _GET() {
 async function _POST(req: Request) {
   try {
     const body = await req.json();
-    const { type, rating, messageIndex, comment, timestamp } = body;
-
-    if (!type || !rating) {
-      return NextResponse.json({ error: "type and rating required" }, { status: 400 });
+    const parsed = feedbackInputSchema.safeParse(body);
+    if (!parsed.success) {
+      const msg = parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ");
+      return NextResponse.json({ error: msg }, { status: 400 });
     }
+    const { type, rating, messageIndex, comment, timestamp } = parsed.data;
 
     const entry = {
       type, // "chat" | "report"

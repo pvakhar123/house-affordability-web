@@ -13,11 +13,25 @@ export const config = {
   judgeModel: process.env.CLAUDE_JUDGE_MODEL ?? "claude-haiku-4-5-20251001",
 
   validate(): void {
-    if (!this.anthropicApiKey) {
-      throw new Error("ANTHROPIC_API_KEY is required.");
-    }
-    if (!this.fredApiKey) {
-      throw new Error("FRED_API_KEY is required.");
+    const missing: string[] = [];
+    if (!this.anthropicApiKey) missing.push("ANTHROPIC_API_KEY");
+    if (!this.fredApiKey) missing.push("FRED_API_KEY");
+    if (missing.length > 0) {
+      throw new Error(`Missing required environment variables: ${missing.join(", ")}`);
     }
   },
 };
+
+// Warn about optional-but-recommended secrets at startup (once)
+if (typeof process !== "undefined" && process.env) {
+  const warnings: string[] = [];
+  if (!process.env.POSTGRES_URL) warnings.push("POSTGRES_URL (DB tracking disabled)");
+  if (!process.env.AUTH_SECRET) warnings.push("AUTH_SECRET (auth will fail)");
+  if (!process.env.AUTH_GOOGLE_ID) warnings.push("AUTH_GOOGLE_ID (Google OAuth disabled)");
+  if (!process.env.MAPBOX_ACCESS_TOKEN) warnings.push("MAPBOX_ACCESS_TOKEN (address autocomplete disabled)");
+  if (!process.env.LANGFUSE_SECRET_KEY) warnings.push("LANGFUSE_SECRET_KEY (observability disabled)");
+
+  if (warnings.length > 0) {
+    console.warn(`[config] Missing optional env vars: ${warnings.join(", ")}`);
+  }
+}

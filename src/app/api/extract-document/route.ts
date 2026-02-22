@@ -5,6 +5,7 @@ import type { DocumentExtractionResult } from "@/lib/types";
 import { traceGeneration, flushLangfuse } from "@/lib/langfuse";
 import { withTracking } from "@/lib/db/track";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
+import { extractDocumentInputSchema } from "@/lib/schemas";
 
 interface DocumentPayload {
   data: string;
@@ -76,23 +77,13 @@ async function _POST(request: Request) {
   try {
     config.validate();
 
-    const { documents } = (await request.json()) as {
-      documents: DocumentPayload[];
-    };
-
-    if (!documents || !Array.isArray(documents) || documents.length === 0) {
-      return NextResponse.json(
-        { error: "No documents provided" },
-        { status: 400 }
-      );
+    const body = await request.json();
+    const parsed = extractDocumentInputSchema.safeParse(body);
+    if (!parsed.success) {
+      const msg = parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ");
+      return NextResponse.json({ error: msg }, { status: 400 });
     }
-
-    if (documents.length > 5) {
-      return NextResponse.json(
-        { error: "Maximum 5 documents per request" },
-        { status: 400 }
-      );
-    }
+    const { documents } = parsed.data as { documents: DocumentPayload[] };
 
     // Validate files
     for (const doc of documents) {
