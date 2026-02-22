@@ -104,7 +104,13 @@ export abstract class BaseAgent<TInput, TOutput> {
       const response = await this.callWithRetry({
         model: this.model,
         max_tokens: 2048,
-        system: this.systemPrompt,
+        system: [
+          {
+            type: "text" as const,
+            text: this.systemPrompt,
+            cache_control: { type: "ephemeral" as const },
+          },
+        ],
         messages,
         tools: this.tools,
       });

@@ -129,10 +129,17 @@ async function _POST(request: Request) {
       params: {
         model: config.model,
         max_tokens: 512,
+        system: [
+          {
+            type: "text" as const,
+            text: EXTRACTION_PROMPT,
+            cache_control: { type: "ephemeral" as const },
+          },
+        ],
         messages: [
           {
             role: "user",
-            content: `${EXTRACTION_PROMPT}\n\n---PAGE CONTENT---\n${cleaned}`,
+            content: `---PAGE CONTENT---\n${cleaned}`,
           },
         ],
       },

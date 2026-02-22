@@ -1254,7 +1254,13 @@ export class OrchestratorAgent {
         params: {
           model: config.model,
           max_tokens: 1500,
-          system: PROMPTS.orchestrator,
+          system: [
+            {
+              type: "text" as const,
+              text: PROMPTS.orchestrator,
+              cache_control: { type: "ephemeral" as const },
+            },
+          ],
           messages: [
             {
               role: "user",
