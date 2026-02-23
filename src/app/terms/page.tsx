@@ -11,11 +11,12 @@ export default function TermsOfServicePage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-30">
+      <header className="bg-white/80 backdrop-blur-xl border-b border-gray-200 sticky top-0 z-30">
         <div className="max-w-3xl mx-auto px-4 py-3 flex items-center gap-4">
           <a
             href="/"
-            className="flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 font-medium"
+            className="flex items-center gap-1.5 text-sm font-medium"
+            style={{ color: "#0071e3" }}
           >
             <svg
               className="w-4 h-4"
@@ -32,15 +33,15 @@ export default function TermsOfServicePage() {
             </svg>
             App
           </a>
-          <span className="text-gray-300">|</span>
-          <h1 className="text-sm font-bold text-gray-900">Terms of Service</h1>
+          <span style={{ color: "#d1d1d6" }}>|</span>
+          <h1 className="text-sm font-semibold text-gray-900">Terms of Service</h1>
         </div>
       </header>
 
       <main className="max-w-3xl mx-auto px-4 py-10">
-        <div className="bg-white rounded-xl border border-gray-200 p-8 space-y-8">
+        <div className="bg-white rounded-2xl p-8 space-y-8" style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">
+            <h2 className="text-2xl font-semibold text-gray-900 tracking-tight">
               Terms of Service
             </h2>
             <p className="text-sm text-gray-500 mt-1">
@@ -78,7 +79,7 @@ export default function TermsOfServicePage() {
             <h3 className="text-lg font-semibold text-gray-900">
               3. Not Financial Advice
             </h3>
-            <p className="text-gray-700 leading-relaxed font-medium text-amber-800 bg-amber-50 p-4 rounded-lg border border-amber-200">
+            <p className="text-gray-700 leading-relaxed font-medium p-4 rounded-xl" style={{ background: "#fff8e1", color: "#856404", border: "1px solid #ffeaa7" }}>
               The Service provides informational analysis only and does NOT
               constitute financial, investment, legal, or tax advice. Always
               consult a qualified financial advisor, mortgage professional, or
@@ -124,7 +125,8 @@ export default function TermsOfServicePage() {
                 through Stripe. Pricing is displayed on the{" "}
                 <a
                   href="/pricing"
-                  className="text-blue-600 hover:text-blue-800 underline"
+                  className="hover:underline"
+                  style={{ color: "#0071e3" }}
                 >
                   Pricing page
                 </a>
@@ -196,7 +198,8 @@ export default function TermsOfServicePage() {
               Your use of the Service is also governed by our{" "}
               <a
                 href="/privacy"
-                className="text-blue-600 hover:text-blue-800 underline"
+                className="hover:underline"
+                style={{ color: "#0071e3" }}
               >
                 Privacy Policy
               </a>
@@ -301,7 +304,8 @@ export default function TermsOfServicePage() {
               For questions about these Terms, contact us at:{" "}
               <a
                 href="mailto:legal@aicalculator.homes"
-                className="text-blue-600 hover:text-blue-800 underline"
+                className="hover:underline"
+                style={{ color: "#0071e3" }}
               >
                 legal@aicalculator.homes
               </a>

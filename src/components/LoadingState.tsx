@@ -72,50 +72,45 @@ export default function LoadingState() {
 
   return (
     <div className="max-w-md mx-auto py-16 px-4">
-      {/* Animated orb */}
+      {/* Animated orb — Apple-clean */}
       <div className="flex justify-center mb-8">
         <div className="relative w-20 h-20">
-          {/* Outer glow ring */}
-          <div className="absolute inset-0 rounded-full bg-gradient-to-br from-blue-400 via-indigo-500 to-purple-600 opacity-20 animate-ping" style={{ animationDuration: "2s" }} />
-          {/* Middle ring */}
-          <div className="absolute inset-1 rounded-full bg-gradient-to-br from-blue-400 via-indigo-500 to-purple-600 opacity-30" style={{ animation: "spin 3s linear infinite" }} />
-          {/* Inner orb */}
-          <div className="absolute inset-2 rounded-full bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-300/50">
+          <div className="absolute inset-0 rounded-full opacity-15 animate-ping" style={{ background: "#0071e3", animationDuration: "2s" }} />
+          <div className="absolute inset-1 rounded-full opacity-20" style={{ background: "#0071e3", animation: "spin 3s linear infinite" }} />
+          <div className="absolute inset-2 rounded-full flex items-center justify-center" style={{ background: "#0071e3", boxShadow: "0 8px 24px rgba(0, 113, 227, 0.3)" }}>
             <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z" />
             </svg>
           </div>
-          {/* Orbiting dot */}
           <div className="absolute inset-0" style={{ animation: "spin 2s linear infinite" }}>
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-indigo-400 shadow-sm shadow-indigo-400" />
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full" style={{ background: "#5856d6", boxShadow: "0 0 6px rgba(88,86,214,0.5)" }} />
           </div>
         </div>
       </div>
 
       {/* Current step */}
       <div className="text-center mb-6">
-        <p className="text-sm font-semibold text-indigo-600 mb-1">
+        <p className="text-sm font-semibold mb-1" style={{ color: "#0071e3" }}>
           {STEPS[currentStep]}...
         </p>
-        {/* Progress bar */}
         <div className="max-w-xs mx-auto h-1 bg-gray-200 rounded-full overflow-hidden">
           <div
-            className="h-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 rounded-full transition-all duration-300 ease-out"
-            style={{ width: `${progress}%` }}
+            className="h-full rounded-full transition-all duration-300 ease-out"
+            style={{ width: `${progress}%`, background: "linear-gradient(to right, #0071e3, #5856d6)" }}
           />
         </div>
-        {/* Step dots */}
         <div className="flex justify-center gap-1.5 mt-3">
           {STEPS.map((_, i) => (
             <div
               key={i}
               className={`h-1.5 rounded-full transition-all duration-500 ${
                 i < currentStep
-                  ? "w-1.5 bg-indigo-500"
+                  ? "w-1.5"
                   : i === currentStep
-                    ? "w-6 bg-indigo-500"
+                    ? "w-6"
                     : "w-1.5 bg-gray-300"
               }`}
+              style={i <= currentStep ? { background: "#0071e3" } : undefined}
             />
           ))}
         </div>

@@ -11,11 +11,12 @@ export default function PrivacyPolicyPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-30">
+      <header className="bg-white/80 backdrop-blur-xl border-b border-gray-200 sticky top-0 z-30">
         <div className="max-w-3xl mx-auto px-4 py-3 flex items-center gap-4">
           <a
             href="/"
-            className="flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 font-medium"
+            className="flex items-center gap-1.5 text-sm font-medium"
+            style={{ color: "#0071e3" }}
           >
             <svg
               className="w-4 h-4"
@@ -32,15 +33,15 @@ export default function PrivacyPolicyPage() {
             </svg>
             App
           </a>
-          <span className="text-gray-300">|</span>
-          <h1 className="text-sm font-bold text-gray-900">Privacy Policy</h1>
+          <span style={{ color: "#d1d1d6" }}>|</span>
+          <h1 className="text-sm font-semibold text-gray-900">Privacy Policy</h1>
         </div>
       </header>
 
       <main className="max-w-3xl mx-auto px-4 py-10">
-        <div className="bg-white rounded-xl border border-gray-200 p-8 space-y-8">
+        <div className="bg-white rounded-2xl p-8 space-y-8" style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">Privacy Policy</h2>
+            <h2 className="text-2xl font-semibold text-gray-900 tracking-tight">Privacy Policy</h2>
             <p className="text-sm text-gray-500 mt-1">
               Last updated: {lastUpdated}
             </p>
@@ -295,7 +296,8 @@ export default function PrivacyPolicyPage() {
               us at:{" "}
               <a
                 href="mailto:privacy@aicalculator.homes"
-                className="text-blue-600 hover:text-blue-800 underline"
+                className="hover:underline"
+                style={{ color: "#0071e3" }}
               >
                 privacy@aicalculator.homes
               </a>

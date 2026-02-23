@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f5f5f7;
+  --foreground: #1d1d1f;
 }
 
 @theme inline {
@@ -22,8 +22,100 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
+
+/* ─── Apple-Inspired Color System ─── */
+
+/* Background — Apple warm gray */
+.bg-gray-50 { background-color: #f5f5f7 !important; }
+.min-h-screen.bg-gray-50 { background-color: #f5f5f7 !important; }
+.bg-gray-100 { background-color: #ebebed !important; }
+
+/* Borders — softer */
+.border-gray-200 { border-color: #e8e8ed !important; }
+.border-gray-100 { border-color: #f0f0f2 !important; }
+.border-gray-300 { border-color: #d2d2d7 !important; }
+
+/* Shadows — subtle floating feel */
+.shadow-sm {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02) !important;
+}
+
+/* Apple Blue */
+.bg-blue-600 { background-color: #0071e3 !important; }
+.bg-blue-700 { background-color: #0077ed !important; }
+.text-blue-600 { color: #0071e3 !important; }
+.text-blue-700 { color: #0064c8 !important; }
+.text-blue-500 { color: #0077ed !important; }
+.hover\:bg-blue-700:hover { background-color: #0064c8 !important; }
+.focus\:ring-blue-500:focus { --tw-ring-color: #0071e3 !important; }
+.focus\:border-blue-500:focus { border-color: #0071e3 !important; }
+.bg-blue-50 { background-color: #edf4ff !important; }
+.bg-blue-100 { background-color: #dceaff !important; }
+.text-blue-900 { color: #003d80 !important; }
+
+/* Apple Green */
+.bg-green-50 { background-color: #ecfdf3 !important; }
+.bg-green-100 { background-color: #d1fadf !important; }
+.text-green-600 { color: #34c759 !important; }
+.text-green-700 { color: #248a3d !important; }
+.text-green-800 { color: #1a7a32 !important; }
+.bg-green-500 { background-color: #34c759 !important; }
+
+/* Apple Orange/Amber */
+.bg-amber-50, .bg-yellow-50 { background-color: #fff8ec !important; }
+.bg-amber-100, .bg-yellow-100 { background-color: #ffefcf !important; }
+.text-amber-600, .text-yellow-700 { color: #c87400 !important; }
+.text-amber-800, .text-yellow-800 { color: #9a5c00 !important; }
+.bg-amber-500, .bg-yellow-500 { background-color: #ff9500 !important; }
+.bg-orange-50 { background-color: #fff5eb !important; }
+.text-orange-600 { color: #e8710a !important; }
+.text-orange-700 { color: #c45d00 !important; }
+.text-orange-800 { color: #9a4900 !important; }
+
+/* Apple Red */
+.bg-red-50 { background-color: #fff0ee !important; }
+.bg-red-100 { background-color: #ffe0db !important; }
+.text-red-500 { color: #ff3b30 !important; }
+.text-red-600 { color: #ff3b30 !important; }
+.text-red-700 { color: #d70015 !important; }
+.text-red-800 { color: #c5000f !important; }
+.bg-red-400 { background-color: #ff6961 !important; }
+.bg-red-500 { background-color: #ff3b30 !important; }
+
+/* Apple Indigo */
+.bg-indigo-50 { background-color: #f0edff !important; }
+.bg-indigo-100 { background-color: #e2deff !important; }
+.text-indigo-500 { color: #5856d6 !important; }
+.text-indigo-600 { color: #5856d6 !important; }
+.text-indigo-700 { color: #4744b0 !important; }
+.bg-indigo-500 { background-color: #5856d6 !important; }
+.bg-indigo-600 { background-color: #4744b0 !important; }
+
+/* Apple Purple/Violet */
+.bg-violet-50 { background-color: #f5eeff !important; }
+.text-violet-600 { color: #af52de !important; }
+.text-violet-700 { color: #8944ab !important; }
+.bg-violet-500 { background-color: #af52de !important; }
+.bg-purple-500 { background-color: #af52de !important; }
+
+/* Apple Teal/Emerald */
+.bg-teal-500 { background-color: #5ac8fa !important; }
+.bg-emerald-50 { background-color: #ecfdf3 !important; }
+.text-emerald-600 { color: #34c759 !important; }
+.text-emerald-700 { color: #248a3d !important; }
+
+/* Text — Apple readable grays */
+.text-gray-900 { color: #1d1d1f !important; }
+.text-gray-800 { color: #3a3a3c !important; }
+.text-gray-700 { color: #48484a !important; }
+.text-gray-600 { color: #636366 !important; }
+.text-gray-500 { color: #86868b !important; }
+.text-gray-400 { color: #aeaeb2 !important; }
+.text-gray-300 { color: #c7c7cc !important; }
 
 /* Hide scrollbar for horizontal tab overflow */
 .scrollbar-hide::-webkit-scrollbar { display: none; }
@@ -47,7 +139,7 @@ input[type="number"] {
   -moz-appearance: textfield;
 }
 
-/* AI Summary animations */
+/* ─── Animations ─── */
 @keyframes shimmer {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
@@ -73,9 +165,9 @@ input[type="number"] {
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(99, 102, 241, 0.06) 25%,
-    rgba(139, 92, 246, 0.1) 50%,
-    rgba(99, 102, 241, 0.06) 75%,
+    rgba(88, 86, 214, 0.04) 25%,
+    rgba(88, 86, 214, 0.08) 50%,
+    rgba(88, 86, 214, 0.04) 75%,
     transparent 100%
   );
   background-size: 200% 100%;
@@ -119,17 +211,15 @@ input[type="number"] {
 }
 
 .ai-highlight-number {
-  background: linear-gradient(135deg, #eef2ff, #e0e7ff);
+  background: linear-gradient(135deg, #f0edff, #e8e5ff);
   padding: 1px 6px;
-  border-radius: 4px;
+  border-radius: 6px;
   font-weight: 600;
-  color: #3730a3;
+  color: #5856d6;
   white-space: nowrap;
 }
 
 /* ─── Dark Mode Overrides ─── */
-/* CSS-only approach: override Tailwind utility classes when .dark is on <html> */
-/* This avoids touching all 19 component files */
 
 /* Backgrounds */
 .dark .bg-white { background-color: #111827 !important; }
@@ -163,7 +253,7 @@ input[type="number"] {
   color: #6b7280 !important;
 }
 
-/* Colored backgrounds (keep readable in dark) */
+/* Colored backgrounds */
 .dark .bg-blue-50 { background-color: #1e293b !important; }
 .dark .bg-blue-100 { background-color: #1e3a5f !important; }
 .dark .bg-green-50 { background-color: #0f2419 !important; }
@@ -174,7 +264,7 @@ input[type="number"] {
 .dark .bg-amber-50 { background-color: #2d2305 !important; }
 .dark .bg-orange-50 { background-color: #2d1a05 !important; }
 
-/* Colored text stays mostly the same but lighten dark variants */
+/* Colored text */
 .dark .text-blue-900 { color: #93c5fd !important; }
 .dark .text-green-900 { color: #86efac !important; }
 .dark .text-indigo-900 { color: #a5b4fc !important; }
@@ -182,7 +272,7 @@ input[type="number"] {
 .dark .text-violet-900 { color: #c4b5fd !important; }
 .dark .text-amber-800 { color: #fcd34d !important; }
 
-/* Gradients in header */
+/* Gradients */
 .dark .bg-gradient-to-r.from-blue-50.to-indigo-50 {
   background: linear-gradient(to right, #1e293b, #1e1b4b) !important;
 }
@@ -195,19 +285,19 @@ input[type="number"] {
 /* Shadows */
 .dark .shadow-sm { box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.3) !important; }
 
-/* Body override */
+/* Body */
 .dark body {
   background-color: #0d1117 !important;
   color: #f9fafb !important;
 }
 
-/* AI highlight in dark mode */
+/* AI highlight */
 .dark .ai-highlight-number {
   background: linear-gradient(135deg, #1e1b4b, #312e81);
   color: #a5b4fc;
 }
 
-/* Badge/status -100 backgrounds */
+/* Badge backgrounds */
 .dark .bg-green-100 { background-color: #0f2419 !important; }
 .dark .bg-red-100 { background-color: #2d1215 !important; }
 .dark .bg-yellow-100 { background-color: #2d2305 !important; }
@@ -217,7 +307,7 @@ input[type="number"] {
 .dark .bg-emerald-100 { background-color: #0f2419 !important; }
 .dark .bg-purple-100 { background-color: #1e1533 !important; }
 
-/* Badge/status border colors */
+/* Badge borders */
 .dark .border-green-200 { border-color: #166534 !important; }
 .dark .border-green-300 { border-color: #15803d !important; }
 .dark .border-red-200 { border-color: #991b1b !important; }
@@ -230,7 +320,7 @@ input[type="number"] {
 .dark .border-indigo-200 { border-color: #3730a3 !important; }
 .dark .border-amber-200 { border-color: #92400e !important; }
 
-/* Badge text colors */
+/* Badge text */
 .dark .text-green-800 { color: #86efac !important; }
 .dark .text-yellow-800 { color: #fde047 !important; }
 .dark .text-orange-800 { color: #fdba74 !important; }
@@ -240,7 +330,7 @@ input[type="number"] {
 .dark .divide-gray-100 > :not([hidden]) ~ :not([hidden]) { border-color: #1f2937 !important; }
 .dark .divide-gray-200 > :not([hidden]) ~ :not([hidden]) { border-color: #374151 !important; }
 
-/* Scrollbar styling */
+/* Scrollbar */
 .dark ::-webkit-scrollbar { width: 8px; }
 .dark ::-webkit-scrollbar-track { background: #1f2937; }
 .dark ::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 4px; }

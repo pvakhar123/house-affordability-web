@@ -15,12 +15,12 @@ import {
 
 function Skeleton() {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen" style={{ background: "#f5f5f7" }}>
       <div className="max-w-5xl mx-auto px-4 py-8">
-        <div className="h-8 w-48 bg-gray-200 rounded animate-pulse mb-6" />
+        <div className="h-8 w-48 bg-gray-200 rounded-xl animate-pulse mb-6" />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-          <div className="h-48 bg-gray-200 rounded-xl animate-pulse" />
-          <div className="h-48 bg-gray-200 rounded-xl animate-pulse" />
+          <div className="h-48 bg-gray-200 rounded-2xl animate-pulse" />
+          <div className="h-48 bg-gray-200 rounded-2xl animate-pulse" />
         </div>
       </div>
     </div>
@@ -30,7 +30,7 @@ function Skeleton() {
 const features = [
   {
     title: "4 AI Agents",
-    description: "Market analyst, financial advisor, risk assessor, and research specialist work together on your analysis.",
+    description: "Market analyst, financial advisor, risk assessor, and research specialist collaborate on your analysis.",
     icon: "M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z",
   },
   {
@@ -53,10 +53,10 @@ const features = [
 /* ── Static preview: Market Rates ── */
 function MarketRatesPreview() {
   return (
-    <div className="border border-gray-200 rounded-xl bg-white shadow-sm overflow-hidden">
+    <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
       <div className="px-5 py-4 border-b border-gray-100">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center">
             <svg className="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
             </svg>
@@ -66,46 +66,29 @@ function MarketRatesPreview() {
       </div>
       <div className="p-5 space-y-4">
         <div className="grid grid-cols-2 gap-3">
-          <div className="bg-gray-50 rounded-lg p-3">
-            <p className="text-[11px] text-gray-500 mb-0.5">30-Year Fixed</p>
-            <p className="text-lg font-bold text-gray-900">6.65%</p>
-          </div>
-          <div className="bg-gray-50 rounded-lg p-3">
-            <p className="text-[11px] text-gray-500 mb-0.5">15-Year Fixed</p>
-            <p className="text-lg font-bold text-gray-900">5.89%</p>
-          </div>
+          {[
+            { label: "30-Year Fixed", value: "6.65%" },
+            { label: "15-Year Fixed", value: "5.89%" },
+            { label: "Fed Funds Rate", value: "4.33%" },
+            { label: "Median Home Price", value: "$412K" },
+          ].map((item) => (
+            <div key={item.label} className="bg-gray-50 rounded-xl p-3">
+              <p className="text-[11px] text-gray-500 mb-0.5">{item.label}</p>
+              <p className="text-lg font-semibold text-gray-900">{item.value}</p>
+            </div>
+          ))}
         </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="bg-gray-50 rounded-lg p-3">
-            <p className="text-[11px] text-gray-500 mb-0.5">Fed Funds Rate</p>
-            <p className="text-lg font-bold text-gray-900">4.33%</p>
-          </div>
-          <div className="bg-gray-50 rounded-lg p-3">
-            <p className="text-[11px] text-gray-500 mb-0.5">Median Home Price</p>
-            <p className="text-lg font-bold text-gray-900">$412K</p>
-          </div>
-        </div>
-        {/* Mini sparkline decoration */}
         <div className="pt-2">
           <p className="text-[11px] text-gray-400 mb-2">30-Year Rate Trend (12 months)</p>
-          <svg viewBox="0 0 200 40" className="w-full h-10 text-blue-500">
-            <polyline
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              points="0,28 20,30 40,25 60,20 80,22 100,18 120,15 140,18 160,12 180,10 200,14"
-            />
-            <polyline
-              fill="url(#sparkFill)"
-              stroke="none"
-              points="0,28 20,30 40,25 60,20 80,22 100,18 120,15 140,18 160,12 180,10 200,14 200,40 0,40"
-            />
+          <svg viewBox="0 0 200 40" className="w-full h-10" style={{ color: "#0071e3" }}>
+            <polyline fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+              points="0,28 20,30 40,25 60,20 80,22 100,18 120,15 140,18 160,12 180,10 200,14" />
+            <polyline fill="url(#sparkFill)" stroke="none"
+              points="0,28 20,30 40,25 60,20 80,22 100,18 120,15 140,18 160,12 180,10 200,14 200,40 0,40" />
             <defs>
               <linearGradient id="sparkFill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="currentColor" stopOpacity="0.15" />
-                <stop offset="100%" stopColor="currentColor" stopOpacity="0" />
+                <stop offset="0%" stopColor="#0071e3" stopOpacity="0.12" />
+                <stop offset="100%" stopColor="#0071e3" stopOpacity="0" />
               </linearGradient>
             </defs>
           </svg>
@@ -119,10 +102,10 @@ function MarketRatesPreview() {
 /* ── Static preview: Investment Analysis ── */
 function InvestmentPreview() {
   return (
-    <div className="border border-gray-200 rounded-xl bg-white shadow-sm overflow-hidden">
+    <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
       <div className="px-4 py-3 border-b border-gray-100">
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 bg-emerald-50 rounded-lg flex items-center justify-center">
+          <div className="w-7 h-7 bg-emerald-50 rounded-xl flex items-center justify-center">
             <svg className="w-3.5 h-3.5 text-emerald-600" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" />
             </svg>
@@ -131,35 +114,33 @@ function InvestmentPreview() {
         </div>
       </div>
       <div className="p-4 space-y-3">
-        <div className="flex items-center gap-2">
-          <span className="px-2 py-0.5 text-[10px] font-semibold bg-emerald-50 text-emerald-700 rounded-full">Strong Investment</span>
-        </div>
+        <span className="px-2.5 py-0.5 text-[10px] font-semibold bg-emerald-50 text-emerald-700 rounded-full">Strong Investment</span>
         <div className="grid grid-cols-2 gap-2 text-center">
-          <div className="bg-gray-50 rounded-lg p-2">
+          <div className="bg-gray-50 rounded-xl p-2">
             <p className="text-[10px] text-gray-500">Cap Rate</p>
-            <p className="text-sm font-bold text-gray-900">5.8%</p>
+            <p className="text-sm font-semibold text-gray-900">5.8%</p>
           </div>
-          <div className="bg-gray-50 rounded-lg p-2">
+          <div className="bg-gray-50 rounded-xl p-2">
             <p className="text-[10px] text-gray-500">Cash-on-Cash</p>
-            <p className="text-sm font-bold text-gray-900">8.2%</p>
+            <p className="text-sm font-semibold text-gray-900">8.2%</p>
           </div>
         </div>
-        <div className="bg-gray-50 rounded-lg p-2">
+        <div className="bg-gray-50 rounded-xl p-2">
           <p className="text-[10px] text-gray-500 mb-1">Monthly Cash Flow</p>
-          <p className="text-sm font-bold text-emerald-600">+$342/mo</p>
+          <p className="text-sm font-semibold text-emerald-600">+$342/mo</p>
         </div>
       </div>
     </div>
   );
 }
 
-/* ── Static preview: Readiness & Budget (combined) ── */
+/* ── Static preview: Readiness & Budget ── */
 function ReadinessBudgetPreview() {
   return (
-    <div className="border border-gray-200 rounded-xl bg-white shadow-sm overflow-hidden">
+    <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
       <div className="px-5 py-4 border-b border-gray-100">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-violet-50 rounded-lg flex items-center justify-center">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 bg-violet-50 rounded-xl flex items-center justify-center">
             <svg className="w-4 h-4 text-violet-600" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
             </svg>
@@ -169,15 +150,14 @@ function ReadinessBudgetPreview() {
       </div>
       <div className="p-5">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-          {/* Left: Readiness score */}
           <div className="space-y-4">
             <div className="flex items-center gap-4">
               <div className="relative w-20 h-20 flex-shrink-0">
                 <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
-                  <circle cx="18" cy="18" r="15.5" fill="none" stroke="#e5e7eb" strokeWidth="3" />
-                  <circle cx="18" cy="18" r="15.5" fill="none" stroke="#7c3aed" strokeWidth="3" strokeDasharray="97.4" strokeDashoffset="21.4" strokeLinecap="round" />
+                  <circle cx="18" cy="18" r="15.5" fill="none" stroke="#e8e8ed" strokeWidth="3" />
+                  <circle cx="18" cy="18" r="15.5" fill="none" stroke="#af52de" strokeWidth="3" strokeDasharray="97.4" strokeDashoffset="21.4" strokeLinecap="round" />
                 </svg>
-                <span className="absolute inset-0 flex items-center justify-center text-lg font-bold text-gray-900">78</span>
+                <span className="absolute inset-0 flex items-center justify-center text-lg font-semibold text-gray-900">78</span>
               </div>
               <div>
                 <p className="text-sm font-semibold text-gray-900">Ready</p>
@@ -201,7 +181,6 @@ function ReadinessBudgetPreview() {
               </div>
             ))}
           </div>
-          {/* Right: Budget sliders */}
           <div className="space-y-4">
             <p className="text-xs font-semibold text-gray-700">Adjust your budget</p>
             {[
@@ -221,9 +200,9 @@ function ReadinessBudgetPreview() {
                 </div>
               </div>
             ))}
-            <div className="bg-violet-50 rounded-lg p-3 text-center">
+            <div className="bg-violet-50 rounded-xl p-3 text-center">
               <p className="text-[11px] text-gray-500 mb-0.5">Estimated Max Price</p>
-              <p className="text-lg font-bold text-violet-700">$485,000</p>
+              <p className="text-lg font-semibold text-violet-700">$485,000</p>
             </div>
           </div>
         </div>
@@ -235,10 +214,10 @@ function ReadinessBudgetPreview() {
 /* ── Static preview: AI Chat ── */
 function ChatPreview() {
   return (
-    <div className="border border-gray-200 rounded-xl bg-white shadow-sm overflow-hidden">
+    <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
       <div className="px-5 py-4 border-b border-gray-100">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-indigo-50 rounded-lg flex items-center justify-center">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 bg-indigo-50 rounded-xl flex items-center justify-center">
             <svg className="w-4 h-4 text-indigo-600" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
             </svg>
@@ -248,47 +227,38 @@ function ChatPreview() {
         </div>
       </div>
       <div className="p-5 space-y-4">
-        {/* User message */}
         <div className="flex justify-end">
-          <div className="bg-blue-600 text-white rounded-2xl rounded-br-md px-4 py-2.5 max-w-[80%]">
+          <div className="text-white rounded-2xl rounded-br-md px-4 py-2.5 max-w-[80%]" style={{ background: "#0071e3" }}>
             <p className="text-sm">Can I afford a $500K home if I put down 25%?</p>
           </div>
         </div>
-        {/* AI response */}
         <div className="flex justify-start">
-          <div className="bg-gray-100 rounded-2xl rounded-bl-md px-4 py-2.5 max-w-[85%] space-y-2">
+          <div className="bg-gray-50 rounded-2xl rounded-bl-md px-4 py-2.5 max-w-[85%] space-y-2">
             <p className="text-sm text-gray-800">Based on your income of $133K and current debts, here&apos;s the breakdown for a $500K home with 25% down:</p>
             <div className="grid grid-cols-2 gap-2">
-              <div className="bg-white rounded-lg p-2">
-                <p className="text-[10px] text-gray-500">Down Payment</p>
-                <p className="text-xs font-bold text-gray-900">$125,000</p>
-              </div>
-              <div className="bg-white rounded-lg p-2">
-                <p className="text-[10px] text-gray-500">Monthly Payment</p>
-                <p className="text-xs font-bold text-gray-900">$3,280</p>
-              </div>
-              <div className="bg-white rounded-lg p-2">
-                <p className="text-[10px] text-gray-500">DTI Ratio</p>
-                <p className="text-xs font-bold text-amber-600">37.2%</p>
-              </div>
-              <div className="bg-white rounded-lg p-2">
-                <p className="text-[10px] text-gray-500">Verdict</p>
-                <p className="text-xs font-bold text-amber-600">Stretch</p>
-              </div>
+              {[
+                { label: "Down Payment", value: "$125,000", color: "text-gray-900" },
+                { label: "Monthly Payment", value: "$3,280", color: "text-gray-900" },
+                { label: "DTI Ratio", value: "37.2%", color: "text-amber-600" },
+                { label: "Verdict", value: "Stretch", color: "text-amber-600" },
+              ].map((item) => (
+                <div key={item.label} className="bg-white rounded-xl p-2">
+                  <p className="text-[10px] text-gray-500">{item.label}</p>
+                  <p className={`text-xs font-semibold ${item.color}`}>{item.value}</p>
+                </div>
+              ))}
             </div>
             <p className="text-sm text-gray-800">Your DTI would be 37.2%, which is above the recommended 36%. I&apos;d recommend staying closer to your max of <strong>$485K</strong>.</p>
           </div>
         </div>
-        {/* User follow-up */}
         <div className="flex justify-end">
-          <div className="bg-blue-600 text-white rounded-2xl rounded-br-md px-4 py-2.5 max-w-[80%]">
+          <div className="text-white rounded-2xl rounded-br-md px-4 py-2.5 max-w-[80%]" style={{ background: "#0071e3" }}>
             <p className="text-sm">What if I pay off my car loan first?</p>
           </div>
         </div>
-        {/* Input bar */}
-        <div className="flex items-center gap-2 border border-gray-200 rounded-xl px-3 py-2 bg-gray-50">
+        <div className="flex items-center gap-2 bg-gray-50 rounded-xl px-3 py-2">
           <span className="text-sm text-gray-400 flex-1">Ask a follow-up question...</span>
-          <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center">
+          <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: "#0071e3" }}>
             <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
             </svg>
@@ -307,10 +277,10 @@ function PropertyRecommendationsPreview() {
     { address: "3156 Sunset Ridge Blvd", city: "Cedar Park, TX", price: "$478,000", beds: 3, baths: 2, sqft: "1,920", tag: "New Listing", tagColor: "bg-amber-50 text-amber-700" },
   ];
   return (
-    <div className="border border-gray-200 rounded-xl bg-white shadow-sm overflow-hidden">
+    <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
       <div className="px-5 py-4 border-b border-gray-100">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-orange-50 rounded-lg flex items-center justify-center">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 bg-orange-50 rounded-xl flex items-center justify-center">
             <svg className="w-4 h-4 text-orange-600" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 0h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z" />
             </svg>
@@ -321,9 +291,8 @@ function PropertyRecommendationsPreview() {
       </div>
       <div className="p-5 space-y-3">
         {listings.map((listing) => (
-          <div key={listing.address} className="flex gap-3 p-3 bg-gray-50 rounded-lg">
-            {/* Photo placeholder */}
-            <div className="w-20 h-20 bg-gray-200 rounded-lg flex-shrink-0 flex items-center justify-center">
+          <div key={listing.address} className="flex gap-3 p-3 bg-gray-50 rounded-xl">
+            <div className="w-20 h-20 bg-gray-200 rounded-xl flex-shrink-0 flex items-center justify-center">
               <svg className="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0 0 22.5 18.75V5.25A2.25 2.25 0 0 0 20.25 3H3.75A2.25 2.25 0 0 0 1.5 5.25v13.5A2.25 2.25 0 0 0 3.75 21z" />
               </svg>
@@ -371,7 +340,7 @@ const carouselSlides = [
   },
   {
     title: "Readiness & Budget Simulator",
-    description: "Pre-approval readiness score with interactive budget sliders to explore your buying power.",
+    description: "Pre-approval readiness score with interactive budget sliders.",
     content: <ReadinessBudgetPreview />,
   },
   {
@@ -413,21 +382,19 @@ function PreviewCarousel() {
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
-      {/* Slide header */}
-      <div className="text-center mb-5">
-        <p className="text-xs font-medium text-blue-600 mb-1">
+      <div className="text-center mb-6">
+        <p className="text-xs font-medium text-blue-600 tracking-wide mb-1">
           {current + 1} / {total}
         </p>
-        <h3 className="text-lg font-bold text-gray-900">{slide.title}</h3>
+        <h3 className="text-xl font-semibold text-gray-900 tracking-tight">{slide.title}</h3>
         <p className="text-sm text-gray-500 mt-1 max-w-lg mx-auto">{slide.description}</p>
       </div>
 
-      {/* Slide content */}
       <div className="relative max-w-3xl mx-auto">
-        {/* Prev / Next arrows */}
         <button
           onClick={prev}
-          className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 sm:-translate-x-12 z-10 w-9 h-9 flex items-center justify-center rounded-full bg-white border border-gray-200 shadow-sm text-gray-500 hover:text-gray-800 hover:shadow transition-all"
+          className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 sm:-translate-x-12 z-10 w-10 h-10 flex items-center justify-center rounded-full bg-white/90 backdrop-blur-sm text-gray-400 hover:text-gray-900 transition-all"
+          style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }}
           aria-label="Previous slide"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
@@ -436,7 +403,8 @@ function PreviewCarousel() {
         </button>
         <button
           onClick={next}
-          className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 sm:translate-x-12 z-10 w-9 h-9 flex items-center justify-center rounded-full bg-white border border-gray-200 shadow-sm text-gray-500 hover:text-gray-800 hover:shadow transition-all"
+          className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 sm:translate-x-12 z-10 w-10 h-10 flex items-center justify-center rounded-full bg-white/90 backdrop-blur-sm text-gray-400 hover:text-gray-900 transition-all"
+          style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }}
           aria-label="Next slide"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
@@ -444,35 +412,35 @@ function PreviewCarousel() {
           </svg>
         </button>
 
-        {/* Card — consistent height with fade for overflow */}
         <div key={current} className="relative pointer-events-none preview-slide-up h-[460px] overflow-hidden">
           {slide.content}
-          {/* Bottom fade for taller cards */}
-          <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-gray-50 to-transparent" />
+          <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-[#f5f5f7] to-transparent" />
         </div>
       </div>
 
-      {/* Dot indicators */}
-      <div className="flex items-center justify-center gap-1.5 mt-6">
+      <div className="flex items-center justify-center gap-2 mt-6">
         {carouselSlides.map((_, i) => (
           <button
             key={i}
             onClick={() => setCurrent(i)}
-            className={`rounded-full transition-all ${
+            className={`rounded-full transition-all duration-300 ${
               i === current
-                ? "w-6 h-2 bg-blue-600"
+                ? "w-7 h-2"
                 : "w-2 h-2 bg-gray-300 hover:bg-gray-400"
             }`}
+            style={i === current ? { background: "#0071e3" } : undefined}
             aria-label={`Go to slide ${i + 1}`}
           />
         ))}
       </div>
 
-      {/* CTA below carousel */}
-      <div className="text-center mt-8">
+      <div className="text-center mt-10">
         <a
           href="/analyze"
-          className="inline-flex items-center gap-2 px-8 py-3.5 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/25 hover:shadow-blue-600/40"
+          className="inline-flex items-center gap-2 px-8 py-3.5 text-white text-sm font-medium rounded-full transition-all"
+          style={{ background: "#0071e3", boxShadow: "0 4px 14px rgba(0, 113, 227, 0.3)" }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = "#0077ed"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = "#0071e3"; }}
         >
           Get Your Personalized Analysis
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
@@ -486,31 +454,36 @@ function PreviewCarousel() {
 
 function LandingPage() {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen" style={{ background: "#f5f5f7" }}>
       {/* Hero */}
       <section className="relative overflow-hidden">
-        <div className="max-w-4xl mx-auto px-4 pt-16 pb-12 text-center">
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-50 border border-blue-100 rounded-full text-xs font-medium text-blue-700 mb-6">
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+        <div className="max-w-4xl mx-auto px-4 pt-20 pb-16 text-center">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-white/80 backdrop-blur-sm rounded-full text-xs font-medium text-gray-600 mb-8"
+            style={{ boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}
+          >
+            <svg className="w-3.5 h-3.5 text-blue-600" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
             </svg>
             Powered by 4 AI Agents
           </div>
 
-          <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 tracking-tight leading-tight">
-            Home<span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">IQ</span>
+          <h1 className="text-5xl sm:text-6xl font-semibold text-gray-900 tracking-tight leading-tight">
+            Home<span style={{ color: "#0071e3" }}>IQ</span>
           </h1>
-          <p className="mt-2 text-lg font-medium text-gray-500">AI-Powered Home Affordability Research</p>
+          <p className="mt-3 text-xl text-gray-500 font-normal">AI-Powered Home Affordability Research</p>
 
-          <p className="mt-4 text-lg text-gray-600 max-w-2xl mx-auto leading-relaxed">
+          <p className="mt-5 text-lg text-gray-600 max-w-xl mx-auto leading-relaxed">
             Get a comprehensive affordability analysis using real-time mortgage rates,
             market data, and risk assessment — all in under 2 minutes.
           </p>
 
-          <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
+          <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
             <a
               href="/analyze"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 transition-colors shadow-sm"
+              className="inline-flex items-center gap-2 px-7 py-3 text-white text-sm font-medium rounded-full transition-all"
+              style={{ background: "#0071e3", boxShadow: "0 4px 14px rgba(0, 113, 227, 0.25)" }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = "#0077ed"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = "#0071e3"; }}
             >
               Start Your Free Analysis
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
@@ -519,30 +492,31 @@ function LandingPage() {
             </a>
             <a
               href="/docs"
-              className="inline-flex items-center gap-2 px-6 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors"
+              className="inline-flex items-center gap-2 px-7 py-3 text-sm font-medium text-gray-600 bg-white/80 backdrop-blur-sm rounded-full hover:bg-white transition-all"
+              style={{ boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}
             >
               How it works
             </a>
           </div>
 
-          <p className="mt-4 text-xs text-gray-400">
+          <p className="mt-5 text-xs text-gray-400">
             No sign-up required for your first analysis
           </p>
         </div>
       </section>
 
       {/* Preview Carousel */}
-      <section className="max-w-5xl mx-auto px-4 pb-12">
-        <div className="text-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">See what you&apos;ll get</h2>
-          <p className="mt-1 text-sm text-gray-500">Real components from an actual analysis — powered by your data</p>
+      <section className="max-w-5xl mx-auto px-4 pb-16">
+        <div className="text-center mb-8">
+          <h2 className="text-3xl font-semibold text-gray-900 tracking-tight">See what you&apos;ll get</h2>
+          <p className="mt-2 text-sm text-gray-500">Real components from an actual analysis — powered by your data</p>
         </div>
         <PreviewCarousel />
       </section>
 
       {/* Stats Strip */}
-      <section className="border-y border-gray-200 bg-white">
-        <div className="max-w-4xl mx-auto px-4 py-8">
+      <section className="bg-white" style={{ boxShadow: "0 -1px 0 #e8e8ed, 0 1px 0 #e8e8ed" }}>
+        <div className="max-w-4xl mx-auto px-4 py-10">
           <div className="grid grid-cols-3 gap-4 text-center">
             {[
               { value: "12+", label: "Analysis Cards" },
@@ -550,8 +524,8 @@ function LandingPage() {
               { value: "4", label: "AI Agents" },
             ].map((stat) => (
               <div key={stat.label}>
-                <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
-                <p className="text-xs text-gray-500 mt-0.5">{stat.label}</p>
+                <p className="text-3xl font-semibold text-gray-900 tracking-tight">{stat.value}</p>
+                <p className="text-sm text-gray-500 mt-1">{stat.label}</p>
               </div>
             ))}
           </div>
@@ -559,23 +533,24 @@ function LandingPage() {
       </section>
 
       {/* Features */}
-      <section className="max-w-4xl mx-auto px-4 py-16">
-        <div className="text-center mb-8">
-          <h2 className="text-2xl font-bold text-gray-900">How it works</h2>
-          <p className="mt-1 text-sm text-gray-500">Four specialized AI agents collaborate on your analysis</p>
+      <section className="max-w-4xl mx-auto px-4 py-20">
+        <div className="text-center mb-10">
+          <h2 className="text-3xl font-semibold text-gray-900 tracking-tight">How it works</h2>
+          <p className="mt-2 text-sm text-gray-500">Four specialized AI agents collaborate on your analysis</p>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
           {features.map((feature) => (
             <div
               key={feature.title}
-              className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-sm transition-shadow"
+              className="bg-white rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200"
+              style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}
             >
-              <div className="w-9 h-9 bg-blue-50 rounded-lg flex items-center justify-center mb-3">
+              <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center mb-4">
                 <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" d={feature.icon} />
                 </svg>
               </div>
-              <h3 className="text-sm font-semibold text-gray-900 mb-1">{feature.title}</h3>
+              <h3 className="text-base font-semibold text-gray-900 mb-1.5">{feature.title}</h3>
               <p className="text-sm text-gray-500 leading-relaxed">{feature.description}</p>
             </div>
           ))}
@@ -583,14 +558,14 @@ function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-gray-200 bg-white">
-        <div className="max-w-5xl mx-auto px-4 py-4 space-y-2">
+      <footer className="bg-white" style={{ boxShadow: "0 -1px 0 #e8e8ed" }}>
+        <div className="max-w-5xl mx-auto px-4 py-6 space-y-3">
           <p className="text-xs text-gray-400 text-center">
             We do not store any personal data or information. This is not financial advice. Use at your own risk.
           </p>
           <div className="flex items-center justify-between text-xs text-gray-400">
             <span>&copy; {new Date().getFullYear()} HomeIQ</span>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-4">
               <a href="/privacy" className="text-gray-500 hover:text-blue-600 transition-colors">Privacy</a>
               <a href="/terms" className="text-gray-500 hover:text-blue-600 transition-colors">Terms</a>
               <a href="/docs" className="text-gray-500 hover:text-blue-600 transition-colors">Docs</a>

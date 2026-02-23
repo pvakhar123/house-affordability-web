@@ -17,15 +17,14 @@ function Logo() {
   return (
     <a href="/" className="flex items-center gap-2.5 flex-shrink-0">
       <div className="relative flex-shrink-0 w-8 h-8">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg rotate-2 opacity-80" />
-        <div className="relative w-full h-full bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center shadow-sm">
+        <div className="relative w-full h-full rounded-xl flex items-center justify-center" style={{ background: "#0071e3" }}>
           <svg className="w-[18px] h-[18px] text-white" fill="none" viewBox="0 0 24 24" strokeWidth={2}>
             <path d="M3 12l9-8 9 8" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
             <path d="M5 11v8a1 1 0 001 1h4v-5h4v5h4a1 1 0 001-1v-8" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </div>
       </div>
-      <span className="text-sm font-bold text-gray-900 tracking-tight">Home<span className="text-blue-600">IQ</span></span>
+      <span className="text-sm font-semibold text-gray-900 tracking-tight">Home<span style={{ color: "#0071e3" }}>IQ</span></span>
     </a>
   );
 }
@@ -46,7 +45,6 @@ export default function AppNav() {
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
-  // Close mobile menu on navigation
   useEffect(() => {
     setMobileOpen(false);
   }, [pathname]);
@@ -54,15 +52,14 @@ export default function AppNav() {
   const isAuthenticated = status === "authenticated";
 
   return (
-    <nav className="bg-white border-b border-gray-200 sticky top-0 z-40">
+    <nav className="bg-white/80 backdrop-blur-xl border-b border-gray-200 sticky top-0 z-40">
       <div className="px-4">
-        <div className="flex items-center justify-between h-14">
-          {/* Left: Logo + nav links */}
+        <div className="flex items-center justify-between h-12">
           <div className="flex items-center gap-6">
             <Logo />
 
             {isAuthenticated && (
-              <div className="hidden md:flex items-center gap-1">
+              <div className="hidden md:flex items-center gap-0.5">
                 {navLinks.map((link) => {
                   const isActive = link.href === "/"
                     ? pathname === "/"
@@ -71,10 +68,10 @@ export default function AppNav() {
                     <a
                       key={link.href}
                       href={link.href}
-                      className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+                      className={`px-3 py-1.5 text-xs rounded-full transition-colors ${
                         isActive
-                          ? "bg-blue-50 text-blue-700 font-semibold"
-                          : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                          ? "bg-gray-100 text-gray-900 font-semibold"
+                          : "text-gray-500 hover:text-gray-900"
                       }`}
                     >
                       {link.label}
@@ -85,16 +82,14 @@ export default function AppNav() {
             )}
           </div>
 
-          {/* Right: Theme toggle + auth */}
           <div className="flex items-center gap-2">
             <ThemeToggle />
 
             {isAuthenticated && (
               <>
-                {/* Mobile hamburger */}
                 <button
                   onClick={() => setMobileOpen(!mobileOpen)}
-                  className="md:hidden p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg"
+                  className="md:hidden p-1.5 text-gray-400 hover:text-gray-600 rounded-lg"
                   aria-label="Toggle menu"
                 >
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -112,9 +107,9 @@ export default function AppNav() {
             {status === "unauthenticated" && (
               <button
                 onClick={() => signIn("google")}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-500 hover:text-gray-900 rounded-full hover:bg-gray-100 transition-colors"
               >
-                <svg className="w-4 h-4" viewBox="0 0 24 24">
+                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24">
                   <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" />
                   <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
                   <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
@@ -125,12 +120,11 @@ export default function AppNav() {
             )}
 
             {status === "loading" && (
-              <div className="w-8 h-8 rounded-full bg-gray-200 animate-pulse" />
+              <div className="w-7 h-7 rounded-full bg-gray-200 animate-pulse" />
             )}
           </div>
         </div>
 
-        {/* Mobile nav dropdown */}
         {isAuthenticated && mobileOpen && (
           <div ref={mobileRef} className="md:hidden border-t border-gray-100 py-2 pb-3">
             {navLinks.map((link) => {
@@ -143,8 +137,8 @@ export default function AppNav() {
                   href={link.href}
                   className={`block px-3 py-2 text-sm rounded-lg transition-colors ${
                     isActive
-                      ? "bg-blue-50 text-blue-700 font-semibold"
-                      : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                      ? "bg-gray-100 text-gray-900 font-semibold"
+                      : "text-gray-500 hover:text-gray-900"
                   }`}
                 >
                   {link.label}

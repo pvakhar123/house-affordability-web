@@ -37,9 +37,9 @@ export default function AffordabilityCard({ data, risk, mortgageRate }: Props) {
   ];
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+    <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
       {/* Accent bar */}
-      <div className="h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500" />
+      <div className="h-0.5" style={{ background: "linear-gradient(to right, #0071e3, #5856d6, #af52de)" }} />
 
       <div className="p-6 sm:p-8">
         {/* Key numbers */}
