@@ -5,6 +5,7 @@ import { isDbAvailable } from "@/lib/db";
 import { insertFeedback, queryFeedback } from "@/lib/db/queries";
 import { withTracking } from "@/lib/db/track";
 import { feedbackInputSchema } from "@/lib/schemas";
+import { auth } from "@/lib/auth";
 
 async function _GET() {
   try {
@@ -50,6 +51,8 @@ async function _POST(req: Request) {
     }
     const { type, rating, messageIndex, comment, timestamp } = parsed.data;
 
+    const session = await auth();
+
     const entry = {
       type, // "chat" | "report"
       rating, // "up" | "down"
@@ -58,6 +61,7 @@ async function _POST(req: Request) {
       traceId: body.traceId,
       timestamp: timestamp || new Date().toISOString(),
       userAgent: req.headers.get("user-agent") || "",
+      userId: session?.user?.id,
     };
 
     if (isDbAvailable) {

@@ -109,6 +109,7 @@ export const feedback = pgTable("feedback", {
   traceId: text("trace_id"),
   timestamp: timestamp("timestamp", { withTimezone: true }).notNull().defaultNow(),
   userAgent: text("user_agent"),
+  userId: text("user_id").references(() => users.id, { onDelete: "set null" }),
 });
 
 // ── usage_events ────────────────────────────────────────────
@@ -177,4 +178,20 @@ export const tierChangeLog = pgTable("tier_change_log", {
   reason: text("reason").notNull(),            // "admin_manual" | "stripe_webhook" | "system_downgrade"
   changedBy: text("changed_by"),
   timestamp: timestamp("timestamp", { withTimezone: true }).notNull().defaultNow(),
+});
+
+// ── support_tickets ─────────────────────────────────────────
+// User-submitted support requests via /contact form
+
+export const supportTickets = pgTable("support_tickets", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  name: text("name").notNull(),
+  email: text("email").notNull(),
+  subject: text("subject").notNull(),
+  message: text("message").notNull(),
+  status: text("status").notNull().default("open"), // "open" | "resolved"
+  userId: text("user_id").references(() => users.id, { onDelete: "set null" }),
+  adminNotes: text("admin_notes"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  resolvedAt: timestamp("resolved_at", { withTimezone: true }),
 });

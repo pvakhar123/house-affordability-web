@@ -242,6 +242,7 @@ export async function insertFeedback(entry: {
   traceId?: string;
   timestamp?: string;
   userAgent?: string;
+  userId?: string;
 }) {
   const db = getDb();
   await db.insert(schema.feedback).values({
@@ -252,6 +253,7 @@ export async function insertFeedback(entry: {
     traceId: entry.traceId ?? null,
     timestamp: entry.timestamp ? new Date(entry.timestamp) : new Date(),
     userAgent: entry.userAgent ?? null,
+    userId: entry.userId ?? null,
   });
 }
 
@@ -259,18 +261,34 @@ export async function queryFeedback() {
   const db = getDb();
 
   const rows = await db
-    .select()
+    .select({
+      id: schema.feedback.id,
+      type: schema.feedback.type,
+      rating: schema.feedback.rating,
+      messageIndex: schema.feedback.messageIndex,
+      comment: schema.feedback.comment,
+      timestamp: schema.feedback.timestamp,
+      userAgent: schema.feedback.userAgent,
+      userId: schema.feedback.userId,
+      userName: schema.users.name,
+      userEmail: schema.users.email,
+    })
     .from(schema.feedback)
+    .leftJoin(schema.users, eq(schema.feedback.userId, schema.users.id))
     .orderBy(desc(schema.feedback.timestamp))
     .limit(50);
 
   const entries = rows.map((r) => ({
+    id: r.id,
     type: r.type,
     rating: r.rating,
     messageIndex: r.messageIndex,
     comment: r.comment,
     timestamp: r.timestamp.toISOString(),
     userAgent: r.userAgent,
+    userId: r.userId,
+    userName: r.userName,
+    userEmail: r.userEmail,
   }));
 
   // Compute stats from all feedback (not just last 50)
