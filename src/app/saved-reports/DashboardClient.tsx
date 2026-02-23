@@ -44,25 +44,6 @@ interface DashboardData {
   };
 }
 
-// ── Shared UI utilities ─────────────────────────────────
-
-function ExpandableSection({ title, defaultOpen = false, children }: { title: string; defaultOpen?: boolean; children: React.ReactNode }) {
-  const [open, setOpen] = useState(defaultOpen);
-  return (
-    <div className="border border-gray-200 rounded-xl bg-white shadow-sm overflow-hidden">
-      <button onClick={() => setOpen(!open)} className="w-full flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors">
-        <h3 className="text-base font-semibold text-gray-900">{title}</h3>
-        <svg className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${open ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-        </svg>
-      </button>
-      <div className={`transition-all duration-300 ease-in-out ${open ? "max-h-[5000px] opacity-100" : "max-h-0 opacity-0 overflow-hidden"}`}>
-        <div className="px-6 pb-6">{children}</div>
-      </div>
-    </div>
-  );
-}
-
 // ── Action Bar ──────────────────────────────────────────
 
 function ActionBar({ report, reportId, reportName, location, onDelete, onRename }: {
@@ -479,11 +460,68 @@ function HeroBanner({ report, location }: { report: FinalReport; location?: stri
   );
 }
 
+// ── Nav Icons (inline SVGs) ─────────────────────────────
+
+const navIcons: Record<string, React.ReactNode> = {
+  home: (
+    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
+    </svg>
+  ),
+  investment: (
+    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+    </svg>
+  ),
+  market: (
+    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" />
+    </svg>
+  ),
+  neighborhood: (
+    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+    </svg>
+  ),
+  risk: (
+    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+    </svg>
+  ),
+  "rent-vs-buy": (
+    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v17.25m0 0c-1.472 0-2.882.265-4.185.75M12 20.25c1.472 0 2.882.265 4.185.75M18.75 4.97A48.416 48.416 0 0012 4.5c-2.291 0-4.545.16-6.75.47m13.5 0c1.01.143 2.01.317 3 .52m-3-.52l2.62 10.726c.122.499-.106 1.028-.589 1.202a5.988 5.988 0 01-2.031.352 5.988 5.988 0 01-2.031-.352c-.483-.174-.711-.703-.59-1.202L18.75 4.971zm-16.5.52c.99-.203 1.99-.377 3-.52m0 0l2.62 10.726c.122.499-.106 1.028-.589 1.202a5.989 5.989 0 01-2.031.352 5.989 5.989 0 01-2.031-.352c-.483-.174-.711-.703-.59-1.202L5.25 4.971z" />
+    </svg>
+  ),
+  loans: (
+    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6m-1.5 12V10.332A48.36 48.36 0 0012 9.75c-2.551 0-5.056.2-7.5.582V21M3 21h18M12 6.75h.008v.008H12V6.75z" />
+    </svg>
+  ),
+  equity: (
+    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 14.25v2.25m3-4.5v4.5m3-6.75v6.75m3-9v9M6 20.25h12A2.25 2.25 0 0020.25 18V6A2.25 2.25 0 0018 3.75H6A2.25 2.25 0 003.75 6v12A2.25 2.25 0 006 20.25z" />
+    </svg>
+  ),
+  properties: (
+    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 21v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21m0 0h4.5V3.545M12.75 21h7.5V10.75M2.25 21h1.5m18 0h-18M2.25 9l4.5-1.636M18.75 3l-1.5.545m0 6.205l3 1m1.5.5l-1.5-.5M6.75 7.364V3h-3v18m3-13.636l10.5-3.819" />
+    </svg>
+  ),
+  ai: (
+    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
+    </svg>
+  ),
+};
+
 // ── Full Analysis View ──────────────────────────────────
 
 function FullAnalysisView({ report, location }: { report: FinalReport; location?: string }) {
   const hasCore = report.affordability && report.riskAssessment && report.recommendations;
   const [satelliteUrl, setSatelliteUrl] = useState<string | null>(null);
+  const [activeSection, setActiveSection] = useState("home");
   const displayLocation = report.propertyAnalysis?.property.address || location || "";
 
   useEffect(() => {
@@ -496,89 +534,160 @@ function FullAnalysisView({ report, location }: { report: FinalReport; location?
 
   if (!hasCore) return null;
 
+  // Build nav items dynamically based on available data
+  const navItems: { key: string; label: string }[] = [
+    { key: "home", label: "Home" },
+    ...(report.investmentAnalysis ? [{ key: "investment", label: "Investment" }] : []),
+    { key: "market", label: "Market" },
+    ...(report.neighborhoodInfo ? [{ key: "neighborhood", label: "Area" }] : []),
+    { key: "risk", label: "Risk" },
+    ...(report.rentVsBuy ? [{ key: "rent-vs-buy", label: "Rent vs Buy" }] : []),
+    ...(report.recommendations.loanOptions?.length > 0 ? [{ key: "loans", label: "Loans" }] : []),
+    { key: "equity", label: "Equity" },
+    ...(location ? [{ key: "properties", label: "Properties" }] : []),
+    ...(report.summary ? [{ key: "ai", label: "AI" }] : []),
+  ];
+
   return (
-    <div className="space-y-4">
-      <HeroBanner report={report} location={location} />
+    <div className="flex gap-4">
+      {/* Desktop sidebar nav (lg+) */}
+      <nav className="hidden lg:flex flex-col gap-1 sticky top-4 self-start w-12 flex-shrink-0 pt-1">
+        {navItems.map((item) => (
+          <button
+            key={item.key}
+            onClick={() => setActiveSection(item.key)}
+            className={`group relative w-10 h-10 flex items-center justify-center rounded-xl transition-colors ${
+              activeSection === item.key
+                ? "bg-blue-50 text-blue-600"
+                : "text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+            }`}
+          >
+            {navIcons[item.key]}
+            <span className="absolute left-full ml-2 px-2 py-1 text-xs font-medium text-white bg-gray-900 rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50">
+              {item.label}
+            </span>
+          </button>
+        ))}
+      </nav>
 
-      {report.propertyAnalysis && (
-        <PropertyAffordabilityCard data={report.propertyAnalysis} affordability={report.affordability} />
-      )}
+      {/* Mobile horizontal tabs (<lg) */}
+      <div className="lg:hidden -mx-4 px-4 pb-2 overflow-x-auto flex gap-1.5 scrollbar-hide">
+        {navItems.map((item) => (
+          <button
+            key={item.key}
+            onClick={() => setActiveSection(item.key)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors flex-shrink-0 ${
+              activeSection === item.key
+                ? "bg-blue-600 text-white"
+                : "bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-gray-700"
+            }`}
+          >
+            <span className="w-4 h-4 [&>svg]:w-4 [&>svg]:h-4">{navIcons[item.key]}</span>
+            {item.label}
+          </button>
+        ))}
+      </div>
 
-      <AffordabilityCard
-        data={report.affordability}
-        risk={report.riskAssessment}
-        mortgageRate={report.marketSnapshot.mortgageRates.thirtyYearFixed}
-      />
+      {/* Section content */}
+      <div className="flex-1 min-w-0 space-y-4">
+        {activeSection === "home" && (
+          <>
+            <HeroBanner report={report} location={location} />
+            {report.propertyAnalysis && (
+              <PropertyAffordabilityCard data={report.propertyAnalysis} affordability={report.affordability} />
+            )}
+            <AffordabilityCard
+              data={report.affordability}
+              risk={report.riskAssessment}
+              mortgageRate={report.marketSnapshot.mortgageRates.thirtyYearFixed}
+            />
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 sm:p-8">
+              <h3 className="text-base font-semibold text-gray-900 mb-4">Readiness & Budget Simulator</h3>
+              <BudgetSimulatorCard
+                affordability={report.affordability}
+                marketSnapshot={report.marketSnapshot}
+                recommendations={report.recommendations}
+                preApprovalReadiness={report.preApprovalReadiness}
+              />
+            </div>
+          </>
+        )}
 
-      {report.investmentAnalysis && (
-        <ExpandableSection title="Investment Property Analysis" defaultOpen>
-          <InvestmentAnalysisCard data={report.investmentAnalysis} />
-        </ExpandableSection>
-      )}
+        {activeSection === "investment" && report.investmentAnalysis && (
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 sm:p-8">
+            <h3 className="text-base font-semibold text-gray-900 mb-4">Investment Property Analysis</h3>
+            <InvestmentAnalysisCard data={report.investmentAnalysis} />
+          </div>
+        )}
 
-      <ExpandableSection title="Readiness & Budget Simulator" defaultOpen>
-        <BudgetSimulatorCard
-          affordability={report.affordability}
-          marketSnapshot={report.marketSnapshot}
-          recommendations={report.recommendations}
-          preApprovalReadiness={report.preApprovalReadiness}
-        />
-      </ExpandableSection>
+        {activeSection === "market" && (
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 sm:p-8">
+            <h3 className="text-base font-semibold text-gray-900 mb-4">Market Snapshot</h3>
+            <MarketSnapshotCard data={report.marketSnapshot} satelliteUrl={satelliteUrl} />
+          </div>
+        )}
 
-      <ExpandableSection title="Market Snapshot">
-        <MarketSnapshotCard data={report.marketSnapshot} satelliteUrl={satelliteUrl} />
-      </ExpandableSection>
+        {activeSection === "neighborhood" && report.neighborhoodInfo && (
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 sm:p-8">
+            <h3 className="text-base font-semibold text-gray-900 mb-4">Neighborhood Info</h3>
+            <NeighborhoodInfoCard data={report.neighborhoodInfo} />
+          </div>
+        )}
 
-      {report.neighborhoodInfo && (
-        <ExpandableSection title="Neighborhood Info">
-          <NeighborhoodInfoCard data={report.neighborhoodInfo} />
-        </ExpandableSection>
-      )}
+        {activeSection === "risk" && (
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 sm:p-8">
+            <h3 className="text-base font-semibold text-gray-900 mb-4">Risk Assessment</h3>
+            <RiskAssessmentCard data={report.riskAssessment} />
+          </div>
+        )}
 
-      <ExpandableSection title="Risk Assessment">
-        <RiskAssessmentCard data={report.riskAssessment} />
-      </ExpandableSection>
+        {activeSection === "rent-vs-buy" && report.rentVsBuy && (
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 sm:p-8">
+            <h3 className="text-base font-semibold text-gray-900 mb-4">Rent vs. Buy Analysis</h3>
+            <RentVsBuyCard data={report.rentVsBuy} />
+          </div>
+        )}
 
-      {report.rentVsBuy && (
-        <ExpandableSection title="Rent vs. Buy Analysis">
-          <RentVsBuyCard data={report.rentVsBuy} />
-        </ExpandableSection>
-      )}
+        {activeSection === "loans" && report.recommendations.loanOptions?.length > 0 && (
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 sm:p-8">
+            <h3 className="text-base font-semibold text-gray-900 mb-4">Loan Programs</h3>
+            <LoanProgramsCard data={report.recommendations.loanOptions} />
+          </div>
+        )}
 
-      {report.recommendations.loanOptions?.length > 0 && (
-        <ExpandableSection title="Loan Programs">
-          <LoanProgramsCard data={report.recommendations.loanOptions} />
-        </ExpandableSection>
-      )}
+        {activeSection === "equity" && (
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 sm:p-8">
+            <h3 className="text-base font-semibold text-gray-900 mb-4">5-Year Equity Buildup</h3>
+            <AmortizationTable data={report.affordability.amortizationSummary} />
+          </div>
+        )}
 
-      <ExpandableSection title="5-Year Equity Buildup">
-        <AmortizationTable data={report.affordability.amortizationSummary} />
-      </ExpandableSection>
+        {activeSection === "properties" && location && (
+          <MatchingPropertiesCard
+            affordability={report.affordability}
+            marketData={report.marketSnapshot}
+            location={location}
+          />
+        )}
 
-      {location && (
-        <MatchingPropertiesCard
-          affordability={report.affordability}
-          marketData={report.marketSnapshot}
-          location={location}
-        />
-      )}
+        {activeSection === "ai" && report.summary && (
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 sm:p-8">
+            <h3 className="text-base font-semibold text-gray-900 mb-4">AI Detailed Analysis</h3>
+            <AISummaryCard summary={report.summary} />
+          </div>
+        )}
 
-      {report.summary && (
-        <ExpandableSection title="AI Detailed Analysis">
-          <AISummaryCard summary={report.summary} />
-        </ExpandableSection>
-      )}
-
-      {report.disclaimers && (
-        <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-          <p className="text-xs font-medium text-gray-500 mb-2">Disclaimers</p>
-          <ul className="space-y-1">
-            {report.disclaimers.map((d, i) => (
-              <li key={i} className="text-xs text-gray-400">{d}</li>
-            ))}
-          </ul>
-        </div>
-      )}
+        {report.disclaimers && (
+          <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <p className="text-xs font-medium text-gray-500 mb-2">Disclaimers</p>
+            <ul className="space-y-1">
+              {report.disclaimers.map((d, i) => (
+                <li key={i} className="text-xs text-gray-400">{d}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
