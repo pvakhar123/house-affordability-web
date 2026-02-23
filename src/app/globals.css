@@ -91,6 +91,21 @@ input[type="number"] {
 .ai-fade-in-delay-3 { animation-delay: 0.3s; }
 .ai-fade-in-delay-4 { animation-delay: 0.4s; }
 
+/* Landing page preview entrance */
+@keyframes previewSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.preview-slide-up {
+  animation: previewSlideUp 0.8s ease-out both;
+}
+
 /* Streaming report section fade-in */
 @keyframes streamFadeIn {
   from {
