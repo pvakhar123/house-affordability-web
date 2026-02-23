@@ -6,12 +6,10 @@ import DashboardClient from "./saved-reports/DashboardClient";
 import AffordabilityCard from "@/components/AffordabilityCard";
 import RiskAssessmentCard from "@/components/RiskAssessmentCard";
 import RentVsBuyCard from "@/components/RentVsBuyCard";
-import PreApprovalReadinessCard from "@/components/PreApprovalReadinessCard";
 import {
   mockAffordability,
   mockRisk,
   mockRentVsBuy,
-  mockReadiness,
   MOCK_MORTGAGE_RATE,
 } from "@/lib/data/mock-landing-data";
 
@@ -155,49 +153,196 @@ function InvestmentPreview() {
   );
 }
 
-/* ── Static preview: Budget Simulator ── */
-function BudgetSimulatorPreview() {
+/* ── Static preview: Readiness & Budget (combined) ── */
+function ReadinessBudgetPreview() {
   return (
     <div className="border border-gray-200 rounded-xl bg-white shadow-sm overflow-hidden">
-      <div className="px-4 py-3 border-b border-gray-100">
+      <div className="px-5 py-4 border-b border-gray-100">
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 bg-violet-50 rounded-lg flex items-center justify-center">
-            <svg className="w-3.5 h-3.5 text-violet-600" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+          <div className="w-8 h-8 bg-violet-50 rounded-lg flex items-center justify-center">
+            <svg className="w-4 h-4 text-violet-600" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
             </svg>
           </div>
-          <h3 className="text-xs font-semibold text-gray-900">Budget Simulator</h3>
+          <h3 className="text-sm font-semibold text-gray-900">Readiness & Budget Simulator</h3>
         </div>
       </div>
-      <div className="p-4 space-y-3">
-        {/* Mock slider */}
-        {[
-          { label: "Annual Income", value: "$133K", pct: 70 },
-          { label: "Down Payment", value: "$97K", pct: 48 },
-          { label: "Monthly Debt", value: "$450", pct: 25 },
-        ].map((s) => (
-          <div key={s.label}>
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-[10px] text-gray-500">{s.label}</span>
-              <span className="text-[10px] font-semibold text-gray-700">{s.value}</span>
+      <div className="p-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          {/* Left: Readiness score */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-4">
+              <div className="relative w-20 h-20 flex-shrink-0">
+                <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
+                  <circle cx="18" cy="18" r="15.5" fill="none" stroke="#e5e7eb" strokeWidth="3" />
+                  <circle cx="18" cy="18" r="15.5" fill="none" stroke="#7c3aed" strokeWidth="3" strokeDasharray="97.4" strokeDashoffset="21.4" strokeLinecap="round" />
+                </svg>
+                <span className="absolute inset-0 flex items-center justify-center text-lg font-bold text-gray-900">78</span>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-gray-900">Ready</p>
+                <p className="text-xs text-gray-500">Pre-Approval Score</p>
+              </div>
             </div>
-            <div className="h-1.5 bg-gray-100 rounded-full">
-              <div
-                className="h-full bg-violet-500 rounded-full"
-                style={{ width: `${s.pct}%` }}
-              />
+            {[
+              { label: "DTI Score", score: 21, max: 25, color: "bg-green-500" },
+              { label: "Credit Score", score: 22, max: 25, color: "bg-green-500" },
+              { label: "Down Payment", score: 20, max: 25, color: "bg-blue-500" },
+              { label: "Debt Health", score: 15, max: 25, color: "bg-yellow-500" },
+            ].map((item) => (
+              <div key={item.label}>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs text-gray-500">{item.label}</span>
+                  <span className="text-xs font-semibold text-gray-700">{item.score}/{item.max}</span>
+                </div>
+                <div className="h-1.5 bg-gray-100 rounded-full">
+                  <div className={`h-full ${item.color} rounded-full`} style={{ width: `${(item.score / item.max) * 100}%` }} />
+                </div>
+              </div>
+            ))}
+          </div>
+          {/* Right: Budget sliders */}
+          <div className="space-y-4">
+            <p className="text-xs font-semibold text-gray-700">Adjust your budget</p>
+            {[
+              { label: "Annual Income", value: "$133K", pct: 70 },
+              { label: "Down Payment", value: "$97K", pct: 48 },
+              { label: "Monthly Debt", value: "$450", pct: 25 },
+              { label: "Emergency Fund", value: "$35K", pct: 58 },
+              { label: "Closing Costs", value: "$12K", pct: 40 },
+            ].map((s) => (
+              <div key={s.label}>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs text-gray-500">{s.label}</span>
+                  <span className="text-xs font-semibold text-gray-700">{s.value}</span>
+                </div>
+                <div className="h-1.5 bg-gray-100 rounded-full">
+                  <div className="h-full bg-violet-500 rounded-full" style={{ width: `${s.pct}%` }} />
+                </div>
+              </div>
+            ))}
+            <div className="bg-violet-50 rounded-lg p-3 text-center">
+              <p className="text-[11px] text-gray-500 mb-0.5">Estimated Max Price</p>
+              <p className="text-lg font-bold text-violet-700">$485,000</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Static preview: AI Chat ── */
+function ChatPreview() {
+  return (
+    <div className="border border-gray-200 rounded-xl bg-white shadow-sm overflow-hidden">
+      <div className="px-5 py-4 border-b border-gray-100">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-indigo-50 rounded-lg flex items-center justify-center">
+            <svg className="w-4 h-4 text-indigo-600" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
+            </svg>
+          </div>
+          <h3 className="text-sm font-semibold text-gray-900">AI Chat</h3>
+          <span className="text-[10px] text-gray-400 ml-auto">Powered by your analysis data</span>
+        </div>
+      </div>
+      <div className="p-5 space-y-4">
+        {/* User message */}
+        <div className="flex justify-end">
+          <div className="bg-blue-600 text-white rounded-2xl rounded-br-md px-4 py-2.5 max-w-[80%]">
+            <p className="text-sm">Can I afford a $500K home if I put down 25%?</p>
+          </div>
+        </div>
+        {/* AI response */}
+        <div className="flex justify-start">
+          <div className="bg-gray-100 rounded-2xl rounded-bl-md px-4 py-2.5 max-w-[85%] space-y-2">
+            <p className="text-sm text-gray-800">Based on your income of $133K and current debts, here&apos;s the breakdown for a $500K home with 25% down:</p>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="bg-white rounded-lg p-2">
+                <p className="text-[10px] text-gray-500">Down Payment</p>
+                <p className="text-xs font-bold text-gray-900">$125,000</p>
+              </div>
+              <div className="bg-white rounded-lg p-2">
+                <p className="text-[10px] text-gray-500">Monthly Payment</p>
+                <p className="text-xs font-bold text-gray-900">$3,280</p>
+              </div>
+              <div className="bg-white rounded-lg p-2">
+                <p className="text-[10px] text-gray-500">DTI Ratio</p>
+                <p className="text-xs font-bold text-amber-600">37.2%</p>
+              </div>
+              <div className="bg-white rounded-lg p-2">
+                <p className="text-[10px] text-gray-500">Verdict</p>
+                <p className="text-xs font-bold text-amber-600">Stretch</p>
+              </div>
+            </div>
+            <p className="text-sm text-gray-800">Your DTI would be 37.2%, which is above the recommended 36%. I&apos;d recommend staying closer to your max of <strong>$485K</strong>.</p>
+          </div>
+        </div>
+        {/* User follow-up */}
+        <div className="flex justify-end">
+          <div className="bg-blue-600 text-white rounded-2xl rounded-br-md px-4 py-2.5 max-w-[80%]">
+            <p className="text-sm">What if I pay off my car loan first?</p>
+          </div>
+        </div>
+        {/* Input bar */}
+        <div className="flex items-center gap-2 border border-gray-200 rounded-xl px-3 py-2 bg-gray-50">
+          <span className="text-sm text-gray-400 flex-1">Ask a follow-up question...</span>
+          <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center">
+            <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Static preview: Property Recommendations ── */
+function PropertyRecommendationsPreview() {
+  const listings = [
+    { address: "1247 Oak Valley Dr", city: "Austin, TX", price: "$465,000", beds: 3, baths: 2, sqft: "1,850", tag: "Within Budget", tagColor: "bg-green-50 text-green-700" },
+    { address: "892 Maple Creek Ln", city: "Round Rock, TX", price: "$439,000", beds: 4, baths: 2.5, sqft: "2,100", tag: "Best Value", tagColor: "bg-blue-50 text-blue-700" },
+    { address: "3156 Sunset Ridge Blvd", city: "Cedar Park, TX", price: "$478,000", beds: 3, baths: 2, sqft: "1,920", tag: "New Listing", tagColor: "bg-amber-50 text-amber-700" },
+  ];
+  return (
+    <div className="border border-gray-200 rounded-xl bg-white shadow-sm overflow-hidden">
+      <div className="px-5 py-4 border-b border-gray-100">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-orange-50 rounded-lg flex items-center justify-center">
+            <svg className="w-4 h-4 text-orange-600" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 0h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z" />
+            </svg>
+          </div>
+          <h3 className="text-sm font-semibold text-gray-900">Matching Properties</h3>
+          <span className="text-[10px] text-gray-400 ml-auto">Based on your budget & location</span>
+        </div>
+      </div>
+      <div className="p-5 space-y-3">
+        {listings.map((listing) => (
+          <div key={listing.address} className="flex gap-3 p-3 bg-gray-50 rounded-lg">
+            {/* Photo placeholder */}
+            <div className="w-20 h-20 bg-gray-200 rounded-lg flex-shrink-0 flex items-center justify-center">
+              <svg className="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0 0 22.5 18.75V5.25A2.25 2.25 0 0 0 20.25 3H3.75A2.25 2.25 0 0 0 1.5 5.25v13.5A2.25 2.25 0 0 0 3.75 21z" />
+              </svg>
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <p className="text-sm font-semibold text-gray-900 truncate">{listing.price}</p>
+                <span className={`px-1.5 py-0.5 text-[9px] font-semibold rounded-full ${listing.tagColor}`}>{listing.tag}</span>
+              </div>
+              <p className="text-xs text-gray-700 truncate">{listing.address}</p>
+              <p className="text-xs text-gray-500">{listing.city}</p>
+              <div className="flex items-center gap-3 mt-1.5 text-[11px] text-gray-500">
+                <span>{listing.beds} bed</span>
+                <span>{listing.baths} bath</span>
+                <span>{listing.sqft} sqft</span>
+              </div>
             </div>
           </div>
         ))}
-        <div className="flex items-center justify-center pt-1">
-          <div className="relative w-16 h-16">
-            <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
-              <circle cx="18" cy="18" r="15.5" fill="none" stroke="#e5e7eb" strokeWidth="3" />
-              <circle cx="18" cy="18" r="15.5" fill="none" stroke="#7c3aed" strokeWidth="3" strokeDasharray="97.4" strokeDashoffset="21.4" strokeLinecap="round" />
-            </svg>
-            <span className="absolute inset-0 flex items-center justify-center text-xs font-bold text-gray-900">78</span>
-          </div>
-        </div>
       </div>
     </div>
   );
@@ -225,9 +370,9 @@ const carouselSlides = [
     content: <RentVsBuyCard data={mockRentVsBuy} />,
   },
   {
-    title: "Pre-Approval Readiness",
-    description: "Know exactly where you stand before talking to a lender.",
-    content: <PreApprovalReadinessCard data={mockReadiness} />,
+    title: "Readiness & Budget Simulator",
+    description: "Pre-approval readiness score with interactive budget sliders to explore your buying power.",
+    content: <ReadinessBudgetPreview />,
   },
   {
     title: "Investment Analysis",
@@ -235,9 +380,14 @@ const carouselSlides = [
     content: <InvestmentPreview />,
   },
   {
-    title: "Budget Simulator",
-    description: "Interactive sliders to explore how income, debt, and savings affect your buying power.",
-    content: <BudgetSimulatorPreview />,
+    title: "Matching Properties",
+    description: "Real listings from Realtor.com that match your budget and preferred location.",
+    content: <PropertyRecommendationsPreview />,
+  },
+  {
+    title: "AI Chat",
+    description: "Ask follow-up questions about your results and get personalized answers instantly.",
+    content: <ChatPreview />,
   },
 ];
 
@@ -294,9 +444,11 @@ function PreviewCarousel() {
           </svg>
         </button>
 
-        {/* Card */}
-        <div key={current} className="pointer-events-none preview-slide-up">
+        {/* Card — consistent height with fade for overflow */}
+        <div key={current} className="relative pointer-events-none preview-slide-up h-[460px] overflow-hidden">
           {slide.content}
+          {/* Bottom fade for taller cards */}
+          <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-gray-50 to-transparent" />
         </div>
       </div>
 
