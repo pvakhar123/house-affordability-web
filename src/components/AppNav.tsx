@@ -7,7 +7,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 import UserMenu from "@/components/UserMenu";
 
 const navLinks = [
-  { href: "/", label: "Dashboard" },
+  { href: "/", label: "My Homes" },
   { href: "/analyze", label: "New Analysis" },
   { href: "/pricing", label: "Pricing" },
   { href: "/docs", label: "Docs" },

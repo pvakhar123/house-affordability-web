@@ -56,12 +56,8 @@ export const GET = withTracking("dashboard", async () => {
         const report = r.report as Record<string, unknown> | null;
         const affordability = report?.affordability as Record<string, unknown> | undefined;
         const monthlyPayment = affordability?.monthlyPayment as Record<string, unknown> | undefined;
-        const dtiAnalysis = affordability?.dtiAnalysis as Record<string, unknown> | undefined;
         const marketSnapshot = report?.marketSnapshot as Record<string, unknown> | undefined;
         const mortgageRates = marketSnapshot?.mortgageRates as Record<string, unknown> | undefined;
-        const riskAssessment = report?.riskAssessment as Record<string, unknown> | undefined;
-        const propertyAnalysis = report?.propertyAnalysis as Record<string, unknown> | undefined;
-        const rentVsBuy = report?.rentVsBuy as Record<string, unknown> | undefined;
         return {
           id: r.id,
           name: r.name,
@@ -70,13 +66,6 @@ export const GET = withTracking("dashboard", async () => {
           monthlyPayment: (monthlyPayment?.totalMonthly as number) ?? null,
           location: r.userLocation ?? null,
           rateAtAnalysis: (mortgageRates?.thirtyYearFixed as number) ?? null,
-          backEndRatio: (dtiAnalysis?.backEndRatio as number) ?? null,
-          downPaymentPercent: (affordability?.downPaymentPercent as number) ?? null,
-          loanAmount: (affordability?.loanAmount as number) ?? null,
-          riskLevel: (riskAssessment?.overallRiskLevel as string) ?? null,
-          propertyVerdict: (propertyAnalysis?.verdict as string) ?? null,
-          rentVsBuyVerdict: (rentVsBuy?.verdict as string) ?? null,
-          breakEvenYear: (rentVsBuy?.breakEvenYear as number) ?? null,
         };
       });
     })(),

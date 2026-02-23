@@ -110,8 +110,8 @@ export default function UserMenu() {
               </svg>
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-900">My Analysis</p>
-              <p className="text-xs text-gray-400">View saved reports & dashboard</p>
+              <p className="text-sm font-medium text-gray-900">My Homes</p>
+              <p className="text-xs text-gray-400">View your saved home analyses</p>
             </div>
           </a>
 
@@ -121,7 +121,7 @@ export default function UserMenu() {
               <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Usage</p>
               <UsageMiniBar label="Analyses" used={usage.analyze.used} limit={usage.analyze.limit} />
               <UsageMiniBar label="Chat" used={usage.chat.used} limit={usage.chat.limit} />
-              <UsageMiniBar label="Reports" used={usage.savedReports.used} limit={usage.savedReports.limit} />
+              <UsageMiniBar label="Homes" used={usage.savedReports.used} limit={usage.savedReports.limit} />
             </div>
           )}
 
