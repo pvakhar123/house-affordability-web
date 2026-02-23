@@ -7,7 +7,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 import UserMenu from "@/components/UserMenu";
 
 const navLinks = [
-  { href: "/", label: "My Homes" },
+  { href: "/", label: "Dashboard" },
   { href: "/analyze", label: "New Analysis" },
   { href: "/pricing", label: "Pricing" },
   { href: "/docs", label: "Docs" },
@@ -15,21 +15,17 @@ const navLinks = [
 
 function Logo() {
   return (
-    <a href="/" className="flex items-center gap-3 flex-shrink-0">
-      <div className="relative flex-shrink-0 w-9 h-9">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-600 rounded-xl rotate-3 opacity-90" />
-        <div className="relative w-full h-full bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-md">
-          <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={1.5}>
-            <path d="M3.5 11L12 4l8.5 7" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
-            <path d="M5 10v9a1 1 0 001 1h12a1 1 0 001-1v-9" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
-            <circle cx="9.5" cy="14.5" r="1" fill="currentColor" opacity="0.9" />
-            <circle cx="14.5" cy="14.5" r="1" fill="currentColor" opacity="0.9" />
-            <path d="M9.5 14.5c0 1.5 1.5 2.5 2.5 2.5s2.5-1 2.5-2.5" stroke="currentColor" strokeWidth="1" strokeLinecap="round" opacity="0.7" />
-            <path d="M17 3l.5 1.5L19 5l-1.5.5L17 7l-.5-1.5L15 5l1.5-.5L17 3z" fill="currentColor" opacity="0.8" />
+    <a href="/" className="flex items-center gap-2.5 flex-shrink-0">
+      <div className="relative flex-shrink-0 w-8 h-8">
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg rotate-2 opacity-80" />
+        <div className="relative w-full h-full bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center shadow-sm">
+          <svg className="w-[18px] h-[18px] text-white" fill="none" viewBox="0 0 24 24" strokeWidth={2}>
+            <path d="M3 12l9-8 9 8" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M5 11v8a1 1 0 001 1h4v-5h4v5h4a1 1 0 001-1v-8" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </div>
       </div>
-      <span className="text-base font-bold text-gray-900">AI Home Research</span>
+      <span className="text-sm font-bold text-gray-900 tracking-tight">HomeWise<span className="text-blue-600">.ai</span></span>
     </a>
   );
 }
@@ -59,7 +55,7 @@ export default function AppNav() {
 
   return (
     <nav className="bg-white border-b border-gray-200 sticky top-0 z-40">
-      <div className="max-w-5xl mx-auto px-4">
+      <div className="px-4">
         <div className="flex items-center justify-between h-14">
           {/* Left: Logo + nav links */}
           <div className="flex items-center gap-6">

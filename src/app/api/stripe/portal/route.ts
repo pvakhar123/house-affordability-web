@@ -21,13 +21,18 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "No Stripe customer found" }, { status: 400 });
   }
 
-  const stripe = getStripe();
-  const origin = req.headers.get("origin") || process.env.NEXTAUTH_URL || "";
+  try {
+    const stripe = getStripe();
+    const origin = req.headers.get("origin") || process.env.NEXTAUTH_URL || "";
 
-  const portalSession = await stripe.billingPortal.sessions.create({
-    customer: user.stripeCustomerId,
-    return_url: `${origin}/`,
-  });
+    const portalSession = await stripe.billingPortal.sessions.create({
+      customer: user.stripeCustomerId,
+      return_url: `${origin}/settings`,
+    });
 
-  return NextResponse.json({ url: portalSession.url });
+    return NextResponse.json({ url: portalSession.url });
+  } catch (err) {
+    console.error("Stripe portal error:", err);
+    return NextResponse.json({ error: "Failed to open billing portal" }, { status: 500 });
+  }
 }
