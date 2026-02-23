@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Privacy Policy",
   description:
-    "Privacy Policy for AI Home Research. Learn how we collect, use, and protect your data.",
+    "Privacy Policy for HomeIQ. Learn how we collect, use, and protect your data.",
 };
 
 export default function PrivacyPolicyPage() {
@@ -51,7 +51,7 @@ export default function PrivacyPolicyPage() {
               1. Information We Collect
             </h3>
             <p className="text-gray-700 leading-relaxed">
-              When you use AI Home Research, we collect the following information:
+              When you use HomeIQ, we collect the following information:
             </p>
             <ul className="list-disc pl-6 text-gray-700 space-y-1.5">
               <li>

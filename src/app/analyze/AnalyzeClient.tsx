@@ -243,7 +243,7 @@ export default function AnalyzeClient() {
             We do not store any personal data or information. This is not financial advice. Use at your own risk.
           </p>
           <div className="flex items-center justify-between text-xs text-gray-400">
-            <span>&copy; {new Date().getFullYear()} AI Home Research</span>
+            <span>&copy; {new Date().getFullYear()} HomeIQ</span>
             <div className="flex items-center gap-3">
               <a href="/privacy" className="text-gray-500 hover:text-blue-600 transition-colors">Privacy</a>
               <a href="/terms" className="text-gray-500 hover:text-blue-600 transition-colors">Terms</a>

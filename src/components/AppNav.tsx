@@ -25,7 +25,7 @@ function Logo() {
           </svg>
         </div>
       </div>
-      <span className="text-sm font-bold text-gray-900 tracking-tight">HomeWise<span className="text-blue-600">.ai</span></span>
+      <span className="text-sm font-bold text-gray-900 tracking-tight">Home<span className="text-blue-600">IQ</span></span>
     </a>
   );
 }

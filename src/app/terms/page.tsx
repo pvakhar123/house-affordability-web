@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Terms of Service",
   description:
-    "Terms of Service for AI Home Research. Understand the rules and guidelines for using our service.",
+    "Terms of Service for HomeIQ. Understand the rules and guidelines for using our service.",
 };
 
 export default function TermsOfServicePage() {
@@ -53,7 +53,7 @@ export default function TermsOfServicePage() {
               1. Acceptance of Terms
             </h3>
             <p className="text-gray-700 leading-relaxed">
-              By accessing or using AI Home Research (&quot;the Service&quot;),
+              By accessing or using HomeIQ (&quot;the Service&quot;),
               you agree to be bound by these Terms of Service. If you do not
               agree, do not use the Service.
             </p>
@@ -64,7 +64,7 @@ export default function TermsOfServicePage() {
               2. Description of Service
             </h3>
             <p className="text-gray-700 leading-relaxed">
-              AI Home Research is a free, AI-powered home affordability
+              HomeIQ is a free, AI-powered home affordability
               calculator that provides personalized financial analysis using
               real-time mortgage rates, market data, and risk assessment. The
               Service uses multiple AI agents to generate reports and answer
@@ -147,7 +147,7 @@ export default function TermsOfServicePage() {
             </h3>
             <p className="text-gray-700 leading-relaxed">
               The Service, including its design, code, AI models, and content,
-              is the property of AI Home Research. Reports generated for you are
+              is the property of HomeIQ. Reports generated for you are
               yours to use, share, and export. You may not redistribute the
               Service itself or create derivative services.
             </p>
@@ -213,7 +213,7 @@ export default function TermsOfServicePage() {
               10. Limitation of Liability
             </h3>
             <p className="text-gray-700 leading-relaxed">
-              To the maximum extent permitted by law, AI Home Research and its
+              To the maximum extent permitted by law, HomeIQ and its
               operators shall not be liable for any indirect, incidental,
               special, consequential, or punitive damages, or any loss of
               profits or revenues, whether incurred directly or indirectly, or

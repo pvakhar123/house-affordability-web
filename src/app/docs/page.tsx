@@ -124,12 +124,12 @@ function OverviewSection() {
       <h2 className="text-2xl font-bold text-gray-900 mb-4">Overview</h2>
       <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
         <p className="text-sm text-gray-600 leading-relaxed">
-          AI Home Research is an AI-powered home affordability platform that provides personalized, data-driven analysis for homebuyers. The app combines <strong>4 specialized AI agents</strong>, <strong>real-time market data</strong> from federal sources (FRED, BLS), and <strong>financial modeling</strong> to deliver comprehensive reports.
+          HomeIQ is an AI-powered home affordability platform that provides personalized, data-driven analysis for homebuyers. The app combines <strong>4 specialized AI agents</strong>, <strong>real-time market data</strong> from federal sources (FRED, BLS), and <strong>financial modeling</strong> to deliver comprehensive reports.
         </p>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
             { label: "AI Agents", value: "4" },
-            { label: "Data Points", value: "60+" },
+            { label: "Analysis Cards", value: "12+" },
             { label: "Loan Programs", value: "4" },
             { label: "Market Sources", value: "Live" },
           ].map((stat) => (
@@ -148,10 +148,13 @@ function OverviewSection() {
             <li>Investment property ROI analysis</li>
             <li>Loan program eligibility (Conventional, FHA, VA, USDA)</li>
             <li>Neighborhood quality scores and cost of living</li>
-            <li>Matching property listings</li>
+            <li>Matching property listings from Realtor.com</li>
+            <li>Interactive budget simulator with readiness score</li>
             <li>AI chat for follow-up questions</li>
             <li>Document upload for auto-filling financial data</li>
             <li>Property import from listing URLs</li>
+            <li>Section-based dashboard with left navigation</li>
+            <li>Dark mode support</li>
           </ul>
         </div>
       </div>
@@ -321,7 +324,8 @@ function ResultsSection() {
   return (
     <>
       <h2 className="text-2xl font-bold text-gray-900 mb-2">Results Dashboard</h2>
-      <p className="text-sm text-gray-600 mb-6">After running an analysis, results stream in progressively. The dashboard contains <strong>{cards.length} sections</strong>:</p>
+      <p className="text-sm text-gray-600 mb-3">After running an analysis, results stream in progressively. The dashboard uses a <strong>section-based left navigation</strong> so each analysis area is its own view. The <strong>Analysis</strong> (home) view shows affordability, readiness, and the budget simulator together. Other sections are accessed via the sidebar.</p>
+      <p className="text-sm text-gray-600 mb-6">The dashboard contains <strong>{cards.length} sections</strong>:</p>
       <div className="space-y-3">
         {cards.map((card, i) => (
           <div key={card.title} className="bg-white rounded-xl border border-gray-200 p-4 flex gap-3">

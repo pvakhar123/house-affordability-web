@@ -3,8 +3,8 @@ import { Suspense } from "react";
 import PricingClient from "./PricingClient";
 
 export const metadata: Metadata = {
-  title: "Pricing – AI Home Research",
-  description: "Compare Free and Pro plans for AI Home Research. Get more reports, unlimited chat, and unlimited saved reports with Pro.",
+  title: "Pricing – HomeIQ",
+  description: "Compare Free and Pro plans for HomeIQ. Get more reports, unlimited chat, and unlimited saved reports with Pro.",
 };
 
 export default function PricingPage() {

@@ -54,11 +54,9 @@ function LandingPage() {
           </div>
 
           <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 tracking-tight leading-tight">
-            AI-Powered<br />
-            <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-              Home Research
-            </span>
+            Home<span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">IQ</span>
           </h1>
+          <p className="mt-2 text-lg font-medium text-gray-500">AI-Powered Home Affordability Research</p>
 
           <p className="mt-4 text-lg text-gray-600 max-w-2xl mx-auto leading-relaxed">
             Get a comprehensive affordability analysis using real-time mortgage rates,
@@ -147,7 +145,7 @@ function LandingPage() {
             We do not store any personal data or information. This is not financial advice. Use at your own risk.
           </p>
           <div className="flex items-center justify-between text-xs text-gray-400">
-            <span>&copy; {new Date().getFullYear()} AI Home Research</span>
+            <span>&copy; {new Date().getFullYear()} HomeIQ</span>
             <div className="flex items-center gap-3">
               <a href="/privacy" className="text-gray-500 hover:text-blue-600 transition-colors">Privacy</a>
               <a href="/terms" className="text-gray-500 hover:text-blue-600 transition-colors">Terms</a>

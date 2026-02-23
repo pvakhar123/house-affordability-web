@@ -17,8 +17,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "AI Home Research — Affordability Calculator & Market Analysis",
-    template: "%s | AI Home Research",
+    default: "HomeIQ — Affordability Calculator & Market Analysis",
+    template: "%s | HomeIQ",
   },
   description:
     "Free AI-powered home affordability calculator. Get personalized analysis using real-time mortgage rates, market data, and risk assessment from 4 AI agents.",
@@ -31,15 +31,15 @@ export const metadata: Metadata = {
     "real-time mortgage rates",
     "rent vs buy calculator",
   ],
-  authors: [{ name: "AI Home Research" }],
-  creator: "AI Home Research",
+  authors: [{ name: "HomeIQ" }],
+  creator: "HomeIQ",
   metadataBase: new URL("https://aicalculator.homes"),
   openGraph: {
     type: "website",
     locale: "en_US",
     url: "https://aicalculator.homes",
-    siteName: "AI Home Research",
-    title: "AI Home Research — Affordability Calculator & Market Analysis",
+    siteName: "HomeIQ",
+    title: "HomeIQ — Affordability Calculator & Market Analysis",
     description:
       "Free AI-powered home affordability calculator. Personalized analysis with real-time mortgage rates, market data, and risk assessment.",
     images: [
@@ -47,13 +47,13 @@ export const metadata: Metadata = {
         url: "/opengraph-image",
         width: 1200,
         height: 630,
-        alt: "AI Home Research — Affordability Calculator",
+        alt: "HomeIQ — Affordability Calculator",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "AI Home Research — Affordability Calculator",
+    title: "HomeIQ — Affordability Calculator",
     description:
       "Free AI-powered home affordability calculator with real-time mortgage rates and market analysis.",
     images: ["/opengraph-image"],

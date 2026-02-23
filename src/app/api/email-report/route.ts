@@ -111,7 +111,7 @@ async function _POST(request: Request) {
     const resend = new Resend(resendKey);
 
     const { error } = await resend.emails.send({
-      from: "AI Home Research <onboarding@resend.dev>",
+      from: "HomeIQ <onboarding@resend.dev>",
       to: email,
       subject: `Your Home Research Report — Max ${Math.round(report.affordability.maxHomePrice).toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 })}`,
       html: buildEmailHTML(report),

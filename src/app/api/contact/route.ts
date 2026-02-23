@@ -47,7 +47,7 @@ async function _POST(req: Request) {
         const { Resend } = await import("resend");
         const resend = new Resend(resendKey);
         await resend.emails.send({
-          from: "AI Home Research <onboarding@resend.dev>",
+          from: "HomeIQ <onboarding@resend.dev>",
           to: adminEmail,
           subject: `[Support] ${subject} — from ${name}`,
           html: `
