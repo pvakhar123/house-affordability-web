@@ -536,7 +536,7 @@ function FullAnalysisView({ report, location }: { report: FinalReport; location?
 
   // Build nav items dynamically based on available data
   const navItems: { key: string; label: string }[] = [
-    { key: "home", label: "Home" },
+    { key: "home", label: "Analysis" },
     ...(report.investmentAnalysis ? [{ key: "investment", label: "Investment" }] : []),
     { key: "market", label: "Market" },
     ...(report.neighborhoodInfo ? [{ key: "neighborhood", label: "Area" }] : []),
