@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import DashboardClient from "./saved-reports/DashboardClient";
 import AffordabilityCard from "@/components/AffordabilityCard";
@@ -202,6 +203,135 @@ function BudgetSimulatorPreview() {
   );
 }
 
+const carouselSlides = [
+  {
+    title: "Affordability Analysis",
+    description: "See your max home price, monthly payment breakdown, and DTI ratios at a glance.",
+    content: <AffordabilityCard data={mockAffordability} risk={mockRisk} mortgageRate={MOCK_MORTGAGE_RATE} />,
+  },
+  {
+    title: "Live Market Snapshot",
+    description: "Real-time mortgage rates from the Federal Reserve with historical trend data.",
+    content: <MarketRatesPreview />,
+  },
+  {
+    title: "Risk Assessment",
+    description: "Personalized risk score with stress tests and actionable recommendations.",
+    content: <RiskAssessmentCard data={mockRisk} />,
+  },
+  {
+    title: "Rent vs Buy Comparison",
+    description: "Year-by-year financial comparison to see when buying beats renting.",
+    content: <RentVsBuyCard data={mockRentVsBuy} />,
+  },
+  {
+    title: "Pre-Approval Readiness",
+    description: "Know exactly where you stand before talking to a lender.",
+    content: <PreApprovalReadinessCard data={mockReadiness} />,
+  },
+  {
+    title: "Investment Analysis",
+    description: "Cap rate, cash-on-cash return, and monthly cash flow projections.",
+    content: <InvestmentPreview />,
+  },
+  {
+    title: "Budget Simulator",
+    description: "Interactive sliders to explore how income, debt, and savings affect your buying power.",
+    content: <BudgetSimulatorPreview />,
+  },
+];
+
+function PreviewCarousel() {
+  const [current, setCurrent] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const total = carouselSlides.length;
+
+  const next = useCallback(() => setCurrent((i) => (i + 1) % total), [total]);
+  const prev = useCallback(() => setCurrent((i) => (i - 1 + total) % total), [total]);
+
+  useEffect(() => {
+    if (paused) return;
+    const id = setInterval(next, 5000);
+    return () => clearInterval(id);
+  }, [paused, next]);
+
+  const slide = carouselSlides[current];
+
+  return (
+    <div
+      className="relative"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+    >
+      {/* Slide header */}
+      <div className="text-center mb-5">
+        <p className="text-xs font-medium text-blue-600 mb-1">
+          {current + 1} / {total}
+        </p>
+        <h3 className="text-lg font-bold text-gray-900">{slide.title}</h3>
+        <p className="text-sm text-gray-500 mt-1 max-w-lg mx-auto">{slide.description}</p>
+      </div>
+
+      {/* Slide content */}
+      <div className="relative max-w-3xl mx-auto">
+        {/* Prev / Next arrows */}
+        <button
+          onClick={prev}
+          className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 sm:-translate-x-12 z-10 w-9 h-9 flex items-center justify-center rounded-full bg-white border border-gray-200 shadow-sm text-gray-500 hover:text-gray-800 hover:shadow transition-all"
+          aria-label="Previous slide"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+          </svg>
+        </button>
+        <button
+          onClick={next}
+          className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 sm:translate-x-12 z-10 w-9 h-9 flex items-center justify-center rounded-full bg-white border border-gray-200 shadow-sm text-gray-500 hover:text-gray-800 hover:shadow transition-all"
+          aria-label="Next slide"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+          </svg>
+        </button>
+
+        {/* Card */}
+        <div key={current} className="pointer-events-none preview-slide-up">
+          {slide.content}
+        </div>
+      </div>
+
+      {/* Dot indicators */}
+      <div className="flex items-center justify-center gap-1.5 mt-6">
+        {carouselSlides.map((_, i) => (
+          <button
+            key={i}
+            onClick={() => setCurrent(i)}
+            className={`rounded-full transition-all ${
+              i === current
+                ? "w-6 h-2 bg-blue-600"
+                : "w-2 h-2 bg-gray-300 hover:bg-gray-400"
+            }`}
+            aria-label={`Go to slide ${i + 1}`}
+          />
+        ))}
+      </div>
+
+      {/* CTA below carousel */}
+      <div className="text-center mt-8">
+        <a
+          href="/analyze"
+          className="inline-flex items-center gap-2 px-8 py-3.5 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/25 hover:shadow-blue-600/40"
+        >
+          Get Your Personalized Analysis
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+          </svg>
+        </a>
+      </div>
+    </div>
+  );
+}
+
 function LandingPage() {
   return (
     <div className="min-h-screen bg-gray-50">
@@ -249,51 +379,13 @@ function LandingPage() {
         </div>
       </section>
 
-      {/* Preview Showcase */}
-      <section className="max-w-5xl mx-auto px-4 pb-4">
-        <div className="text-center mb-8">
+      {/* Preview Carousel */}
+      <section className="max-w-5xl mx-auto px-4 pb-12">
+        <div className="text-center mb-6">
           <h2 className="text-2xl font-bold text-gray-900">See what you&apos;ll get</h2>
           <p className="mt-1 text-sm text-gray-500">Real components from an actual analysis — powered by your data</p>
         </div>
-
-        <div className="relative">
-          {/* Preview cards container */}
-          <div className="space-y-4 preview-slide-up">
-            {/* Row 1: Affordability Card (full width, real component) */}
-            <div className="pointer-events-none">
-              <AffordabilityCard data={mockAffordability} risk={mockRisk} mortgageRate={MOCK_MORTGAGE_RATE} />
-            </div>
-
-            {/* Row 2: Market Rates + Risk Assessment */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pointer-events-none">
-              <MarketRatesPreview />
-              <RiskAssessmentCard data={mockRisk} />
-            </div>
-
-            {/* Row 3: Rent vs Buy + Readiness + Investment/Budget */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pointer-events-none">
-              <RentVsBuyCard data={mockRentVsBuy} />
-              <PreApprovalReadinessCard data={mockReadiness} />
-              <div className="space-y-4">
-                <InvestmentPreview />
-                <BudgetSimulatorPreview />
-              </div>
-            </div>
-          </div>
-
-          {/* Gradient fade overlay */}
-          <div className="absolute bottom-0 left-0 right-0 h-64 bg-gradient-to-t from-gray-50 via-gray-50/95 to-transparent flex items-end justify-center pb-8">
-            <a
-              href="/analyze"
-              className="inline-flex items-center gap-2 px-8 py-3.5 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/25 hover:shadow-blue-600/40 pointer-events-auto"
-            >
-              Get Your Personalized Analysis
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-              </svg>
-            </a>
-          </div>
-        </div>
+        <PreviewCarousel />
       </section>
 
       {/* Stats Strip */}
