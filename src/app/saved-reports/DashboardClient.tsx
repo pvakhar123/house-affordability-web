@@ -551,7 +551,7 @@ function FullAnalysisView({ report, location }: { report: FinalReport; location?
   return (
     <div>
       {/* Mobile horizontal tabs (<lg) */}
-      <div className="flex gap-1.5 pb-3 -mx-4 px-4 overflow-x-auto scrollbar-hide lg:!hidden">
+      <div className="dash-nav-mobile gap-1.5 pb-3 -mx-4 px-4 overflow-x-auto scrollbar-hide">
         {navItems.map((item) => (
           <button
             key={item.key}
@@ -571,7 +571,7 @@ function FullAnalysisView({ report, location }: { report: FinalReport; location?
       {/* Desktop: sidebar + content row */}
       <div className="flex gap-4">
         {/* Desktop sidebar nav (lg+) */}
-        <nav className="flex-col gap-1 sticky top-4 self-start w-12 flex-shrink-0 pt-1 hidden! lg:flex!">
+        <nav className="dash-nav-desktop flex-col gap-1 sticky top-4 self-start w-12 flex-shrink-0 pt-1">
           {navItems.map((item) => (
             <button
               key={item.key}

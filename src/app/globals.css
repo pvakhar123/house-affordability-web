@@ -29,6 +29,14 @@ body {
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 
+/* Dashboard nav responsive — bypass Tailwind v4 specificity issues */
+.dash-nav-desktop { display: none !important; }
+.dash-nav-mobile { display: flex !important; }
+@media (min-width: 1024px) {
+  .dash-nav-desktop { display: flex !important; }
+  .dash-nav-mobile { display: none !important; }
+}
+
 /* Hide number input spinners */
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {
