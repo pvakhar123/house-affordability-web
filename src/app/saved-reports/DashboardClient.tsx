@@ -571,21 +571,19 @@ function FullAnalysisView({ report, location }: { report: FinalReport; location?
       {/* Desktop: sidebar + content row */}
       <div className="flex gap-4">
         {/* Desktop sidebar nav (lg+) */}
-        <nav className="dash-nav-desktop flex-col gap-1 sticky top-4 self-start w-12 flex-shrink-0 pt-1">
+        <nav className="dash-nav-desktop flex-col gap-0.5 sticky top-4 self-start w-40 flex-shrink-0 pt-1">
           {navItems.map((item) => (
             <button
               key={item.key}
               onClick={() => setActiveSection(item.key)}
-              className={`group relative w-10 h-10 flex items-center justify-center rounded-xl transition-colors ${
+              className={`flex items-center gap-2.5 w-full px-3 py-2 rounded-xl text-sm font-medium transition-colors ${
                 activeSection === item.key
                   ? "bg-blue-50 text-blue-600"
-                  : "text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+                  : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
               }`}
             >
               {navIcons[item.key]}
-              <span className="absolute left-full ml-2 px-2 py-1 text-xs font-medium text-white bg-gray-900 rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50">
-                {item.label}
-              </span>
+              {item.label}
             </button>
           ))}
         </nav>
