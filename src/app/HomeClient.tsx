@@ -455,61 +455,46 @@ function PreviewCarousel() {
 function LandingPage() {
   return (
     <div className="min-h-screen" style={{ background: "#f5f5f7" }}>
-      {/* Hero */}
+      {/* Hero — compact so previews are visible above the fold */}
       <section className="relative overflow-hidden">
-        <div className="max-w-4xl mx-auto px-4 pt-20 pb-16 text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-white/80 backdrop-blur-sm rounded-full text-xs font-medium text-gray-600 mb-8"
-            style={{ boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}
-          >
-            <svg className="w-3.5 h-3.5 text-blue-600" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
-            </svg>
-            Powered by 4 AI Agents
-          </div>
-
-          <h1 className="text-5xl sm:text-6xl font-semibold text-gray-900 tracking-tight leading-tight">
+        <div className="max-w-4xl mx-auto px-4 pt-10 pb-6 text-center">
+          <h1 className="text-4xl sm:text-5xl font-semibold text-gray-900 tracking-tight leading-tight">
             Home<span style={{ color: "#0071e3" }}>IQ</span>
           </h1>
-          <p className="mt-3 text-xl text-gray-500 font-normal">AI-Powered Home Affordability Research</p>
-
-          <p className="mt-5 text-lg text-gray-600 max-w-xl mx-auto leading-relaxed">
-            Get a comprehensive affordability analysis using real-time mortgage rates,
-            market data, and risk assessment — all in under 2 minutes.
+          <p className="mt-2 text-base text-gray-500">
+            AI-powered affordability analysis with real-time rates, market data, and risk assessment.
           </p>
 
-          <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+          <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
             <a
               href="/analyze"
-              className="inline-flex items-center gap-2 px-7 py-3 text-white text-sm font-medium rounded-full transition-all"
+              className="inline-flex items-center gap-2 px-6 py-2.5 text-white text-sm font-medium rounded-full transition-all"
               style={{ background: "#0071e3", boxShadow: "0 4px 14px rgba(0, 113, 227, 0.25)" }}
               onMouseEnter={(e) => { e.currentTarget.style.background = "#0077ed"; }}
               onMouseLeave={(e) => { e.currentTarget.style.background = "#0071e3"; }}
             >
-              Start Your Free Analysis
+              Start Free Analysis
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
               </svg>
             </a>
             <a
               href="/docs"
-              className="inline-flex items-center gap-2 px-7 py-3 text-sm font-medium text-gray-600 bg-white/80 backdrop-blur-sm rounded-full hover:bg-white transition-all"
+              className="inline-flex items-center gap-2 px-6 py-2.5 text-sm font-medium text-gray-600 bg-white/80 backdrop-blur-sm rounded-full hover:bg-white transition-all"
               style={{ boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}
             >
               How it works
             </a>
           </div>
-
-          <p className="mt-5 text-xs text-gray-400">
-            No sign-up required for your first analysis
-          </p>
+          <p className="mt-2.5 text-[11px] text-gray-400">No sign-up required</p>
         </div>
       </section>
 
       {/* Preview Carousel */}
       <section className="max-w-5xl mx-auto px-4 pb-16">
-        <div className="text-center mb-8">
-          <h2 className="text-3xl font-semibold text-gray-900 tracking-tight">See what you&apos;ll get</h2>
-          <p className="mt-2 text-sm text-gray-500">Real components from an actual analysis — powered by your data</p>
+        <div className="text-center mb-5">
+          <h2 className="text-lg font-semibold text-gray-900 tracking-tight">See what you&apos;ll get</h2>
+          <p className="text-xs text-gray-500 mt-0.5">Real components from an actual analysis — powered by your data</p>
         </div>
         <PreviewCarousel />
       </section>
