@@ -2,6 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { config } from "../config";
 import { PROMPTS } from "../utils/prompts";
 import { traceGeneration, getLangfuse } from "../langfuse";
+import { Pipeline } from "./pipeline";
 import { FredApiClient, matchCaseShillerMetro } from "../services/fred-api";
 import { BlsApiClient } from "../services/bls-api";
 import { HousingApiClient } from "../services/housing-api";
@@ -67,55 +68,180 @@ export class OrchestratorAgent {
     });
     this.traceId = langfuseTrace.id;
 
-    // ── Phase 1: Fetch market data directly (parallel APIs, ~2-5s) ──
-    console.log("\n[1/3] Fetching market data...");
-    const marketData = await this.fetchMarketData(userProfile.targetLocation, userProfile.property?.address);
-    console.log(`      Done (${((Date.now() - t0) / 1000).toFixed(1)}s)`);
-    onProgress?.({ phase: "market_data", marketSnapshot: marketData });
+    // ────────────────────────────────────────────────────────────
+    // DAG Pipeline: Parallel fan-out with dependency edges
+    //
+    //   Phase 1 (parallel):   marketData | neighborhood
+    //   Phase 2 (sequential): affordability (needs marketData)
+    //   Phase 3 (parallel):   risk | propertyAnalysis | rentVsBuy
+    //   Phase 4 (parallel):   recommendations | preApproval | investment
+    //   Phase 5 (sequential): synthesize (needs core results)
+    // ────────────────────────────────────────────────────────────
 
-    // ── Phase 2: Compute everything directly (instant — pure JS math) ──
-    console.log("[2/3] Computing analysis...");
-    const t2 = Date.now();
-    const affordability = this.computeAffordability(userProfile, marketData);
-    const riskReport = this.computeRiskAssessment(userProfile, marketData, affordability);
-    const recommendations = await this.computeRecommendations(userProfile, marketData, affordability, riskReport);
+    const pipeline = new Pipeline();
 
-    // Property-specific analysis (if a property was provided)
-    let propertyAnalysis: PropertyAnalysis | undefined;
-    if (userProfile.property) {
-      propertyAnalysis = this.computePropertyAnalysis(userProfile, marketData, affordability);
-    }
+    pipeline.onProgress((exec) => {
+      const ms = exec.durationMs ?? 0;
+      const tag = exec.status === "skipped" ? "skipped" : `${ms}ms`;
+      console.log(`  [pipeline] ${exec.id}: ${exec.status} (${tag})`);
+    });
 
-    // Rent vs Buy analysis (if current rent was provided)
-    let rentVsBuy: RentVsBuyReport | undefined;
-    if (userProfile.currentMonthlyRent && userProfile.currentMonthlyRent > 0) {
-      rentVsBuy = this.computeRentVsBuy(userProfile, marketData, affordability);
-    }
+    // ── Phase 1: No dependencies — run in parallel ──
 
-    // Investment property analysis (if toggle is on)
-    let investmentAnalysis: InvestmentAnalysis | undefined;
-    if (userProfile.investmentInputs?.isInvestmentProperty) {
-      investmentAnalysis = this.computeInvestmentAnalysis(userProfile, marketData, affordability, propertyAnalysis);
-      console.log(`      Investment analysis: verdict=${investmentAnalysis.verdict}, CoC=${investmentAnalysis.cashOnCashReturn}%`);
-    }
+    pipeline.addNode({
+      id: "marketData",
+      dependencies: [],
+      execute: async () => {
+        console.log("\n[pipeline] Fetching market data...");
+        return this.fetchMarketData(userProfile.targetLocation, userProfile.property?.address);
+      },
+    });
 
-    // Pre-approval readiness score
-    const preApprovalReadiness = this.computePreApprovalReadiness(userProfile, affordability, riskReport);
-    console.log(`      Pre-approval readiness: score=${preApprovalReadiness.overallScore}, level=${preApprovalReadiness.level}`);
+    pipeline.addNode({
+      id: "neighborhood",
+      dependencies: [],
+      execute: async () => {
+        return userProfile.targetLocation
+          ? getNeighborhoodInfo(userProfile.targetLocation) ?? undefined
+          : undefined;
+      },
+    });
 
-    // Neighborhood info (instant curated data lookup)
-    const neighborhoodInfo = userProfile.targetLocation
-      ? getNeighborhoodInfo(userProfile.targetLocation) ?? undefined
-      : undefined;
+    // ── Phase 2: Needs marketData ──
 
-    console.log(`      Done (${((Date.now() - t2) / 1000).toFixed(1)}s)`);
-    onProgress?.({ phase: "analysis", affordability, riskAssessment: riskReport, recommendations, propertyAnalysis, rentVsBuy, investmentAnalysis, preApprovalReadiness, neighborhoodInfo });
+    pipeline.addNode({
+      id: "affordability",
+      dependencies: ["marketData"],
+      execute: async (results) => {
+        const market = results.get("marketData") as MarketDataResult;
+        // Stream market data as soon as we have it
+        onProgress?.({ phase: "market_data", marketSnapshot: market });
+        console.log("[pipeline] Computing affordability...");
+        return this.computeAffordability(userProfile, market);
+      },
+    });
 
-    // ── Phase 3: Single Claude call for narrative summary (~3-5s) ──
-    console.log("[3/3] Generating AI summary...");
-    const t3 = Date.now();
-    const summary = await this.synthesize(userProfile, marketData, affordability, riskReport, recommendations, propertyAnalysis, investmentAnalysis);
-    console.log(`      Done (${((Date.now() - t3) / 1000).toFixed(1)}s)`);
+    // ── Phase 3: Needs marketData + affordability — run in parallel ──
+
+    pipeline.addNode({
+      id: "risk",
+      dependencies: ["marketData", "affordability"],
+      execute: async (results) => {
+        const market = results.get("marketData") as MarketDataResult;
+        const afford = results.get("affordability") as AffordabilityResult;
+        return this.computeRiskAssessment(userProfile, market, afford);
+      },
+    });
+
+    pipeline.addNode({
+      id: "propertyAnalysis",
+      dependencies: ["marketData", "affordability"],
+      condition: () => !!userProfile.property,
+      execute: async (results) => {
+        const market = results.get("marketData") as MarketDataResult;
+        const afford = results.get("affordability") as AffordabilityResult;
+        return this.computePropertyAnalysis(userProfile, market, afford);
+      },
+    });
+
+    pipeline.addNode({
+      id: "rentVsBuy",
+      dependencies: ["marketData", "affordability"],
+      condition: () => !!(userProfile.currentMonthlyRent && userProfile.currentMonthlyRent > 0),
+      execute: async (results) => {
+        const market = results.get("marketData") as MarketDataResult;
+        const afford = results.get("affordability") as AffordabilityResult;
+        return this.computeRentVsBuy(userProfile, market, afford);
+      },
+    });
+
+    // ── Phase 4: Needs risk (+ others) — run in parallel ──
+
+    pipeline.addNode({
+      id: "recommendations",
+      dependencies: ["marketData", "affordability", "risk"],
+      execute: async (results) => {
+        const market = results.get("marketData") as MarketDataResult;
+        const afford = results.get("affordability") as AffordabilityResult;
+        const risk = results.get("risk") as RiskReport;
+        return this.computeRecommendations(userProfile, market, afford, risk);
+      },
+    });
+
+    pipeline.addNode({
+      id: "preApproval",
+      dependencies: ["affordability", "risk"],
+      execute: async (results) => {
+        const afford = results.get("affordability") as AffordabilityResult;
+        const risk = results.get("risk") as RiskReport;
+        return this.computePreApprovalReadiness(userProfile, afford, risk);
+      },
+    });
+
+    pipeline.addNode({
+      id: "investment",
+      dependencies: ["marketData", "affordability", "propertyAnalysis"],
+      condition: () => !!userProfile.investmentInputs?.isInvestmentProperty,
+      execute: async (results) => {
+        const market = results.get("marketData") as MarketDataResult;
+        const afford = results.get("affordability") as AffordabilityResult;
+        const propAnalysis = results.get("propertyAnalysis") as PropertyAnalysis | undefined;
+        return this.computeInvestmentAnalysis(userProfile, market, afford, propAnalysis);
+      },
+    });
+
+    // ── Phase 5: Needs core results for narrative ──
+
+    pipeline.addNode({
+      id: "synthesize",
+      dependencies: ["marketData", "affordability", "risk", "recommendations"],
+      execute: async (results) => {
+        const market = results.get("marketData") as MarketDataResult;
+        const afford = results.get("affordability") as AffordabilityResult;
+        const risk = results.get("risk") as RiskReport;
+        const recs = results.get("recommendations") as RecommendationsResult;
+        const propAnalysis = results.get("propertyAnalysis") as PropertyAnalysis | undefined;
+        const investAnalysis = results.get("investment") as InvestmentAnalysis | undefined;
+
+        // Stream analysis results before starting summary generation
+        const preApproval = results.get("preApproval") as PreApprovalReadinessScore | undefined;
+        const rentVsBuyResult = results.get("rentVsBuy") as RentVsBuyReport | undefined;
+        const neighborhoodInfo = results.get("neighborhood") as NeighborhoodInfo | undefined;
+        onProgress?.({
+          phase: "analysis",
+          affordability: afford,
+          riskAssessment: risk,
+          recommendations: recs,
+          propertyAnalysis: propAnalysis,
+          rentVsBuy: rentVsBuyResult,
+          investmentAnalysis: investAnalysis,
+          preApprovalReadiness: preApproval,
+          neighborhoodInfo,
+        });
+
+        console.log("[pipeline] Generating AI summary...");
+        return this.synthesize(userProfile, market, afford, risk, recs, propAnalysis, investAnalysis);
+      },
+    });
+
+    // ── Execute the pipeline ──
+
+    const pipelineResult = await pipeline.run();
+
+    // ── Extract results ──
+
+    const marketData = pipelineResult.results.get("marketData") as MarketDataResult;
+    const affordability = pipelineResult.results.get("affordability") as AffordabilityResult;
+    const riskReport = pipelineResult.results.get("risk") as RiskReport;
+    const recommendations = pipelineResult.results.get("recommendations") as RecommendationsResult;
+    const summary = pipelineResult.results.get("synthesize") as string;
+    const propertyAnalysis = pipelineResult.results.get("propertyAnalysis") as PropertyAnalysis | undefined;
+    const rentVsBuy = pipelineResult.results.get("rentVsBuy") as RentVsBuyReport | undefined;
+    const investmentAnalysis = pipelineResult.results.get("investment") as InvestmentAnalysis | undefined;
+    const preApprovalReadiness = pipelineResult.results.get("preApproval") as PreApprovalReadinessScore | undefined;
+    const neighborhoodInfo = pipelineResult.results.get("neighborhood") as NeighborhoodInfo | undefined;
+
+    // Stream summary + completion
     onProgress?.({ phase: "summary", summary });
 
     const disclaimers = [
@@ -126,7 +252,13 @@ export class OrchestratorAgent {
     const generatedAt = new Date().toISOString();
     onProgress?.({ phase: "complete", disclaimers, generatedAt, traceId: this.traceId });
 
-    console.log(`\nTotal: ${((Date.now() - t0) / 1000).toFixed(1)}s`);
+    // Log pipeline execution summary
+    const totalMs = pipelineResult.totalDurationMs;
+    const execLog = pipelineResult.executions
+      .filter((e) => e.status === "success")
+      .map((e) => `${e.id}(${e.durationMs}ms)`)
+      .join(", ");
+    console.log(`\n[pipeline] Total: ${(totalMs / 1000).toFixed(1)}s — ${execLog}`);
 
     return {
       summary,
