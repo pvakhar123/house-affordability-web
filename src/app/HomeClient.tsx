@@ -317,6 +317,49 @@ function PropertyRecommendationsPreview() {
   );
 }
 
+/* ── Privacy Trust Card ── */
+function PrivacyCard() {
+  return (
+    <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
+      <div className="px-5 py-4 border-b border-gray-100">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: "rgba(52,199,89,0.1)" }}>
+            <svg className="w-4 h-4" style={{ color: "#34c759" }} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+            </svg>
+          </div>
+          <h3 className="text-sm font-semibold text-gray-900">Privacy & Security</h3>
+        </div>
+      </div>
+      <div className="p-6 space-y-5">
+        {[
+          { icon: "M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z", title: "No data stored", desc: "Your financial details are processed in real-time and never saved to any database." },
+          { icon: "M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88", title: "No tracking or cookies", desc: "We don't use analytics trackers, advertising pixels, or third-party cookies." },
+          { icon: "M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z", title: "AI-processed only", desc: "Your inputs go directly to our AI agents for analysis and are discarded after." },
+        ].map((item) => (
+          <div key={item.title} className="flex gap-4">
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 bg-gray-50">
+              <svg className="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d={item.icon} />
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-gray-900">{item.title}</p>
+              <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{item.desc}</p>
+            </div>
+          </div>
+        ))}
+        <div className="pt-2 flex items-center gap-2 text-xs text-gray-400">
+          <svg className="w-3.5 h-3.5" style={{ color: "#34c759" }} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          Not financial advice. Use at your own discretion.
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const carouselSlides = [
   {
     title: "Affordability Analysis",
@@ -357,6 +400,11 @@ const carouselSlides = [
     title: "AI Chat",
     description: "Ask follow-up questions about your results and get personalized answers instantly.",
     content: <ChatPreview />,
+  },
+  {
+    title: "Your Privacy, Protected",
+    description: "No personal data is collected or stored — ever.",
+    content: <PrivacyCard />,
   },
 ];
 
@@ -513,21 +561,6 @@ function LandingPage() {
                 <p className="text-sm text-gray-500 mt-1">{stat.label}</p>
               </div>
             ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Privacy Trust Card */}
-      <section className="max-w-4xl mx-auto px-4 pt-12 pb-0">
-        <div className="flex items-center gap-4 bg-white rounded-2xl px-6 py-5" style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "rgba(52,199,89,0.1)" }}>
-            <svg className="w-5 h-5" style={{ color: "#34c759" }} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
-            </svg>
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-gray-900">No personal data collected or stored</p>
-            <p className="text-xs text-gray-500 mt-0.5">Your financial details are processed in real-time and never saved to any database.</p>
           </div>
         </div>
       </section>
