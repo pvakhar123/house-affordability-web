@@ -99,6 +99,11 @@ export default function PreApprovalReadinessCard({ data }: { data: PreApprovalRe
           <p className="text-sm text-green-800 font-medium">Excellent! Your financial profile is well-positioned for mortgage pre-approval.</p>
         </div>
       )}
+
+      {/* Methodology */}
+      <p className="text-xs text-gray-400 mt-4">
+        Score out of 100 across four equally weighted components (25 pts each): DTI ratio, credit score, down payment percentage, and debt health + emergency reserves. Not a lender pre-approval — consult a mortgage professional.
+      </p>
     </div>
   );
 }

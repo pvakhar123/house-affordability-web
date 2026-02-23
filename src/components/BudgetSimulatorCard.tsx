@@ -323,6 +323,11 @@ export default function BudgetSimulatorCard({ affordability: a, marketSnapshot: 
           })}
         </div>
       )}
+
+      {/* Methodology */}
+      <p className="text-xs text-gray-400 mt-4">
+        Recalculates affordability in real-time as you adjust inputs. Same methodology as main analysis: 1.1% property tax, $1,500/yr insurance, 28/36% DTI limits. Closing costs estimated at 3% of home price.
+      </p>
     </div>
   );
 }

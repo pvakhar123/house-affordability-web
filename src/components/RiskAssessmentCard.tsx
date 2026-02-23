@@ -91,6 +91,11 @@ export default function RiskAssessmentCard({ data }: { data: RiskReport }) {
           </div>
         </div>
       )}
+
+      {/* Methodology */}
+      <p className="text-xs text-gray-400 mt-4">
+        Risk score based on DTI ratios, credit score, emergency fund coverage, and stress test results. Stress tests simulate +1-3% rate hikes and 20-50% income loss. Score thresholds: Low &le;30, Moderate &le;50, High &le;70, Very High &gt;70.
+      </p>
     </div>
   );
 }

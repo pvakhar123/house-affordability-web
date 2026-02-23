@@ -119,6 +119,11 @@ export default function AffordabilityCard({ data, risk, mortgageRate }: Props) {
           </div>
         </div>
       </div>
+
+      {/* Methodology */}
+      <p className="text-xs text-gray-400 mt-4">
+        Recommended price is 85% of max. Assumes 1.1% property tax, $1,500/yr insurance, 0.5% PMI when down payment &lt; 20%. DTI thresholds: 28% front-end, 36% back-end. Source: FRED mortgage rates.
+      </p>
     </div>
   );
 }
