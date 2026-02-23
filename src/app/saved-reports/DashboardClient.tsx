@@ -549,29 +549,9 @@ function FullAnalysisView({ report, location }: { report: FinalReport; location?
   ];
 
   return (
-    <div className="flex gap-4">
-      {/* Desktop sidebar nav (lg+) */}
-      <nav className="hidden lg:flex flex-col gap-1 sticky top-4 self-start w-12 flex-shrink-0 pt-1">
-        {navItems.map((item) => (
-          <button
-            key={item.key}
-            onClick={() => setActiveSection(item.key)}
-            className={`group relative w-10 h-10 flex items-center justify-center rounded-xl transition-colors ${
-              activeSection === item.key
-                ? "bg-blue-50 text-blue-600"
-                : "text-gray-400 hover:text-gray-600 hover:bg-gray-100"
-            }`}
-          >
-            {navIcons[item.key]}
-            <span className="absolute left-full ml-2 px-2 py-1 text-xs font-medium text-white bg-gray-900 rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50">
-              {item.label}
-            </span>
-          </button>
-        ))}
-      </nav>
-
+    <div>
       {/* Mobile horizontal tabs (<lg) */}
-      <div className="lg:hidden -mx-4 px-4 pb-2 overflow-x-auto flex gap-1.5 scrollbar-hide">
+      <div className="flex gap-1.5 pb-3 -mx-4 px-4 overflow-x-auto scrollbar-hide lg:!hidden">
         {navItems.map((item) => (
           <button
             key={item.key}
@@ -588,8 +568,30 @@ function FullAnalysisView({ report, location }: { report: FinalReport; location?
         ))}
       </div>
 
-      {/* Section content */}
-      <div className="flex-1 min-w-0 space-y-4">
+      {/* Desktop: sidebar + content row */}
+      <div className="flex gap-4">
+        {/* Desktop sidebar nav (lg+) */}
+        <nav className="flex-col gap-1 sticky top-4 self-start w-12 flex-shrink-0 pt-1 hidden! lg:flex!">
+          {navItems.map((item) => (
+            <button
+              key={item.key}
+              onClick={() => setActiveSection(item.key)}
+              className={`group relative w-10 h-10 flex items-center justify-center rounded-xl transition-colors ${
+                activeSection === item.key
+                  ? "bg-blue-50 text-blue-600"
+                  : "text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+              }`}
+            >
+              {navIcons[item.key]}
+              <span className="absolute left-full ml-2 px-2 py-1 text-xs font-medium text-white bg-gray-900 rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50">
+                {item.label}
+              </span>
+            </button>
+          ))}
+        </nav>
+
+        {/* Section content */}
+        <div className="flex-1 min-w-0 space-y-4">
         {activeSection === "home" && (
           <>
             <HeroBanner report={report} location={location} />
@@ -688,6 +690,7 @@ function FullAnalysisView({ report, location }: { report: FinalReport; location?
           </div>
         )}
       </div>
+    </div>
     </div>
   );
 }
