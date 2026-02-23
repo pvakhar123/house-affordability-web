@@ -126,7 +126,7 @@ export default function HistoricalPriceChart({ data }: Props) {
         )}
         {hasLocal && (
           <span className="flex items-center gap-1.5 text-xs text-gray-500">
-            <span className="w-3 h-0.5 bg-emerald-500 rounded" />
+            <span className="w-3 h-0.5 bg-green-500 rounded" />
             {localLabel} (estimated)
           </span>
         )}
@@ -137,12 +137,12 @@ export default function HistoricalPriceChart({ data }: Props) {
           <ComposedChart data={chartData} margin={{ top: 5, right: showRates && hasRates ? 10 : 5, left: 0, bottom: 5 }}>
             <defs>
               <linearGradient id="priceGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.1} />
-                <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                <stop offset="5%" stopColor="#0071e3" stopOpacity={0.1} />
+                <stop offset="95%" stopColor="#0071e3" stopOpacity={0} />
               </linearGradient>
               <linearGradient id="localGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#10b981" stopOpacity={0.1} />
-                <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                <stop offset="5%" stopColor="#34c759" stopOpacity={0.1} />
+                <stop offset="95%" stopColor="#34c759" stopOpacity={0} />
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -184,7 +184,7 @@ export default function HistoricalPriceChart({ data }: Props) {
               type="monotone"
               dataKey="price"
               name="National Median"
-              stroke="#3b82f6"
+              stroke="#0071e3"
               strokeWidth={2}
               fill="url(#priceGrad)"
             />
@@ -194,7 +194,7 @@ export default function HistoricalPriceChart({ data }: Props) {
                 type="monotone"
                 dataKey="localPrice"
                 name={`${localLabel} Median`}
-                stroke="#10b981"
+                stroke="#34c759"
                 strokeWidth={2}
                 fill="url(#localGrad)"
                 connectNulls
@@ -206,7 +206,7 @@ export default function HistoricalPriceChart({ data }: Props) {
                 type="monotone"
                 dataKey="rate"
                 name="30-Yr Rate"
-                stroke="#f59e0b"
+                stroke="#ff9500"
                 strokeWidth={1.5}
                 dot={false}
                 connectNulls
@@ -238,7 +238,7 @@ export default function HistoricalPriceChart({ data }: Props) {
         {hasLocal && firstLocal?.localPrice && lastLocal?.localPrice && localChange !== null && (
           <div className="flex flex-wrap gap-x-4 gap-y-1 items-center">
             <span className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              <span className="w-2 h-2 rounded-full bg-green-500" />
               {localLabel}:
             </span>
             <span>

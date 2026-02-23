@@ -347,7 +347,8 @@ function Slider({ label, value, orig, min, max, step, onChange }: {
       </div>
       <input type="range" min={min} max={max} step={step} value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="w-full h-1.5 rounded-lg appearance-none cursor-pointer accent-blue-500 bg-gray-200" />
+        className="w-full h-1.5 rounded-lg appearance-none cursor-pointer bg-gray-200"
+        style={{ accentColor: "#0071e3" }} />
     </div>
   );
 }

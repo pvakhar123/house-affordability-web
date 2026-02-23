@@ -18,12 +18,12 @@ export default function RiskAssessmentCard({ data }: { data: RiskReport }) {
     <div>
       {/* Risk Score */}
       <div className="flex items-center gap-4 mb-6">
-        <div className={`px-4 py-2 rounded-lg border font-bold text-lg ${riskColors[data.overallRiskLevel]}`}>
+        <div className={`px-4 py-2 rounded-xl border font-semibold text-lg ${riskColors[data.overallRiskLevel]}`}>
           {data.overallRiskLevel.replace("_", " ").toUpperCase()}
         </div>
         <div>
           <p className="text-sm text-gray-500">Risk Score</p>
-          <p className="text-2xl font-bold">{data.overallScore}/100</p>
+          <p className="text-2xl font-semibold">{data.overallScore}/100</p>
         </div>
       </div>
 
@@ -33,7 +33,7 @@ export default function RiskAssessmentCard({ data }: { data: RiskReport }) {
           <p className="text-sm font-medium text-gray-700 mb-2">Risk Flags</p>
           <div className="space-y-2">
             {data.riskFlags.map((flag, i) => (
-              <div key={i} className="flex items-start gap-2 p-3 bg-gray-50 rounded-lg text-sm">
+              <div key={i} className="flex items-start gap-2 p-3 bg-gray-50 rounded-xl text-sm">
                 <span className={`font-bold ${severityIcon[flag.severity]}`}>
                   {flag.severity === "critical" ? "!!!" : flag.severity === "warning" ? "!!" : "i"}
                 </span>

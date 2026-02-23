@@ -11,7 +11,7 @@ export default function MarketSnapshotCard({ data, satelliteUrl }: { data: Marke
   return (
     <div>
       {satelliteUrl && (
-        <div className="mb-4 rounded-lg overflow-hidden">
+        <div className="mb-4 rounded-xl overflow-hidden">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={satelliteUrl}
@@ -21,13 +21,13 @@ export default function MarketSnapshotCard({ data, satelliteUrl }: { data: Marke
         </div>
       )}
       <div className="grid grid-cols-2 gap-4 mb-4">
-        <div className="p-3 bg-gray-50 rounded-lg">
+        <div className="p-3 bg-gray-50 rounded-xl">
           <p className="text-xs text-gray-500">30-Year Fixed</p>
-          <p className="text-xl font-bold text-gray-900">{r.thirtyYearFixed}%</p>
+          <p className="text-xl font-semibold text-gray-900">{r.thirtyYearFixed}%</p>
         </div>
-        <div className="p-3 bg-gray-50 rounded-lg">
+        <div className="p-3 bg-gray-50 rounded-xl">
           <p className="text-xs text-gray-500">15-Year Fixed</p>
-          <p className="text-xl font-bold text-gray-900">{r.fifteenYearFixed}%</p>
+          <p className="text-xl font-semibold text-gray-900">{r.fifteenYearFixed}%</p>
         </div>
       </div>
 

@@ -71,11 +71,11 @@ export default function PreApprovalReadinessCard({ data }: { data: PreApprovalRe
             />
           </svg>
           <div className="absolute inset-0 flex items-center justify-center">
-            <span className="text-xl font-bold text-gray-900">{data.overallScore}</span>
+            <span className="text-xl font-semibold text-gray-900">{data.overallScore}</span>
           </div>
         </div>
         <div>
-          <div className={`inline-block px-3 py-1 rounded-lg border font-semibold text-sm ${config.bg} ${config.text} ${config.border}`}>
+          <div className={`inline-block px-3 py-1 rounded-xl border font-semibold text-sm ${config.bg} ${config.text} ${config.border}`}>
             {config.label}
           </div>
           <p className="text-sm text-gray-500 mt-1">Pre-Approval Readiness Score</p>

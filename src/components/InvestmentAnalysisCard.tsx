@@ -46,7 +46,7 @@ export default function InvestmentAnalysisCard({ data }: Props) {
   return (
     <div className="space-y-6">
       {/* Verdict Banner */}
-      <div className={`flex items-start gap-3 p-4 rounded-lg border ${v.color}`}>
+      <div className={`flex items-start gap-3 p-4 rounded-xl border ${v.color}`}>
         <div className={`flex-shrink-0 mt-0.5 ${v.icon}`}>
           {data.verdict === "strong_investment" && (
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -155,8 +155,8 @@ export default function InvestmentAnalysisCard({ data }: Props) {
               <Legend />
               <defs>
                 <linearGradient id="equityGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.05} />
+                  <stop offset="5%" stopColor="#0071e3" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#0071e3" stopOpacity={0.05} />
                 </linearGradient>
               </defs>
               <Area
@@ -164,14 +164,14 @@ export default function InvestmentAnalysisCard({ data }: Props) {
                 dataKey="equity"
                 name="Equity"
                 fill="url(#equityGrad)"
-                stroke="#3b82f6"
+                stroke="#0071e3"
                 strokeWidth={2}
               />
               <Line
                 type="monotone"
                 dataKey="cashFlow"
                 name="Cumulative Cash Flow"
-                stroke="#22c55e"
+                stroke="#34c759"
                 strokeWidth={2}
                 dot={false}
               />
@@ -179,7 +179,7 @@ export default function InvestmentAnalysisCard({ data }: Props) {
                 type="monotone"
                 dataKey="totalReturn"
                 name="Total Return"
-                stroke="#8b5cf6"
+                stroke="#af52de"
                 strokeWidth={2}
                 strokeDasharray="5 5"
                 dot={false}
@@ -260,9 +260,9 @@ export default function InvestmentAnalysisCard({ data }: Props) {
 
 function MetricBox({ label, value, sub, positive }: { label: string; value: string; sub: string; positive: boolean }) {
   return (
-    <div className="bg-gray-50 rounded-lg p-3 text-center">
+    <div className="bg-gray-50 rounded-xl p-3 text-center">
       <p className="text-xs text-gray-500 mb-1">{label}</p>
-      <p className={`text-lg font-bold ${positive ? "text-green-600" : "text-red-500"}`}>{value}</p>
+      <p className={`text-lg font-semibold ${positive ? "text-green-600" : "text-red-500"}`}>{value}</p>
       <p className="text-xs text-gray-400">{sub}</p>
     </div>
   );

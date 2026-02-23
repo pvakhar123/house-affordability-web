@@ -71,7 +71,7 @@ export default function RentVsBuyCard({ data }: Props) {
         {v.icon}
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className={`text-sm font-bold ${v.text}`}>{v.label}</span>
+            <span className={`text-sm font-semibold ${v.text}`}>{v.label}</span>
             {data.breakEvenYear && (
               <span className="text-xs px-2 py-0.5 rounded-full bg-white/60 text-gray-600">
                 Break-even: ~{data.breakEvenYear} {data.breakEvenYear === 1 ? "year" : "years"}
@@ -86,11 +86,11 @@ export default function RentVsBuyCard({ data }: Props) {
       <div className="grid grid-cols-2 gap-4">
         <div className="p-4 bg-gray-50 rounded-xl text-center">
           <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Current Rent</p>
-          <p className="text-xl font-bold text-gray-900">{fmt(data.currentRent)}<span className="text-sm font-normal text-gray-500">/mo</span></p>
+          <p className="text-xl font-semibold text-gray-900">{fmt(data.currentRent)}<span className="text-sm font-normal text-gray-500">/mo</span></p>
         </div>
         <div className="p-4 bg-blue-50 rounded-xl text-center">
           <p className="text-xs font-medium text-blue-600 uppercase tracking-wide mb-1">Buying Cost</p>
-          <p className="text-xl font-bold text-blue-900">{fmt(data.monthlyBuyCost)}<span className="text-sm font-normal text-blue-500">/mo</span></p>
+          <p className="text-xl font-semibold text-blue-900">{fmt(data.monthlyBuyCost)}<span className="text-sm font-normal text-blue-500">/mo</span></p>
         </div>
       </div>
 
@@ -103,7 +103,7 @@ export default function RentVsBuyCard({ data }: Props) {
       )}
 
       {/* 5-year summary */}
-      <div className="border border-gray-200 rounded-xl overflow-hidden">
+      <div className="rounded-xl overflow-hidden" style={{ boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
         <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
           <h4 className="text-sm font-semibold text-gray-900">5-Year Comparison</h4>
         </div>
@@ -131,7 +131,7 @@ export default function RentVsBuyCard({ data }: Props) {
 
       {/* Year-by-year table */}
       {data.yearByYear.length > 0 && (
-        <div className="border border-gray-200 rounded-xl overflow-hidden">
+        <div className="rounded-xl overflow-hidden" style={{ boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
           <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
             <h4 className="text-sm font-semibold text-gray-900">Year-by-Year Breakdown</h4>
           </div>

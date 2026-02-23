@@ -97,18 +97,18 @@ export default function AffordabilityForm({ onSubmit, isLoading }: Props) {
     <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl mx-auto">
       {/* Location & Property - moved to top */}
       <section>
-        <h2 className="text-lg font-semibold text-gray-900 mb-4 border-b pb-2">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4 border-b border-gray-200 pb-2">
           Where are you looking?
         </h2>
         <div className="space-y-4">
           <div>
             {/* Toggle - Specific Address first */}
-            <div className="flex rounded-lg border border-gray-200 p-0.5 bg-gray-50 mb-3">
+            <div className="flex rounded-full border border-gray-200 p-0.5 bg-gray-50 mb-3">
               <button
                 type="button"
                 onClick={() => setLocationMode("address")}
                 aria-pressed={locationMode === "address"}
-                className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium rounded-md transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium rounded-full transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                   locationMode === "address"
                     ? "bg-white text-gray-900 shadow-sm"
                     : "text-gray-500 hover:text-gray-700"
@@ -124,7 +124,7 @@ export default function AffordabilityForm({ onSubmit, isLoading }: Props) {
                 type="button"
                 onClick={() => setLocationMode("neighborhood")}
                 aria-pressed={locationMode === "neighborhood"}
-                className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium rounded-md transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium rounded-full transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                   locationMode === "neighborhood"
                     ? "bg-white text-gray-900 shadow-sm"
                     : "text-gray-500 hover:text-gray-700"
@@ -488,9 +488,8 @@ export default function AffordabilityForm({ onSubmit, isLoading }: Props) {
             role="switch"
             aria-checked={form.isInvestmentProperty}
             onClick={() => update("isInvestmentProperty", !form.isInvestmentProperty)}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-              form.isInvestmentProperty ? "bg-blue-600" : "bg-gray-300"
-            }`}
+            className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
+            style={{ background: form.isInvestmentProperty ? "#0071e3" : "#d1d1d6" }}
           >
             <span
               className={`inline-block h-4 w-4 rounded-full bg-white transition-transform ${
@@ -569,7 +568,8 @@ export default function AffordabilityForm({ onSubmit, isLoading }: Props) {
       <button
         type="submit"
         disabled={isLoading}
-        className="w-full py-3 px-6 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        className="w-full py-3 px-6 text-white font-semibold rounded-full disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+        style={{ background: "#0071e3", boxShadow: "0 4px 14px rgba(0,113,227,0.25)" }}
       >
         {isLoading ? "Analyzing..." : "Analyze My Home Purchase"}
       </button>

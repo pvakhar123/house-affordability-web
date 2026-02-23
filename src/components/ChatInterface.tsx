@@ -588,9 +588,9 @@ export default function ChatInterface({ report, userLocation, initialPrompt, rep
     isLoading && (!lastMessage || lastMessage.role !== "assistant");
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col h-full">
+    <div className="bg-white rounded-2xl overflow-hidden flex flex-col h-full" style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
       {/* Header */}
-      <div className="px-5 py-3 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50 flex-shrink-0">
+      <div className="px-5 py-3 border-b border-gray-200 flex-shrink-0" style={{ background: "linear-gradient(to right, rgba(0,113,227,0.06), rgba(88,86,214,0.06))" }}>
         <div className="flex items-center justify-between">
           <h3 className="text-base font-semibold text-gray-900">
             Ask Follow-Up Questions
@@ -623,7 +623,7 @@ export default function ChatInterface({ report, userLocation, initialPrompt, rep
                   key={action.label}
                   onClick={() => sendMessage(action.prompt)}
                   disabled={isLoading}
-                  className="text-left p-3 rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50/50 transition-colors disabled:opacity-50 group"
+                  className="text-left p-3 rounded-xl border border-gray-200 hover:border-blue-300 hover:bg-blue-50/50 transition-colors disabled:opacity-50 group"
                 >
                   <div className="flex items-center gap-2 mb-1">
                     <svg className="w-4 h-4 text-blue-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
@@ -661,7 +661,7 @@ export default function ChatInterface({ report, userLocation, initialPrompt, rep
                 className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
               >
                 {msg.role === "user" ? (
-                  <div className="max-w-[85%] rounded-2xl px-3 py-2 bg-blue-600 text-white">
+                  <div className="max-w-[85%] rounded-2xl px-3 py-2 text-white" style={{ background: "#0071e3" }}>
                     <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
                   </div>
                 ) : (
@@ -738,12 +738,14 @@ export default function ChatInterface({ report, userLocation, initialPrompt, rep
           onChange={(e) => setInput(e.target.value)}
           disabled={isLoading}
           placeholder="Ask a follow-up question..."
-          className="flex-1 px-3 py-2 border border-gray-300 rounded-full text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
+          className="flex-1 px-3 py-2 border border-gray-300 rounded-full text-sm focus:ring-2 focus:border-blue-500 disabled:opacity-50"
+          style={{ "--tw-ring-color": "#0071e3" } as React.CSSProperties}
         />
         <button
           type="submit"
           disabled={isLoading || !input.trim()}
-          className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-full hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="px-4 py-2 text-white text-sm font-medium rounded-full disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          style={{ background: "#0071e3" }}
         >
           Send
         </button>

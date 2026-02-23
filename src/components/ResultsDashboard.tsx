@@ -37,7 +37,7 @@ function ExpandableSection({
   const [open, setOpen] = useState(defaultOpen);
 
   return (
-    <div className="border border-gray-200 rounded-xl bg-white shadow-sm overflow-hidden">
+    <div className="rounded-2xl bg-white overflow-hidden" style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
       <button
         onClick={() => setOpen(!open)}
         className="w-full flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors"
@@ -77,10 +77,10 @@ function StreamFadeIn({ children, delay = 0 }: { children: React.ReactNode; dela
 
 function SummaryLoadingSkeleton() {
   return (
-    <div className="border border-gray-200 rounded-xl bg-white shadow-sm overflow-hidden">
+    <div className="rounded-2xl bg-white overflow-hidden" style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
       <button className="w-full flex items-center justify-between px-6 py-4">
         <h3 className="text-base font-semibold text-gray-900">AI Detailed Analysis</h3>
-        <div className="flex items-center gap-2 text-sm text-indigo-500">
+        <div className="flex items-center gap-2 text-sm" style={{ color: "#5856d6" }}>
           <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
@@ -177,7 +177,7 @@ export default function ResultsDashboard({ report, onReset, summaryLoading, user
       <div className="space-y-6" style={{ marginRight: "clamp(0px, calc(100vw - 1280px + 400px), 400px)" }}>
         {/* Hero Banner */}
         <StreamFadeIn>
-          <div className="relative rounded-xl overflow-hidden shadow-sm h-44 sm:h-52 bg-gradient-to-br from-slate-800 via-blue-900 to-indigo-900">
+          <div className="relative rounded-2xl overflow-hidden h-44 sm:h-52" style={{ background: "linear-gradient(135deg, #1d1d1f 0%, #0071e3 60%, #5856d6 100%)", boxShadow: "0 4px 20px rgba(0,0,0,0.12)" }}>
             {/* Subtle pattern when no image */}
             {!heroImage && (
               <div className="absolute inset-0 opacity-10" style={{
@@ -198,7 +198,7 @@ export default function ResultsDashboard({ report, onReset, summaryLoading, user
             {/* Content overlay */}
             <div className="absolute bottom-0 left-0 right-0 p-5 sm:p-6 flex items-end justify-between">
               <div>
-                <h2 className="text-xl sm:text-2xl font-bold text-white drop-shadow-lg">
+                <h2 className="text-xl sm:text-2xl font-semibold text-white drop-shadow-lg">
                   {displayLocation
                     ? `Report for ${displayLocation}`
                     : "Your Home Research Report"}
@@ -211,7 +211,7 @@ export default function ResultsDashboard({ report, onReset, summaryLoading, user
               </div>
               <button
                 onClick={onReset}
-                className="px-4 py-2 text-sm font-medium text-white bg-white/20 backdrop-blur-sm rounded-lg hover:bg-white/30 transition-colors border border-white/30 flex-shrink-0"
+                className="px-4 py-2 text-sm font-medium text-white bg-white/20 backdrop-blur-sm rounded-full hover:bg-white/30 transition-colors border border-white/30 flex-shrink-0"
               >
                 New Analysis
               </button>
@@ -349,7 +349,7 @@ export default function ResultsDashboard({ report, onReset, summaryLoading, user
         {/* Disclaimers */}
         {report.disclaimers && (
           <StreamFadeIn delay={100}>
-            <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <div className="p-4 bg-gray-50 rounded-xl">
               <p className="text-xs font-medium text-gray-500 mb-2">Disclaimers</p>
               <ul className="space-y-1">
                 {report.disclaimers.map((d, i) => (
