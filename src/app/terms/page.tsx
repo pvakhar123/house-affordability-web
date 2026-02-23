@@ -7,7 +7,7 @@ export const metadata: Metadata = {
 };
 
 export default function TermsOfServicePage() {
-  const lastUpdated = "February 22, 2026";
+  const lastUpdated = "February 23, 2026";
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -64,11 +64,13 @@ export default function TermsOfServicePage() {
               2. Description of Service
             </h3>
             <p className="text-gray-700 leading-relaxed">
-              HomeIQ is a free, AI-powered home affordability
-              calculator that provides personalized financial analysis using
-              real-time mortgage rates, market data, and risk assessment. The
-              Service uses multiple AI agents to generate reports and answer
-              questions about home buying.
+              HomeIQ is an AI-powered home affordability calculator
+              that provides personalized financial analysis using real-time
+              mortgage rates, market data, and risk assessment. The Service uses
+              multiple AI agents to generate reports and answer questions about
+              home buying. A free tier is available with limited usage; a paid
+              Pro subscription (via Stripe) offers increased report limits,
+              unlimited chat, and unlimited saved reports.
             </p>
           </section>
 
@@ -110,7 +112,40 @@ export default function TermsOfServicePage() {
 
           <section className="space-y-3">
             <h3 className="text-lg font-semibold text-gray-900">
-              5. Acceptable Use
+              5. Subscriptions & Payments
+            </h3>
+            <ul className="list-disc pl-6 text-gray-700 space-y-1.5">
+              <li>
+                The Service offers a <strong>Free tier</strong> with limited
+                monthly reports, daily chat messages, and saved report slots.
+              </li>
+              <li>
+                The <strong>Pro tier</strong> is a paid subscription processed
+                through Stripe. Pricing is displayed on the{" "}
+                <a
+                  href="/pricing"
+                  className="text-blue-600 hover:text-blue-800 underline"
+                >
+                  Pricing page
+                </a>
+                .
+              </li>
+              <li>
+                You may cancel your Pro subscription at any time via the
+                Settings page or Stripe billing portal. Access continues until
+                the end of the current billing period.
+              </li>
+              <li>
+                We reserve the right to change pricing with 30 days&apos; notice.
+                Existing subscribers keep their current rate until the next
+                renewal.
+              </li>
+            </ul>
+          </section>
+
+          <section className="space-y-3">
+            <h3 className="text-lg font-semibold text-gray-900">
+              6. Acceptable Use
             </h3>
             <p className="text-gray-700 leading-relaxed">
               You agree not to:
@@ -143,7 +178,7 @@ export default function TermsOfServicePage() {
 
           <section className="space-y-3">
             <h3 className="text-lg font-semibold text-gray-900">
-              6. Intellectual Property
+              7. Intellectual Property
             </h3>
             <p className="text-gray-700 leading-relaxed">
               The Service, including its design, code, AI models, and content,
@@ -155,7 +190,7 @@ export default function TermsOfServicePage() {
 
           <section className="space-y-3">
             <h3 className="text-lg font-semibold text-gray-900">
-              7. Data &amp; Privacy
+              8. Data &amp; Privacy
             </h3>
             <p className="text-gray-700 leading-relaxed">
               Your use of the Service is also governed by our{" "}
@@ -173,7 +208,7 @@ export default function TermsOfServicePage() {
 
           <section className="space-y-3">
             <h3 className="text-lg font-semibold text-gray-900">
-              8. AI-Generated Content
+              9. AI-Generated Content
             </h3>
             <ul className="list-disc pl-6 text-gray-700 space-y-1.5">
               <li>
@@ -197,7 +232,7 @@ export default function TermsOfServicePage() {
 
           <section className="space-y-3">
             <h3 className="text-lg font-semibold text-gray-900">
-              9. Service Availability
+              10. Service Availability
             </h3>
             <p className="text-gray-700 leading-relaxed">
               We strive to keep the Service available but do not guarantee
@@ -210,7 +245,7 @@ export default function TermsOfServicePage() {
 
           <section className="space-y-3">
             <h3 className="text-lg font-semibold text-gray-900">
-              10. Limitation of Liability
+              11. Limitation of Liability
             </h3>
             <p className="text-gray-700 leading-relaxed">
               To the maximum extent permitted by law, HomeIQ and its
@@ -224,7 +259,7 @@ export default function TermsOfServicePage() {
 
           <section className="space-y-3">
             <h3 className="text-lg font-semibold text-gray-900">
-              11. Disclaimer of Warranties
+              12. Disclaimer of Warranties
             </h3>
             <p className="text-gray-700 leading-relaxed">
               The Service is provided &quot;as is&quot; and &quot;as
@@ -237,7 +272,7 @@ export default function TermsOfServicePage() {
 
           <section className="space-y-3">
             <h3 className="text-lg font-semibold text-gray-900">
-              12. Changes to Terms
+              13. Changes to Terms
             </h3>
             <p className="text-gray-700 leading-relaxed">
               We may revise these Terms at any time by posting an updated
@@ -249,7 +284,7 @@ export default function TermsOfServicePage() {
 
           <section className="space-y-3">
             <h3 className="text-lg font-semibold text-gray-900">
-              13. Governing Law
+              14. Governing Law
             </h3>
             <p className="text-gray-700 leading-relaxed">
               These Terms are governed by and construed in accordance with the
@@ -260,7 +295,7 @@ export default function TermsOfServicePage() {
 
           <section className="space-y-3">
             <h3 className="text-lg font-semibold text-gray-900">
-              14. Contact
+              15. Contact
             </h3>
             <p className="text-gray-700 leading-relaxed">
               For questions about these Terms, contact us at:{" "}

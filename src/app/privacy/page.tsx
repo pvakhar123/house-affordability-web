@@ -7,7 +7,7 @@ export const metadata: Metadata = {
 };
 
 export default function PrivacyPolicyPage() {
-  const lastUpdated = "February 22, 2026";
+  const lastUpdated = "February 23, 2026";
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -134,6 +134,17 @@ export default function PrivacyPolicyPage() {
                 financial data.
               </li>
               <li>
+                <strong>Stripe:</strong> Processes subscription payments for Pro
+                plans. We do not store credit card numbers; all payment data is
+                handled by Stripe per their PCI-DSS compliance. We store only
+                your Stripe customer ID.
+              </li>
+              <li>
+                <strong>Realtor.com (via RapidAPI):</strong> Fetches matching
+                property listings based on your location and budget. Location
+                queries are sent to their API; no financial data is shared.
+              </li>
+              <li>
                 <strong>Neon (PostgreSQL):</strong> Hosts our database. Data is
                 encrypted in transit (TLS). See Section 6 for encryption at
                 rest.
@@ -168,6 +179,11 @@ export default function PrivacyPolicyPage() {
               <li>
                 <strong>OAuth tokens:</strong> Stored encrypted. Revoked when
                 you unlink your account.
+              </li>
+              <li>
+                <strong>Subscription data:</strong> Stripe customer ID and plan
+                tier are retained while your account is active. Deleted upon
+                account deletion.
               </li>
             </ul>
           </section>

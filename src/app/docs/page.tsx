@@ -40,7 +40,7 @@ export default function DocsPage() {
             </svg>
             App
           </a>
-          <span className="text-xs text-gray-400">v1.0</span>
+          <span className="text-xs text-gray-400">v2.0</span>
         </div>
         <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-0.5">
           {sections.map((s) => (
@@ -149,11 +149,14 @@ function OverviewSection() {
             <li>Loan program eligibility (Conventional, FHA, VA, USDA)</li>
             <li>Neighborhood quality scores and cost of living</li>
             <li>Matching property listings from Realtor.com</li>
-            <li>Interactive budget simulator with readiness score</li>
-            <li>AI chat for follow-up questions</li>
+            <li>Combined readiness score and budget simulator</li>
+            <li>AI chat for follow-up questions with rich data cards</li>
             <li>Document upload for auto-filling financial data</li>
             <li>Property import from listing URLs</li>
-            <li>Section-based dashboard with left navigation</li>
+            <li>Section-based dashboard with labeled left navigation</li>
+            <li>Interactive landing page preview carousel (8 slides)</li>
+            <li>Settings page with account, usage, and billing management</li>
+            <li>Free and Pro subscription tiers via Stripe</li>
             <li>Dark mode support</li>
           </ul>
         </div>
@@ -310,7 +313,7 @@ function ResultsSection() {
     { title: "Property Affordability Verdict", desc: "If you provided a specific property, see whether it's Comfortable, Tight, Stretch, or Over Budget relative to your finances, with key metrics compared to the asking price." },
     { title: "Core Affordability", desc: "Your maximum affordable home price, maximum loan amount, full monthly payment breakdown (principal & interest, property tax, homeowner's insurance, PMI if applicable), down payment percentage, and debt-to-income analysis." },
     { title: "Investment Analysis", desc: "When investment property mode is enabled: monthly operating expenses, cash flow, cash-on-cash return, cap rate, ROI, and 5-10 year equity projection chart with a Strong/Moderate/Marginal/Negative verdict." },
-    { title: "Pre-Approval Readiness", desc: "A 0-100 readiness score broken into components (DTI, Credit, Down Payment, Debt Health) with action items. Includes an interactive budget simulator to adjust income, down payment, and debt to see how changes affect your readiness." },
+    { title: "Readiness & Budget Simulator", desc: "A 0-100 pre-approval readiness score broken into components (DTI, Credit, Down Payment, Debt Health) with action items, combined with an interactive budget simulator. Adjust income, down payment, debt, emergency fund, and closing costs with live sliders to see how changes affect your readiness and buying power." },
     { title: "Market Snapshot", desc: "Live mortgage rates (30-year and 15-year fixed), federal funds rate, national median home prices, shelter and general inflation rates, and a 10-year historical price/rate trends chart." },
     { title: "Neighborhood Info", desc: "School ratings, public transit access, safety metrics, parks and recreation, walkability score, cost of living index, and community vibe description for your target area." },
     { title: "Risk Assessment", desc: "Overall risk score (Low/Moderate/High/Very High) with specific risk flags categorized by severity (Info/Warning/Critical). Includes emergency fund adequacy and stress test scenarios for rate increases and income drops." },
@@ -324,7 +327,7 @@ function ResultsSection() {
   return (
     <>
       <h2 className="text-2xl font-bold text-gray-900 mb-2">Results Dashboard</h2>
-      <p className="text-sm text-gray-600 mb-3">After running an analysis, results stream in progressively. The dashboard uses a <strong>section-based left navigation</strong> so each analysis area is its own view. The <strong>Analysis</strong> (home) view shows affordability, readiness, and the budget simulator together. Other sections are accessed via the sidebar.</p>
+      <p className="text-sm text-gray-600 mb-3">After running an analysis, results stream in progressively. The dashboard uses a <strong>labeled left sidebar navigation</strong> (icons + text labels) so each analysis area is its own view. The <strong>Analysis</strong> view shows affordability, readiness, and the budget simulator together. Other sections (Market, Risk, Rent vs Buy, Investment, Properties, AI Summary, etc.) are accessed via the sidebar. On mobile, the nav becomes a horizontal scrollable tab bar.</p>
       <p className="text-sm text-gray-600 mb-6">The dashboard contains <strong>{cards.length} sections</strong>:</p>
       <div className="space-y-3">
         {cards.map((card, i) => (
@@ -377,7 +380,7 @@ function ChatSection() {
     <>
       <h2 className="text-2xl font-bold text-gray-900 mb-4">AI Chat</h2>
       <Card>
-        <p className="text-sm text-gray-600 mb-4">After your report is generated, an AI chat panel appears at the bottom of the dashboard. Ask any follow-up question about your results.</p>
+        <p className="text-sm text-gray-600 mb-4">After your report is generated, an AI chat panel appears on the right side of the dashboard (desktop) or below the content (mobile). Ask any follow-up question about your results and get answers with rich data cards showing calculations inline.</p>
         <div className="space-y-4">
           <div>
             <p className="text-sm font-semibold text-gray-900 mb-2">What you can ask</p>
@@ -429,6 +432,16 @@ function SavedReportsSection() {
           <p className="text-sm text-gray-600">
             Sign in with Google to access your <a href="/" className="text-blue-600 hover:underline">Dashboard</a> where you can view, rename, add notes to, or delete any previously saved report. Click any report to reload it in the full dashboard view.
           </p>
+        </Card>
+        <Card title="Settings Page">
+          <p className="text-sm text-gray-600 mb-2">
+            Access <a href="/settings" className="text-blue-600 hover:underline">Settings</a> from the profile dropdown to manage:
+          </p>
+          <ul className="list-disc list-inside text-sm text-gray-500 space-y-1">
+            <li><strong>Account</strong> &mdash; View your name, email, and current tier (Free or Pro)</li>
+            <li><strong>Usage</strong> &mdash; Track your monthly report usage, chat messages, and saved report count</li>
+            <li><strong>Billing</strong> &mdash; Upgrade to Pro or manage your existing Stripe subscription</li>
+          </ul>
         </Card>
       </div>
     </>
