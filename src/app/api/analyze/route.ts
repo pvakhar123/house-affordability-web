@@ -4,6 +4,7 @@ import type { StreamPhase } from "@/lib/agents/orchestrator";
 import { config } from "@/lib/config";
 import type { UserProfile } from "@/lib/types";
 import { flushLangfuse } from "@/lib/langfuse";
+import { getPostHogServer, flushPostHog } from "@/lib/posthog";
 import { logApiError, logUsageEvent } from "@/lib/db/track";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { analyzeInputSchema } from "@/lib/schemas";
@@ -83,9 +84,20 @@ export async function POST(request: Request) {
           }
 
           logUsageEvent("/api/analyze", "POST", 200, Date.now() - streamStart, { location: userProfile.targetLocation });
+          const ph = getPostHogServer();
+          ph.capture({
+            distinctId: userId || `anon_${ip}`,
+            event: "analysis_completed_server",
+            properties: {
+              location: userProfile.targetLocation,
+              tier,
+              duration_ms: Date.now() - streamStart,
+            },
+          });
           if (userId) {
             incrementUsage(userId, "analyze").catch((err) => console.error("[tier] increment error:", err));
           }
+          await flushPostHog();
           controller.close();
         } catch (error) {
           console.error("Analysis error:", error);

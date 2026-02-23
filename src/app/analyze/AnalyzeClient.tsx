@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
+import { usePostHog } from "posthog-js/react";
 import AffordabilityForm from "@/components/AffordabilityForm";
 import LoadingState from "@/components/LoadingState";
 import ResultsDashboard from "@/components/ResultsDashboard";
@@ -22,6 +23,9 @@ export default function AnalyzeClient() {
   const [sharedLoading, setSharedLoading] = useState(false);
   const [upgradePrompt, setUpgradePrompt] = useState<{ message: string; requiresAuth?: boolean } | null>(null);
   const searchParams = useSearchParams();
+  const posthog = usePostHog();
+  const posthogRef = useRef(posthog);
+  posthogRef.current = posthog;
 
   // Load shared report from URL param
   useEffect(() => {
@@ -66,6 +70,12 @@ export default function AnalyzeClient() {
     if (profile.targetLocation) {
       addRecentSearch(profile.targetLocation);
     }
+
+    posthogRef.current.capture("analysis_started", {
+      location: profile.targetLocation || "not_specified",
+      has_property: !!profile.property,
+      loan_type: profile.loanType,
+    });
 
     try {
       const controller = new AbortController();
@@ -150,6 +160,10 @@ export default function AnalyzeClient() {
               _summaryLoading: false,
             }));
             if (event.traceId) setReportTraceId(event.traceId);
+            posthogRef.current.capture("analysis_completed", {
+              trace_id: event.traceId,
+              location: profile.targetLocation,
+            });
           }
         }
       }

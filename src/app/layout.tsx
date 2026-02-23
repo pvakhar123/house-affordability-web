@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import AuthProvider from "@/components/AuthProvider";
+import PostHogProvider from "@/components/PostHogProvider";
 import ThemeProvider from "@/components/ThemeProvider";
 import AppNav from "@/components/AppNav";
 import "./globals.css";
@@ -94,10 +95,12 @@ export default function RootLayout({
           Skip to main content
         </a>
         <AuthProvider>
-          <ThemeProvider>
-            <AppNav />
-            {children}
-          </ThemeProvider>
+          <PostHogProvider>
+            <ThemeProvider>
+              <AppNav />
+              {children}
+            </ThemeProvider>
+          </PostHogProvider>
         </AuthProvider>
       </body>
     </html>

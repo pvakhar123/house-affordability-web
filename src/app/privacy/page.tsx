@@ -79,6 +79,12 @@ export default function PrivacyPolicyPage() {
                 <strong>Feedback:</strong> Optional thumbs up/down ratings and
                 comments you provide on analysis results.
               </li>
+              <li>
+                <strong>Product analytics:</strong> Anonymized interaction data
+                such as page views, button clicks, and feature usage, collected
+                via PostHog to help us improve the product. This data is not
+                linked to your financial inputs.
+              </li>
             </ul>
           </section>
 
@@ -149,6 +155,12 @@ export default function PrivacyPolicyPage() {
                 <strong>Neon (PostgreSQL):</strong> Hosts our database. Data is
                 encrypted in transit (TLS). See Section 6 for encryption at
                 rest.
+              </li>
+              <li>
+                <strong>PostHog:</strong> Collects anonymized product analytics
+                (page views, clicks, feature usage) to help us understand how
+                people use the app and run A/B tests. PostHog respects browser
+                Do Not Track settings. No financial data is sent.
               </li>
             </ul>
           </section>
@@ -251,7 +263,7 @@ export default function PrivacyPolicyPage() {
               7. Cookies
             </h3>
             <p className="text-gray-700 leading-relaxed">
-              We use essential cookies only:
+              We use the following cookies:
             </p>
             <ul className="list-disc pl-6 text-gray-700 space-y-1.5">
               <li>
@@ -259,10 +271,16 @@ export default function PrivacyPolicyPage() {
                 for authentication. This is strictly necessary for the service
                 to function when you sign in.
               </li>
+              <li>
+                <strong>Analytics cookie:</strong> PostHog sets a first-party
+                cookie to distinguish unique visitors and measure feature usage.
+                This cookie does not contain personal information and is not
+                shared with advertisers. It is not set if your browser has Do
+                Not Track enabled.
+              </li>
             </ul>
             <p className="text-gray-700 leading-relaxed">
-              We do not use analytics cookies, advertising cookies, or
-              third-party tracking cookies.
+              We do not use advertising cookies or third-party tracking cookies.
             </p>
           </section>
 

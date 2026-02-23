@@ -7,7 +7,7 @@ const csp = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: https:",
   "font-src 'self'",
-  "connect-src 'self' https://*.sentry.io https://*.mapbox.com https://*.langfuse.com https://accounts.google.com",
+  "connect-src 'self' https://*.sentry.io https://*.mapbox.com https://*.langfuse.com https://accounts.google.com https://us.i.posthog.com https://us-assets.i.posthog.com",
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",

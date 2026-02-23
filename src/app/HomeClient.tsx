@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
+import { useFeatureFlagVariantKey, usePostHog } from "posthog-js/react";
 import DashboardClient from "./saved-reports/DashboardClient";
 import AffordabilityCard from "@/components/AffordabilityCard";
 import RiskAssessmentCard from "@/components/RiskAssessmentCard";
@@ -13,9 +14,15 @@ import {
   MOCK_MORTGAGE_RATE,
 } from "@/lib/data/mock-landing-data";
 
+const CTA_VARIANTS: Record<string, string> = {
+  control: "Start Free Analysis",
+  "variant-a": "See What You Can Afford",
+  "variant-b": "Get Your Free Report",
+};
+
 function Skeleton() {
   return (
-    <div className="min-h-screen" style={{ background: "#f5f5f7" }}>
+    <div className="min-h-screen bg-gray-50">
       <div className="max-w-5xl mx-auto px-4 py-8">
         <div className="h-8 w-48 bg-gray-200 rounded-xl animate-pulse mb-6" />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -53,7 +60,7 @@ const features = [
 /* ── Static preview: Market Rates ── */
 function MarketRatesPreview() {
   return (
-    <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
+    <div className="bg-white rounded-2xl overflow-hidden shadow-sm">
       <div className="px-5 py-4 border-b border-gray-100">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center">
@@ -102,7 +109,7 @@ function MarketRatesPreview() {
 /* ── Static preview: Investment Analysis ── */
 function InvestmentPreview() {
   return (
-    <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
+    <div className="bg-white rounded-2xl overflow-hidden shadow-sm">
       <div className="px-4 py-3 border-b border-gray-100">
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 bg-emerald-50 rounded-xl flex items-center justify-center">
@@ -137,7 +144,7 @@ function InvestmentPreview() {
 /* ── Static preview: Readiness & Budget ── */
 function ReadinessBudgetPreview() {
   return (
-    <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
+    <div className="bg-white rounded-2xl overflow-hidden shadow-sm">
       <div className="px-5 py-4 border-b border-gray-100">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 bg-violet-50 rounded-xl flex items-center justify-center">
@@ -214,7 +221,7 @@ function ReadinessBudgetPreview() {
 /* ── Static preview: AI Chat ── */
 function ChatPreview() {
   return (
-    <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
+    <div className="bg-white rounded-2xl overflow-hidden shadow-sm">
       <div className="px-5 py-4 border-b border-gray-100">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 bg-indigo-50 rounded-xl flex items-center justify-center">
@@ -277,7 +284,7 @@ function PropertyRecommendationsPreview() {
     { address: "3156 Sunset Ridge Blvd", city: "Cedar Park, TX", price: "$478,000", beds: 3, baths: 2, sqft: "1,920", tag: "New Listing", tagColor: "bg-amber-50 text-amber-700" },
   ];
   return (
-    <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
+    <div className="bg-white rounded-2xl overflow-hidden shadow-sm">
       <div className="px-5 py-4 border-b border-gray-100">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 bg-orange-50 rounded-xl flex items-center justify-center">
@@ -320,7 +327,7 @@ function PropertyRecommendationsPreview() {
 /* ── Privacy Trust Card ── */
 function PrivacyCard() {
   return (
-    <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
+    <div className="bg-white rounded-2xl overflow-hidden shadow-sm">
       <div className="px-5 py-4 border-b border-gray-100">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: "rgba(52,199,89,0.1)" }}>
@@ -334,7 +341,7 @@ function PrivacyCard() {
       <div className="p-6 space-y-5">
         {[
           { icon: "M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z", title: "No data stored", desc: "Your financial details are processed in real-time and never saved to any database." },
-          { icon: "M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88", title: "No tracking or cookies", desc: "We don't use analytics trackers, advertising pixels, or third-party cookies." },
+          { icon: "M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88", title: "Minimal first-party analytics", desc: "No ads, no third-party trackers. Only anonymized usage patterns to improve the product." },
           { icon: "M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z", title: "AI-processed only", desc: "Your inputs go directly to our AI agents for analysis and are discarded after." },
         ].map((item) => (
           <div key={item.title} className="flex gap-4">
@@ -408,13 +415,23 @@ const carouselSlides = [
   },
 ];
 
-function PreviewCarousel() {
+function PreviewCarousel({ onCtaClick }: { onCtaClick: (location: string) => void }) {
   const [current, setCurrent] = useState(0);
   const [paused, setPaused] = useState(false);
+  const posthog = usePostHog();
   const total = carouselSlides.length;
 
-  const next = useCallback(() => setCurrent((i) => (i + 1) % total), [total]);
-  const prev = useCallback(() => setCurrent((i) => (i - 1 + total) % total), [total]);
+  const trackSlide = useCallback((from: number, to: number, direction: string) => {
+    posthog.capture("carousel_slide_changed", {
+      from_slide: from,
+      to_slide: to,
+      slide_title: carouselSlides[to].title,
+      direction,
+    });
+  }, [posthog]);
+
+  const next = useCallback(() => setCurrent((i) => { const to = (i + 1) % total; trackSlide(i, to, "next"); return to; }), [total, trackSlide]);
+  const prev = useCallback(() => setCurrent((i) => { const to = (i - 1 + total) % total; trackSlide(i, to, "prev"); return to; }), [total, trackSlide]);
 
   useEffect(() => {
     if (paused) return;
@@ -441,8 +458,7 @@ function PreviewCarousel() {
       <div className="relative max-w-3xl mx-auto">
         <button
           onClick={prev}
-          className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 sm:-translate-x-12 z-10 w-10 h-10 flex items-center justify-center rounded-full bg-white/90 backdrop-blur-sm text-gray-400 hover:text-gray-900 transition-all"
-          style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }}
+          className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 sm:-translate-x-12 z-10 w-10 h-10 flex items-center justify-center rounded-full bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 shadow-sm transition-all"
           aria-label="Previous slide"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
@@ -451,8 +467,7 @@ function PreviewCarousel() {
         </button>
         <button
           onClick={next}
-          className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 sm:translate-x-12 z-10 w-10 h-10 flex items-center justify-center rounded-full bg-white/90 backdrop-blur-sm text-gray-400 hover:text-gray-900 transition-all"
-          style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }}
+          className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 sm:translate-x-12 z-10 w-10 h-10 flex items-center justify-center rounded-full bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 shadow-sm transition-all"
           aria-label="Next slide"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
@@ -462,7 +477,7 @@ function PreviewCarousel() {
 
         <div key={current} className="relative pointer-events-none preview-slide-up h-[460px] overflow-hidden">
           {slide.content}
-          <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-[#f5f5f7] to-transparent" />
+          <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-[#f5f5f7] dark:from-[#0d1117] to-transparent" />
         </div>
       </div>
 
@@ -470,7 +485,7 @@ function PreviewCarousel() {
         {carouselSlides.map((_, i) => (
           <button
             key={i}
-            onClick={() => setCurrent(i)}
+            onClick={() => { trackSlide(current, i, "dot_click"); setCurrent(i); }}
             className={`rounded-full transition-all duration-300 ${
               i === current
                 ? "w-7 h-2"
@@ -485,6 +500,7 @@ function PreviewCarousel() {
       <div className="text-center mt-10">
         <a
           href="/analyze"
+          onClick={() => onCtaClick("carousel")}
           className="inline-flex items-center gap-2 px-8 py-3.5 text-white text-sm font-medium rounded-full transition-all"
           style={{ background: "#0071e3", boxShadow: "0 4px 14px rgba(0, 113, 227, 0.3)" }}
           onMouseEnter={(e) => { e.currentTarget.style.background = "#0077ed"; }}
@@ -501,8 +517,20 @@ function PreviewCarousel() {
 }
 
 function LandingPage() {
+  const posthog = usePostHog();
+  const ctaVariant = useFeatureFlagVariantKey("landing-hero-cta");
+  const ctaCopy = CTA_VARIANTS[ctaVariant as string] ?? "Start Free Analysis";
+
+  const handleCtaClick = useCallback((location: string) => {
+    posthog.capture("cta_clicked", {
+      variant: ctaVariant ?? "control",
+      cta_text: location === "hero" ? ctaCopy : "Get Your Personalized Analysis",
+      location,
+    });
+  }, [posthog, ctaVariant, ctaCopy]);
+
   return (
-    <div className="min-h-screen" style={{ background: "#f5f5f7" }}>
+    <div className="min-h-screen bg-gray-50">
       {/* Hero — compact so previews are visible above the fold */}
       <section className="relative overflow-hidden">
         <div className="max-w-4xl mx-auto px-4 pt-10 pb-6 text-center">
@@ -516,20 +544,20 @@ function LandingPage() {
           <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
             <a
               href="/analyze"
+              onClick={() => handleCtaClick("hero")}
               className="inline-flex items-center gap-2 px-6 py-2.5 text-white text-sm font-medium rounded-full transition-all"
               style={{ background: "#0071e3", boxShadow: "0 4px 14px rgba(0, 113, 227, 0.25)" }}
               onMouseEnter={(e) => { e.currentTarget.style.background = "#0077ed"; }}
               onMouseLeave={(e) => { e.currentTarget.style.background = "#0071e3"; }}
             >
-              Start Free Analysis
+              {ctaCopy}
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
               </svg>
             </a>
             <a
               href="/docs"
-              className="inline-flex items-center gap-2 px-6 py-2.5 text-sm font-medium text-gray-600 bg-white/80 backdrop-blur-sm rounded-full hover:bg-white transition-all"
-              style={{ boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}
+              className="inline-flex items-center gap-2 px-6 py-2.5 text-sm font-medium text-gray-600 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-full hover:bg-white dark:hover:bg-gray-800 shadow-sm transition-all"
             >
               How it works
             </a>
@@ -544,11 +572,11 @@ function LandingPage() {
           <h2 className="text-lg font-semibold text-gray-900 tracking-tight">See what you&apos;ll get</h2>
           <p className="text-xs text-gray-500 mt-0.5">Real components from an actual analysis — powered by your data</p>
         </div>
-        <PreviewCarousel />
+        <PreviewCarousel onCtaClick={handleCtaClick} />
       </section>
 
       {/* Stats Strip */}
-      <section className="bg-white" style={{ boxShadow: "0 -1px 0 #e8e8ed, 0 1px 0 #e8e8ed" }}>
+      <section className="bg-white border-y border-gray-200">
         <div className="max-w-4xl mx-auto px-4 py-10">
           <div className="grid grid-cols-3 gap-4 text-center">
             {[
@@ -575,8 +603,7 @@ function LandingPage() {
           {features.map((feature) => (
             <div
               key={feature.title}
-              className="bg-white rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-200"
-              style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}
+              className="bg-white rounded-2xl p-6 shadow-sm hover:scale-[1.02] transition-transform duration-200"
             >
               <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center mb-4">
                 <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
@@ -591,7 +618,7 @@ function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-white" style={{ boxShadow: "0 -1px 0 #e8e8ed" }}>
+      <footer className="bg-white border-t border-gray-200">
         <div className="max-w-5xl mx-auto px-4 py-6 space-y-3">
           <p className="text-xs text-gray-400 text-center">
             We do not store any personal data or information. This is not financial advice. Use at your own risk.

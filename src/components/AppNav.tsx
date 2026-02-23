@@ -3,6 +3,7 @@
 import { useSession, signIn } from "next-auth/react";
 import { usePathname } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
+import { usePostHog } from "posthog-js/react";
 import ThemeToggle from "@/components/ThemeToggle";
 import UserMenu from "@/components/UserMenu";
 
@@ -49,10 +50,11 @@ export default function AppNav() {
     setMobileOpen(false);
   }, [pathname]);
 
+  const posthog = usePostHog();
   const isAuthenticated = status === "authenticated";
 
   return (
-    <nav className="bg-white/80 backdrop-blur-xl border-b border-gray-200 sticky top-0 z-40">
+    <nav className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-gray-200 sticky top-0 z-40">
       <div className="px-4">
         <div className="flex items-center justify-between h-12">
           <div className="flex items-center gap-6">
@@ -106,7 +108,7 @@ export default function AppNav() {
 
             {status === "unauthenticated" && (
               <button
-                onClick={() => signIn("google")}
+                onClick={() => { posthog.capture("sign_in_clicked", { location: "nav" }); signIn("google"); }}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-500 hover:text-gray-900 rounded-full hover:bg-gray-100 transition-colors"
               >
                 <svg className="w-3.5 h-3.5" viewBox="0 0 24 24">
