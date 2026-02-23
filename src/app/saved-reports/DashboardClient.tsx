@@ -641,22 +641,6 @@ export default function DashboardClient() {
       .finally(() => setReportLoading(false));
   }, [activeHomeId]);
 
-  if (status === "loading" || (status === "authenticated" && loading)) return <Skeleton />;
-
-  if (!session) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-2xl mx-auto px-4 py-20 text-center">
-          <svg className="w-12 h-12 text-gray-300 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
-          </svg>
-          <h2 className="text-lg font-semibold text-gray-900 mb-2">Sign in to view your homes</h2>
-          <p className="text-sm text-gray-500">Sign in with Google to access your saved home analyses.</p>
-        </div>
-      </div>
-    );
-  }
-
   const handleDeleteHome = useCallback(() => {
     if (!data || !activeHomeId) return;
     const remaining = data.reports.filter((r) => r.id !== activeHomeId);
@@ -673,6 +657,22 @@ export default function DashboardClient() {
       reports: data.reports.map((r) => r.id === activeHomeId ? { ...r, name: newName } : r),
     });
   }, [data, activeHomeId]);
+
+  if (status === "loading" || (status === "authenticated" && loading)) return <Skeleton />;
+
+  if (!session) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-2xl mx-auto px-4 py-20 text-center">
+          <svg className="w-12 h-12 text-gray-300 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+          </svg>
+          <h2 className="text-lg font-semibold text-gray-900 mb-2">Sign in to view your homes</h2>
+          <p className="text-sm text-gray-500">Sign in with Google to access your saved home analyses.</p>
+        </div>
+      </div>
+    );
+  }
 
   const hasHomes = (data?.reports.length ?? 0) > 0;
   const activeHome = data?.reports.find((r) => r.id === activeHomeId);
