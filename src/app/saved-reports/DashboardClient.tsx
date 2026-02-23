@@ -260,7 +260,7 @@ export default function DashboardClient() {
 
       {/* Chat - fixed right column on xl+ */}
       <div
-        style={{ zIndex: 40 }}
+        style={{ zIndex: 30 }}
         className="fixed right-0 top-14 bottom-0 w-[390px] p-4 pl-0 max-xl:hidden"
       >
         {chatLoading ? (
