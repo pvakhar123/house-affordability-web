@@ -46,7 +46,7 @@ export default function UserMenu() {
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-lg border border-gray-200 p-3 z-50 space-y-2">
+        <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-lg border border-gray-200 p-3 z-[60] space-y-2">
           {/* User info */}
           <div className="flex items-center gap-3 px-1 pb-2 border-b border-gray-100">
             {session.user.image ? (
