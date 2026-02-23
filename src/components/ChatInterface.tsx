@@ -316,10 +316,11 @@ function renderFormattedText(text: string): React.ReactNode {
   return <>{elements}</>;
 }
 
-export default function ChatInterface({ report, userLocation, initialPrompt }: { report: FinalReport; userLocation?: string; initialPrompt?: string }) {
+export default function ChatInterface({ report, userLocation, initialPrompt, reportId }: { report: FinalReport; userLocation?: string; initialPrompt?: string; reportId?: string }) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [historyLoaded, setHistoryLoaded] = useState(!reportId); // skip if no reportId
   const initialPromptSent = useRef(false);
   const [conversationSummary, setConversationSummary] = useState<string | null>(null);
   const [sessionMemory, setSessionMemory] = useState<SessionMemory | null>(null);
@@ -327,6 +328,40 @@ export default function ChatInterface({ report, userLocation, initialPrompt }: {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // ── CHAT HISTORY PERSISTENCE ──────────────────────────────
+  // Load saved chat history on mount (only when reportId is provided)
+  useEffect(() => {
+    if (!reportId) return;
+    fetch(`/api/saved-reports/${reportId}/chat`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.messages?.length) {
+          setMessages(data.messages);
+          if (data.conversationSummary) setConversationSummary(data.conversationSummary);
+          if (data.sessionMemory) setSessionMemory(data.sessionMemory);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setHistoryLoaded(true));
+  }, [reportId]);
+
+  // Debounced save after each exchange completes
+  const saveChatHistory = useCallback(
+    (msgs: Message[], summary: string | null, memory: SessionMemory | null) => {
+      if (!reportId || msgs.length === 0) return;
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+      saveTimer.current = setTimeout(() => {
+        fetch(`/api/saved-reports/${reportId}/chat`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ messages: msgs, conversationSummary: summary, sessionMemory: memory }),
+        }).catch(() => {});
+      }, 1000);
+    },
+    [reportId],
+  );
 
   // Extract user context from the report
   const location = userLocation || "your area";
@@ -525,17 +560,22 @@ export default function ChatInterface({ report, userLocation, initialPrompt }: {
     } finally {
       setIsLoading(false);
       inputRef.current?.focus();
+      // Persist chat after each exchange
+      setMessages((latest) => {
+        saveChatHistory(latest, conversationSummary, sessionMemory);
+        return latest;
+      });
     }
   };
 
   // Auto-send initial prompt from external trigger (e.g. dashboard recommendation)
   useEffect(() => {
-    if (initialPrompt && !initialPromptSent.current && !isLoading && messages.length === 0) {
+    if (initialPrompt && !initialPromptSent.current && !isLoading && historyLoaded && messages.length === 0) {
       initialPromptSent.current = true;
       sendMessage(initialPrompt);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialPrompt]);
+  }, [initialPrompt, historyLoaded]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -551,9 +591,16 @@ export default function ChatInterface({ report, userLocation, initialPrompt }: {
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col h-full">
       {/* Header */}
       <div className="px-5 py-3 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50 flex-shrink-0">
-        <h3 className="text-base font-semibold text-gray-900">
-          Ask Follow-Up Questions
-        </h3>
+        <div className="flex items-center justify-between">
+          <h3 className="text-base font-semibold text-gray-900">
+            Ask Follow-Up Questions
+          </h3>
+          {reportId && messages.length > 0 && historyLoaded && (
+            <span className="text-[10px] text-green-600 bg-green-50 px-2 py-0.5 rounded-full font-medium">
+              Chat saved
+            </span>
+          )}
+        </div>
         <p className="text-xs text-gray-500">
           Ask &quot;what if&quot; questions about your analysis.
         </p>

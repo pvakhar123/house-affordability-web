@@ -662,6 +662,30 @@ export async function renameSavedReport(id: string, userId: string, name: string
     .where(and(eq(schema.savedReports.id, id), eq(schema.savedReports.userId, userId)));
 }
 
+// ── Chat History ────────────────────────────────────────────
+
+export async function getChatHistory(reportId: string, userId: string) {
+  const db = getDb();
+  const [row] = await db
+    .select({ chatHistory: schema.savedReports.chatHistory })
+    .from(schema.savedReports)
+    .where(and(eq(schema.savedReports.id, reportId), eq(schema.savedReports.userId, userId)));
+
+  return (row?.chatHistory as Record<string, unknown> | null) ?? null;
+}
+
+export async function saveChatHistory(
+  reportId: string,
+  userId: string,
+  data: Record<string, unknown>,
+) {
+  const db = getDb();
+  await db
+    .update(schema.savedReports)
+    .set({ chatHistory: data })
+    .where(and(eq(schema.savedReports.id, reportId), eq(schema.savedReports.userId, userId)));
+}
+
 // ── Data Retention — Automated Purge ─────────────────────────
 // Retention periods (SOC 2 compliance):
 //   usage_events, error_logs, llm_costs: 90 days

@@ -46,6 +46,7 @@ export const savedReports = pgTable("saved_reports", {
   savedAt: timestamp("saved_at", { withTimezone: true }).notNull().defaultNow(),
   report: jsonb("report").notNull(),
   userLocation: text("user_location"),
+  chatHistory: jsonb("chat_history"),
 });
 
 // ── judge_scores ────────────────────────────────────────────

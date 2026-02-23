@@ -57,6 +57,48 @@ function Skeleton() {
   );
 }
 
+function fmt$(n: number): string {
+  return "$" + Math.round(n).toLocaleString("en-US");
+}
+
+function buildInsightText(data: DashboardData | null): { headline: string; icon?: string } | null {
+  if (!data) return null;
+  const { buyingPower, reports } = data;
+  const delta = buyingPower.rateDelta;
+  const maxPrice = buyingPower.latestMaxPrice;
+
+  // Rate dropped significantly
+  if (delta != null && delta <= -0.15 && maxPrice) {
+    const gain = Math.round(maxPrice * Math.abs(delta) * 0.1);
+    return { headline: `Rates dropped ${Math.abs(delta).toFixed(2)}% — your buying power is up ~${fmt$(gain)}`, icon: "trending-up" };
+  }
+
+  // Rate rose significantly
+  if (delta != null && delta >= 0.15) {
+    return { headline: `Rates rose ${delta.toFixed(2)}% since your last analysis — consider re-running`, icon: "trending-down" };
+  }
+
+  // Stale analysis
+  if (reports.length > 0) {
+    const days = Math.floor((Date.now() - new Date(reports[0].savedAt).getTime()) / 86_400_000);
+    if (days >= 14) {
+      return { headline: `It's been ${days} days — market conditions may have changed`, icon: "clock" };
+    }
+  }
+
+  // Has reports with location
+  if (reports.length > 0 && reports[0].location && maxPrice) {
+    return { headline: `Tracking ${reports[0].location} — max budget ${fmt$(maxPrice)}`, icon: "map" };
+  }
+
+  // No reports
+  if (reports.length === 0) {
+    return { headline: "Run your first analysis to get started", icon: "sparkle" };
+  }
+
+  return null;
+}
+
 function ChatPlaceholder() {
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm flex flex-col h-full items-center justify-center px-6">
@@ -169,10 +211,27 @@ export default function DashboardClient() {
         <div className="bg-gray-50 border-b border-gray-200">
           <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
             <div>
-              <h1 className="text-xl font-bold text-gray-900">Dashboard</h1>
-              {data?.user.name && (
-                <p className="text-sm text-gray-500">Welcome back, {data.user.name.split(" ")[0]}</p>
-              )}
+              {(() => {
+                const insight = buildInsightText(data);
+                if (insight) {
+                  return (
+                    <>
+                      <h1 className="text-lg font-bold text-gray-900">{insight.headline}</h1>
+                      {data?.user.name && (
+                        <p className="text-xs text-gray-400 mt-0.5">Welcome back, {data.user.name.split(" ")[0]}</p>
+                      )}
+                    </>
+                  );
+                }
+                return (
+                  <>
+                    <h1 className="text-xl font-bold text-gray-900">Dashboard</h1>
+                    {data?.user.name && (
+                      <p className="text-sm text-gray-500">Welcome back, {data.user.name.split(" ")[0]}</p>
+                    )}
+                  </>
+                );
+              })()}
             </div>
             <a
               href="/analyze"
@@ -243,6 +302,7 @@ export default function DashboardClient() {
           {/* Row 4: Saved Reports */}
           <DashboardReportsList
             reports={data?.reports ?? []}
+            onRefresh={fetchDashboard}
           />
 
           {/* Chat - below content on smaller screens */}
@@ -250,7 +310,7 @@ export default function DashboardClient() {
             {chatLoading ? (
               <ChatLoading />
             ) : chatReport ? (
-              <ChatInterface report={chatReport} userLocation={chatLocation} initialPrompt={chatPrompt} />
+              <ChatInterface report={chatReport} userLocation={chatLocation} initialPrompt={chatPrompt} reportId={data?.reports[0]?.id} />
             ) : (
               <ChatPlaceholder />
             )}
@@ -266,7 +326,7 @@ export default function DashboardClient() {
         {chatLoading ? (
           <ChatLoading />
         ) : chatReport ? (
-          <ChatInterface report={chatReport} userLocation={chatLocation} initialPrompt={chatPrompt} />
+          <ChatInterface report={chatReport} userLocation={chatLocation} initialPrompt={chatPrompt} reportId={data?.reports[0]?.id} />
         ) : (
           <ChatPlaceholder />
         )}
