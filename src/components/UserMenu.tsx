@@ -2,10 +2,29 @@
 
 import { useSession, signOut } from "next-auth/react";
 import { useState, useRef, useEffect } from "react";
+import type { UsageStatus } from "@/lib/tier";
+
+function UsageMiniBar({ label, used, limit }: { label: string; used: number; limit: number }) {
+  const isUnlimited = !isFinite(limit);
+  const pct = isUnlimited ? 0 : Math.min((used / limit) * 100, 100);
+  const isHigh = !isUnlimited && pct > 70;
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-[11px] text-gray-500 w-14 truncate">{label}</span>
+      <div className="flex-1 h-1 bg-gray-100 rounded-full overflow-hidden">
+        <div className={`h-full rounded-full transition-all ${isHigh ? "bg-amber-500" : "bg-blue-400"}`} style={{ width: isUnlimited ? "100%" : `${pct}%` }} />
+      </div>
+      <span className="text-[10px] text-gray-400 w-10 text-right">
+        {isUnlimited ? `${used}` : `${used}/${limit}`}
+      </span>
+    </div>
+  );
+}
 
 export default function UserMenu() {
   const { data: session, status } = useSession();
   const [open, setOpen] = useState(false);
+  const [usage, setUsage] = useState<UsageStatus | null>(null);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -17,6 +36,15 @@ export default function UserMenu() {
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
+
+  // Lazy-load usage when dropdown opens
+  useEffect(() => {
+    if (!open || usage) return;
+    fetch("/api/usage")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => { if (data?.usage) setUsage(data.usage); })
+      .catch(() => {});
+  }, [open, usage]);
 
   if (status === "loading") {
     return <div className="w-8 h-8 rounded-full bg-gray-200 animate-pulse" />;
@@ -86,6 +114,16 @@ export default function UserMenu() {
               <p className="text-xs text-gray-400">View saved reports & dashboard</p>
             </div>
           </a>
+
+          {/* Usage indicator */}
+          {usage && (
+            <div className="px-2 py-2 space-y-1.5">
+              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Usage</p>
+              <UsageMiniBar label="Analyses" used={usage.analyze.used} limit={usage.analyze.limit} />
+              <UsageMiniBar label="Chat" used={usage.chat.used} limit={usage.chat.limit} />
+              <UsageMiniBar label="Reports" used={usage.savedReports.used} limit={usage.savedReports.limit} />
+            </div>
+          )}
 
           {/* Plan & Usage card */}
           {session.user.tier !== "pro" ? (

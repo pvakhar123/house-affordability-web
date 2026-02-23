@@ -4,23 +4,15 @@ import { useSession } from "next-auth/react";
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import BuyingPowerCard from "@/components/dashboard/BuyingPowerCard";
-import UsageTierCard from "@/components/dashboard/UsageTierCard";
-import RateWatchCard from "@/components/dashboard/RateWatchCard";
-import AffordabilityTrendChart from "@/components/dashboard/AffordabilityTrendChart";
-import DashboardReportsList from "@/components/dashboard/DashboardReportsList";
-import DashboardRecommendationsCard from "@/components/dashboard/DashboardRecommendationsCard";
+import ReportCard from "@/components/dashboard/ReportCard";
 import ChatInterface from "@/components/ChatInterface";
 import type { FinalReport } from "@/lib/types";
-import type { UsageStatus } from "@/lib/tier";
 
 interface DashboardData {
   user: { name: string; tier: "free" | "pro"; memberSince: string };
-  usage: UsageStatus | null;
   rates: {
     current30yr: number | null;
     current15yr: number | null;
-    history30yr: { date: string; value: number }[];
   };
   reports: {
     id: string;
@@ -29,6 +21,14 @@ interface DashboardData {
     maxPrice: number | null;
     monthlyPayment: number | null;
     location: string | null;
+    rateAtAnalysis: number | null;
+    backEndRatio: number | null;
+    downPaymentPercent: number | null;
+    loanAmount: number | null;
+    riskLevel: string | null;
+    propertyVerdict: string | null;
+    rentVsBuyVerdict: string | null;
+    breakEvenYear: number | null;
   }[];
   buyingPower: {
     latestMaxPrice: number | null;
@@ -38,20 +38,22 @@ interface DashboardData {
   };
 }
 
+const quickActions = [
+  { label: "Run a stress test", prompt: "Run a stress test on my mortgage — what happens if rates rise 2%?" },
+  { label: "Compare 15yr vs 30yr", prompt: "Compare a 15-year vs 30-year mortgage for my budget" },
+  { label: "Rent vs buy analysis", prompt: "Should I rent or buy? Compare the costs over 7 years" },
+  { label: "Loan programs", prompt: "What loan programs am I eligible for? Explain FHA, VA, and conventional options" },
+];
+
 function Skeleton() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-5xl mx-auto px-4 py-8">
-        <div className="h-8 w-48 bg-gray-200 rounded animate-pulse mb-6" />
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div className="h-8 w-64 bg-gray-200 rounded animate-pulse mb-6" />
+        <div className="space-y-4">
           <div className="h-48 bg-gray-200 rounded-xl animate-pulse" />
           <div className="h-48 bg-gray-200 rounded-xl animate-pulse" />
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-          <div className="h-56 bg-gray-200 rounded-xl animate-pulse" />
-          <div className="h-56 bg-gray-200 rounded-xl animate-pulse" />
-        </div>
-        <div className="h-40 bg-gray-200 rounded-xl animate-pulse" />
       </div>
     </div>
   );
@@ -61,39 +63,34 @@ function fmt$(n: number): string {
   return "$" + Math.round(n).toLocaleString("en-US");
 }
 
-function buildInsightText(data: DashboardData | null): { headline: string; icon?: string } | null {
+function buildInsightText(data: DashboardData | null): { headline: string } | null {
   if (!data) return null;
   const { buyingPower, reports } = data;
   const delta = buyingPower.rateDelta;
   const maxPrice = buyingPower.latestMaxPrice;
 
-  // Rate dropped significantly
   if (delta != null && delta <= -0.15 && maxPrice) {
     const gain = Math.round(maxPrice * Math.abs(delta) * 0.1);
-    return { headline: `Rates dropped ${Math.abs(delta).toFixed(2)}% — your buying power is up ~${fmt$(gain)}`, icon: "trending-up" };
+    return { headline: `Rates dropped ${Math.abs(delta).toFixed(2)}% — your buying power is up ~${fmt$(gain)}` };
   }
 
-  // Rate rose significantly
   if (delta != null && delta >= 0.15) {
-    return { headline: `Rates rose ${delta.toFixed(2)}% since your last analysis — consider re-running`, icon: "trending-down" };
+    return { headline: `Rates rose ${delta.toFixed(2)}% since your last analysis — consider re-running` };
   }
 
-  // Stale analysis
   if (reports.length > 0) {
     const days = Math.floor((Date.now() - new Date(reports[0].savedAt).getTime()) / 86_400_000);
     if (days >= 14) {
-      return { headline: `It's been ${days} days — market conditions may have changed`, icon: "clock" };
+      return { headline: `It's been ${days} days — market conditions may have changed` };
     }
   }
 
-  // Has reports with location
   if (reports.length > 0 && reports[0].location && maxPrice) {
-    return { headline: `Tracking ${reports[0].location} — max budget ${fmt$(maxPrice)}`, icon: "map" };
+    return { headline: `Tracking ${reports[0].location} — max budget ${fmt$(maxPrice)}` };
   }
 
-  // No reports
   if (reports.length === 0) {
-    return { headline: "Run your first analysis to get started", icon: "sparkle" };
+    return { headline: "Run your first analysis to get started" };
   }
 
   return null;
@@ -126,6 +123,31 @@ function ChatLoading() {
   );
 }
 
+function EmptyState() {
+  return (
+    <div className="bg-white border border-gray-200 rounded-xl p-12 shadow-sm text-center">
+      <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+        <svg className="w-7 h-7 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
+        </svg>
+      </div>
+      <h3 className="text-base font-semibold text-gray-900 mb-1">No reports yet</h3>
+      <p className="text-sm text-gray-500 mb-5 max-w-xs mx-auto">
+        Run your first home affordability analysis to see detailed metrics, rate comparisons, and AI-powered insights.
+      </p>
+      <Link
+        href="/analyze"
+        className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+      >
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+        </svg>
+        Run Your First Analysis
+      </Link>
+    </div>
+  );
+}
+
 export default function DashboardClient() {
   const { data: session, status } = useSession();
   const [data, setData] = useState<DashboardData | null>(null);
@@ -134,7 +156,8 @@ export default function DashboardClient() {
   const [showUpgradeBanner, setShowUpgradeBanner] = useState(false);
   const [chatPrompt, setChatPrompt] = useState<string | undefined>();
 
-  // Chat report state
+  // Chat state — supports switching between reports
+  const [activeChatReportId, setActiveChatReportId] = useState<string | null>(null);
   const [chatReport, setChatReport] = useState<FinalReport | null>(null);
   const [chatLocation, setChatLocation] = useState<string | undefined>();
   const [chatLoading, setChatLoading] = useState(false);
@@ -166,13 +189,20 @@ export default function DashboardClient() {
     }
   }, [status, fetchDashboard]);
 
-  // Fetch the full report for chat once we know the latest report ID
+  // Set initial active chat to latest report
   useEffect(() => {
-    const latestId = data?.reports[0]?.id;
-    if (!latestId || chatReport || chatLoading) return;
+    if (data?.reports[0]?.id && !activeChatReportId) {
+      setActiveChatReportId(data.reports[0].id);
+    }
+  }, [data?.reports, activeChatReportId]);
+
+  // Fetch full report when active chat changes
+  useEffect(() => {
+    if (!activeChatReportId) return;
 
     setChatLoading(true);
-    fetch(`/api/saved-reports/${latestId}`)
+    setChatReport(null);
+    fetch(`/api/saved-reports/${activeChatReportId}`)
       .then((res) => (res.ok ? res.json() : null))
       .then((result) => {
         if (result) {
@@ -182,7 +212,7 @@ export default function DashboardClient() {
       })
       .catch(() => {})
       .finally(() => setChatLoading(false));
-  }, [data?.reports, chatReport, chatLoading]);
+  }, [activeChatReportId]);
 
   if (status === "loading" || (status === "authenticated" && loading)) {
     return <Skeleton />;
@@ -203,6 +233,7 @@ export default function DashboardClient() {
   }
 
   const hasReports = (data?.reports.length ?? 0) > 0;
+  const activeChatName = data?.reports.find((r) => r.id === activeChatReportId)?.name;
 
   return (
     <>
@@ -264,73 +295,87 @@ export default function DashboardClient() {
             </div>
           )}
 
-          {/* Row 1: Buying Power + Usage */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <BuyingPowerCard
-              latestMaxPrice={data?.buyingPower.latestMaxPrice ?? null}
-              latestMonthlyPayment={data?.buyingPower.latestMonthlyPayment ?? null}
-              rateDelta={data?.buyingPower.rateDelta ?? null}
-              currentRate={data?.buyingPower.currentRate ?? null}
-            />
-            <UsageTierCard
-              usage={data?.usage ?? null}
-              tier={data?.user.tier ?? "free"}
-            />
-          </div>
-
-          {/* Row 2: Recommendations & Quick Actions */}
-          {data && hasReports && (
-            <DashboardRecommendationsCard
-              buyingPower={data.buyingPower}
-              latestReportSavedAt={data.reports[0]?.savedAt ?? null}
-              onChatPrompt={(prompt) => setChatPrompt(prompt)}
-            />
+          {/* Quick action pills */}
+          {hasReports && (
+            <div className="flex flex-wrap gap-2">
+              {quickActions.map((action) => (
+                <button
+                  key={action.label}
+                  onClick={() => setChatPrompt(action.prompt)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200 text-xs font-medium text-gray-600 rounded-full hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700 transition-colors shadow-sm"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
+                  </svg>
+                  {action.label}
+                </button>
+              ))}
+            </div>
           )}
 
-          {/* Row 3: Rate Watch + Affordability Trend */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <RateWatchCard
-              current30yr={data?.rates.current30yr ?? null}
-              current15yr={data?.rates.current15yr ?? null}
-              history30yr={data?.rates.history30yr ?? []}
-            />
-            <AffordabilityTrendChart
-              reports={data?.reports ?? []}
-            />
-          </div>
-
-          {/* Row 4: Saved Reports */}
-          <DashboardReportsList
-            reports={data?.reports ?? []}
-            onRefresh={fetchDashboard}
-          />
+          {/* Report cards */}
+          {hasReports ? (
+            <div className="space-y-4">
+              {data!.reports.map((report, i) => (
+                <ReportCard
+                  key={report.id}
+                  report={report}
+                  currentRate={data!.rates.current30yr}
+                  isLatest={i === 0}
+                  isActiveChat={report.id === activeChatReportId}
+                  onChatAbout={(id) => setActiveChatReportId(id)}
+                  onRefresh={fetchDashboard}
+                />
+              ))}
+            </div>
+          ) : (
+            <EmptyState />
+          )}
 
           {/* Chat - below content on smaller screens */}
-          <div className="block xl:hidden" style={{ height: "500px" }}>
-            {chatLoading ? (
-              <ChatLoading />
-            ) : chatReport ? (
-              <ChatInterface report={chatReport} userLocation={chatLocation} initialPrompt={chatPrompt} reportId={data?.reports[0]?.id} />
-            ) : (
-              <ChatPlaceholder />
-            )}
-          </div>
+          {hasReports && (
+            <div className="block xl:hidden" style={{ height: "500px" }}>
+              {chatLoading ? (
+                <ChatLoading />
+              ) : chatReport && activeChatReportId ? (
+                <div className="h-full flex flex-col">
+                  <div className="px-3 py-1.5 text-xs text-gray-500 bg-gray-100 rounded-t-xl border border-b-0 border-gray-200 truncate">
+                    Chatting about: <span className="font-medium text-gray-700">{activeChatName ?? "Report"}</span>
+                  </div>
+                  <div className="flex-1 min-h-0">
+                    <ChatInterface key={activeChatReportId} report={chatReport} userLocation={chatLocation} initialPrompt={chatPrompt} reportId={activeChatReportId} />
+                  </div>
+                </div>
+              ) : (
+                <ChatPlaceholder />
+              )}
+            </div>
+          )}
         </div>
       </div>
 
       {/* Chat - fixed right column on xl+ */}
-      <div
-        style={{ zIndex: 30 }}
-        className="fixed right-0 top-14 bottom-0 w-[390px] p-4 pl-0 max-xl:hidden"
-      >
-        {chatLoading ? (
-          <ChatLoading />
-        ) : chatReport ? (
-          <ChatInterface report={chatReport} userLocation={chatLocation} initialPrompt={chatPrompt} reportId={data?.reports[0]?.id} />
-        ) : (
-          <ChatPlaceholder />
-        )}
-      </div>
+      {hasReports && (
+        <div
+          style={{ zIndex: 30 }}
+          className="fixed right-0 top-14 bottom-0 w-[390px] p-4 pl-0 max-xl:hidden flex flex-col"
+        >
+          {chatLoading ? (
+            <ChatLoading />
+          ) : chatReport && activeChatReportId ? (
+            <div className="flex flex-col h-full">
+              <div className="px-3 py-1.5 text-xs text-gray-500 bg-gray-100 rounded-t-xl border border-b-0 border-gray-200 truncate">
+                Chatting about: <span className="font-medium text-gray-700">{activeChatName ?? "Report"}</span>
+              </div>
+              <div className="flex-1 min-h-0">
+                <ChatInterface key={activeChatReportId} report={chatReport} userLocation={chatLocation} initialPrompt={chatPrompt} reportId={activeChatReportId} />
+              </div>
+            </div>
+          ) : (
+            <ChatPlaceholder />
+          )}
+        </div>
+      )}
     </>
   );
 }

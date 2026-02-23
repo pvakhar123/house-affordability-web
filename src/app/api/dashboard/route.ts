@@ -26,17 +26,13 @@ export const GET = withTracking("dashboard", async () => {
     // 2. Mortgage rates (current + historical)
     (async () => {
       const fred = new FredApiClient(process.env.FRED_API_KEY!, new CacheService());
-      const [rate30, rate15, history] = await Promise.allSettled([
+      const [rate30, rate15] = await Promise.allSettled([
         fred.getMortgage30YRate(),
         fred.getMortgage15YRate(),
-        fred.getHistoricalMortgageRate(1),
       ]);
       return {
         current30yr: rate30.status === "fulfilled" ? rate30.value.value : null,
         current15yr: rate15.status === "fulfilled" ? rate15.value.value : null,
-        history30yr: history.status === "fulfilled"
-          ? history.value.map((h) => ({ date: h.date, value: h.value }))
-          : [],
       };
     })(),
 
@@ -60,8 +56,12 @@ export const GET = withTracking("dashboard", async () => {
         const report = r.report as Record<string, unknown> | null;
         const affordability = report?.affordability as Record<string, unknown> | undefined;
         const monthlyPayment = affordability?.monthlyPayment as Record<string, unknown> | undefined;
+        const dtiAnalysis = affordability?.dtiAnalysis as Record<string, unknown> | undefined;
         const marketSnapshot = report?.marketSnapshot as Record<string, unknown> | undefined;
         const mortgageRates = marketSnapshot?.mortgageRates as Record<string, unknown> | undefined;
+        const riskAssessment = report?.riskAssessment as Record<string, unknown> | undefined;
+        const propertyAnalysis = report?.propertyAnalysis as Record<string, unknown> | undefined;
+        const rentVsBuy = report?.rentVsBuy as Record<string, unknown> | undefined;
         return {
           id: r.id,
           name: r.name,
@@ -69,7 +69,14 @@ export const GET = withTracking("dashboard", async () => {
           maxPrice: (affordability?.maxHomePrice as number) ?? null,
           monthlyPayment: (monthlyPayment?.totalMonthly as number) ?? null,
           location: r.userLocation ?? null,
-          rateAtAnalysis: (mortgageRates?.thirtyYear as number) ?? null,
+          rateAtAnalysis: (mortgageRates?.thirtyYearFixed as number) ?? null,
+          backEndRatio: (dtiAnalysis?.backEndRatio as number) ?? null,
+          downPaymentPercent: (affordability?.downPaymentPercent as number) ?? null,
+          loanAmount: (affordability?.loanAmount as number) ?? null,
+          riskLevel: (riskAssessment?.overallRiskLevel as string) ?? null,
+          propertyVerdict: (propertyAnalysis?.verdict as string) ?? null,
+          rentVsBuyVerdict: (rentVsBuy?.verdict as string) ?? null,
+          breakEvenYear: (rentVsBuy?.breakEvenYear as number) ?? null,
         };
       });
     })(),
@@ -94,7 +101,6 @@ export const GET = withTracking("dashboard", async () => {
   const rates = ratesResult.status === "fulfilled" ? ratesResult.value : {
     current30yr: null,
     current15yr: null,
-    history30yr: [],
   };
   const reports = reportsResult.status === "fulfilled" ? reportsResult.value : [];
   const user = userResult.status === "fulfilled" ? userResult.value : {
