@@ -4,6 +4,8 @@ import { useSession } from "next-auth/react";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { generateReportPDF } from "@/lib/utils/generate-pdf";
+import { compressReport } from "@/lib/share-report";
 import AffordabilityCard from "@/components/AffordabilityCard";
 import MarketSnapshotCard from "@/components/MarketSnapshotCard";
 import RiskAssessmentCard from "@/components/RiskAssessmentCard";
@@ -57,6 +59,186 @@ function ExpandableSection({ title, defaultOpen = false, children }: { title: st
       <div className={`transition-all duration-300 ease-in-out ${open ? "max-h-[5000px] opacity-100" : "max-h-0 opacity-0 overflow-hidden"}`}>
         <div className="px-6 pb-6">{children}</div>
       </div>
+    </div>
+  );
+}
+
+// ── Action Bar ──────────────────────────────────────────
+
+function ActionBar({ report, reportId, reportName, location, onDelete, onRename }: {
+  report: FinalReport;
+  reportId: string;
+  reportName: string;
+  location?: string;
+  onDelete: () => void;
+  onRename: (name: string) => void;
+}) {
+  const [downloading, setDownloading] = useState(false);
+  const [shareStatus, setShareStatus] = useState<"idle" | "copied" | "error">("idle");
+  const [emailOpen, setEmailOpen] = useState(false);
+  const [email, setEmail] = useState("");
+  const [emailStatus, setEmailStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
+  const [renaming, setRenaming] = useState(false);
+  const [editName, setEditName] = useState(reportName);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  async function handlePDF() {
+    setDownloading(true);
+    try {
+      const doc = generateReportPDF(report);
+      doc.save("home-analysis.pdf");
+    } catch (err) {
+      console.error("PDF generation failed:", err);
+    } finally {
+      setDownloading(false);
+    }
+  }
+
+  async function handleShare() {
+    try {
+      const encoded = await compressReport(report);
+      const url = `${window.location.origin}/analyze?report=${encoded}`;
+      await navigator.clipboard.writeText(url);
+      setShareStatus("copied");
+      setTimeout(() => setShareStatus("idle"), 2000);
+    } catch {
+      setShareStatus("error");
+      setTimeout(() => setShareStatus("idle"), 3000);
+    }
+  }
+
+  async function handleEmail(e: React.FormEvent) {
+    e.preventDefault();
+    if (!email.includes("@")) return;
+    setEmailStatus("sending");
+    try {
+      const res = await fetch("/api/email-report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, report }),
+      });
+      if (!res.ok) { setEmailStatus("error"); return; }
+      setEmailStatus("sent");
+      setTimeout(() => { setEmailOpen(false); setEmailStatus("idle"); setEmail(""); }, 2500);
+    } catch {
+      setEmailStatus("error");
+    }
+  }
+
+  async function handleRename() {
+    const trimmed = editName.trim();
+    if (!trimmed || trimmed === reportName) { setRenaming(false); return; }
+    try {
+      const res = await fetch(`/api/saved-reports/${reportId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: trimmed }),
+      });
+      if (res.ok) onRename(trimmed);
+    } catch {}
+    setRenaming(false);
+  }
+
+  async function handleDelete() {
+    try {
+      const res = await fetch(`/api/saved-reports/${reportId}`, { method: "DELETE" });
+      if (res.ok) onDelete();
+    } catch {}
+    setConfirmDelete(false);
+  }
+
+  const btnClass = "inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg transition-colors";
+  const defaultBtn = `${btnClass} text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 hover:border-gray-300`;
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {/* PDF */}
+      <button onClick={handlePDF} disabled={downloading} className={defaultBtn} title="Download PDF">
+        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+        {downloading ? "..." : "PDF"}
+      </button>
+
+      {/* Share */}
+      <button onClick={handleShare} className={shareStatus === "copied" ? `${btnClass} text-green-700 bg-green-50 border border-green-200` : defaultBtn} title="Copy share link">
+        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m9.86-3.048a4.5 4.5 0 00-1.242-7.244l-4.5-4.5a4.5 4.5 0 00-6.364 6.364L4.5 8.688" />
+        </svg>
+        {shareStatus === "copied" ? "Copied!" : shareStatus === "error" ? "Too large" : "Share"}
+      </button>
+
+      {/* Email */}
+      {!emailOpen ? (
+        <button onClick={() => setEmailOpen(true)} className={defaultBtn} title="Email report">
+          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+          </svg>
+          Email
+        </button>
+      ) : (
+        <form onSubmit={handleEmail} className="flex items-center gap-1.5">
+          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@example.com" required autoFocus
+            className="px-2 py-1 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none w-40" />
+          <button type="submit" disabled={emailStatus === "sending" || emailStatus === "sent"}
+            className={`${btnClass} ${emailStatus === "sent" ? "text-green-700 bg-green-50 border border-green-200" : "text-white bg-blue-600 hover:bg-blue-700"}`}>
+            {emailStatus === "idle" ? "Send" : emailStatus === "sending" ? "..." : emailStatus === "sent" ? "Sent!" : "Retry"}
+          </button>
+          <button type="button" onClick={() => { setEmailOpen(false); setEmailStatus("idle"); setEmail(""); }} className="p-1 text-gray-400 hover:text-gray-600">
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </form>
+      )}
+
+      <div className="w-px h-5 bg-gray-200 mx-0.5" />
+
+      {/* Rename */}
+      {!renaming ? (
+        <button onClick={() => { setEditName(reportName); setRenaming(true); }} className={defaultBtn} title="Rename">
+          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
+          </svg>
+          Rename
+        </button>
+      ) : (
+        <form onSubmit={(e) => { e.preventDefault(); handleRename(); }} className="flex items-center gap-1.5">
+          <input type="text" value={editName} onChange={(e) => setEditName(e.target.value)} autoFocus
+            className="px-2 py-1 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none w-40"
+            onKeyDown={(e) => { if (e.key === "Escape") setRenaming(false); }} />
+          <button type="submit" className={`${btnClass} text-white bg-blue-600 hover:bg-blue-700`}>Save</button>
+          <button type="button" onClick={() => setRenaming(false)} className="p-1 text-gray-400 hover:text-gray-600">
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </form>
+      )}
+
+      {/* Delete */}
+      {!confirmDelete ? (
+        <button onClick={() => setConfirmDelete(true)} className={`${btnClass} text-gray-400 hover:text-red-600 hover:bg-red-50 hover:border-red-200 bg-white border border-gray-200`} title="Delete">
+          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+          </svg>
+        </button>
+      ) : (
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs text-red-600 font-medium">Delete?</span>
+          <button onClick={handleDelete} className={`${btnClass} text-white bg-red-600 hover:bg-red-700`}>Yes</button>
+          <button onClick={() => setConfirmDelete(false)} className={`${btnClass} text-gray-600 bg-white border border-gray-200 hover:bg-gray-50`}>No</button>
+        </div>
+      )}
+
+      {/* Re-run analysis */}
+      <a href={location ? `/analyze?location=${encodeURIComponent(location)}` : "/analyze"}
+        className={`${btnClass} text-blue-600 bg-blue-50 border border-blue-200 hover:bg-blue-100`} title="Re-run with current rates">
+        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182" />
+        </svg>
+        Re-run
+      </a>
     </div>
   );
 }
@@ -190,6 +372,25 @@ function buildInsightText(data: DashboardData | null): { headline: string } | nu
   }
   if (reports.length === 0) return { headline: "Run your first analysis to get started" };
   return null;
+}
+
+function ChatContextLabel({ name, report }: { name?: string; report: FinalReport }) {
+  const maxPrice = report.affordability?.recommendedHomePrice;
+  return (
+    <div className="px-3 py-1.5 text-xs bg-gradient-to-r from-blue-50 to-indigo-50 rounded-t-xl border border-b-0 border-gray-200 flex items-center justify-between gap-2">
+      <div className="flex items-center gap-1.5 min-w-0">
+        <svg className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
+        </svg>
+        <span className="font-medium text-gray-700 truncate">{name ?? "Home"}</span>
+      </div>
+      {maxPrice && (
+        <span className="text-[10px] text-blue-600 font-medium flex-shrink-0">
+          Budget: {fmt$(maxPrice)}
+        </span>
+      )}
+    </div>
+  );
 }
 
 function ChatPlaceholder() {
@@ -456,9 +657,26 @@ export default function DashboardClient() {
     );
   }
 
+  const handleDeleteHome = useCallback(() => {
+    if (!data || !activeHomeId) return;
+    const remaining = data.reports.filter((r) => r.id !== activeHomeId);
+    setData({ ...data, reports: remaining });
+    setActiveHomeId(remaining[0]?.id ?? null);
+    setActiveReport(null);
+    setActiveLocation(undefined);
+  }, [data, activeHomeId]);
+
+  const handleRenameHome = useCallback((newName: string) => {
+    if (!data || !activeHomeId) return;
+    setData({
+      ...data,
+      reports: data.reports.map((r) => r.id === activeHomeId ? { ...r, name: newName } : r),
+    });
+  }, [data, activeHomeId]);
+
   const hasHomes = (data?.reports.length ?? 0) > 0;
-  const activeHomeName = data?.reports.find((r) => r.id === activeHomeId)?.location
-    || data?.reports.find((r) => r.id === activeHomeId)?.name;
+  const activeHome = data?.reports.find((r) => r.id === activeHomeId);
+  const activeHomeName = activeHome?.location || activeHome?.name;
 
   return (
     <>
@@ -516,6 +734,18 @@ export default function DashboardClient() {
             </div>
           )}
 
+          {/* Action bar */}
+          {hasHomes && activeReport && activeHomeId && !reportLoading && (
+            <ActionBar
+              report={activeReport}
+              reportId={activeHomeId}
+              reportName={activeHome?.name ?? "Home"}
+              location={activeLocation}
+              onDelete={handleDeleteHome}
+              onRename={handleRenameHome}
+            />
+          )}
+
           {/* Full analysis view or empty state */}
           {hasHomes ? (
             reportLoading ? (
@@ -534,9 +764,7 @@ export default function DashboardClient() {
                 <ChatLoading />
               ) : activeReport && activeHomeId ? (
                 <div className="h-full flex flex-col">
-                  <div className="px-3 py-1.5 text-xs text-gray-500 bg-gray-100 rounded-t-xl border border-b-0 border-gray-200 truncate">
-                    Chatting about: <span className="font-medium text-gray-700">{activeHomeName ?? "Home"}</span>
-                  </div>
+                  <ChatContextLabel name={activeHomeName} report={activeReport} />
                   <div className="flex-1 min-h-0">
                     <ChatInterface key={activeHomeId} report={activeReport} userLocation={activeLocation} initialPrompt={chatPrompt} reportId={activeHomeId} />
                   </div>
@@ -556,9 +784,7 @@ export default function DashboardClient() {
             <ChatLoading />
           ) : activeReport && activeHomeId ? (
             <div className="flex flex-col h-full">
-              <div className="px-3 py-1.5 text-xs text-gray-500 bg-gray-100 rounded-t-xl border border-b-0 border-gray-200 truncate">
-                Chatting about: <span className="font-medium text-gray-700">{activeHomeName ?? "Home"}</span>
-              </div>
+              <ChatContextLabel name={activeHomeName} report={activeReport} />
               <div className="flex-1 min-h-0">
                 <ChatInterface key={activeHomeId} report={activeReport} userLocation={activeLocation} initialPrompt={chatPrompt} reportId={activeHomeId} />
               </div>
