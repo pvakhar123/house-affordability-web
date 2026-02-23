@@ -479,179 +479,6 @@ function HeroBanner({ report, location }: { report: FinalReport; location?: stri
   );
 }
 
-// ── Quick Stats Banner ──────────────────────────────────
-
-function QuickStatsBanner({ report }: { report: FinalReport }) {
-  const a = report.affordability;
-  const r = report.riskAssessment;
-  const fmt = (n: number) => "$" + Math.round(n).toLocaleString("en-US");
-
-  const dtiColor = a.dtiAnalysis.backEndStatus === "safe"
-    ? "bg-green-50 text-green-600 [&>p:last-child]:text-green-900"
-    : a.dtiAnalysis.backEndStatus === "moderate"
-      ? "bg-amber-50 text-amber-600 [&>p:last-child]:text-amber-900"
-      : "bg-red-50 text-red-600 [&>p:last-child]:text-red-900";
-
-  const riskColors: Record<string, string> = {
-    low: "bg-green-50 text-green-600 [&>p:last-child]:text-green-900",
-    moderate: "bg-yellow-50 text-yellow-600 [&>p:last-child]:text-yellow-900",
-    high: "bg-red-50 text-red-600 [&>p:last-child]:text-red-900",
-    very_high: "bg-red-100 text-red-700 [&>p:last-child]:text-red-900",
-  };
-
-  return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-      <div className="p-4 bg-blue-50 rounded-xl text-center">
-        <p className="text-[10px] font-semibold text-blue-600 uppercase tracking-wider mb-1">Max Price</p>
-        <p className="text-xl font-bold text-blue-900">{fmt(a.maxHomePrice)}</p>
-      </div>
-      <div className="p-4 bg-emerald-50 rounded-xl text-center">
-        <p className="text-[10px] font-semibold text-emerald-600 uppercase tracking-wider mb-1">Monthly</p>
-        <p className="text-xl font-bold text-emerald-900">{fmt(a.monthlyPayment.totalMonthly)}<span className="text-sm font-medium">/mo</span></p>
-      </div>
-      <div className={`p-4 rounded-xl text-center ${dtiColor}`}>
-        <p className="text-[10px] font-semibold uppercase tracking-wider mb-1">DTI Ratio</p>
-        <p className="text-xl font-bold">{a.dtiAnalysis.backEndRatio}%</p>
-      </div>
-      <div className={`p-4 rounded-xl text-center ${riskColors[r.overallRiskLevel] ?? riskColors.moderate}`}>
-        <p className="text-[10px] font-semibold uppercase tracking-wider mb-1">Risk Level</p>
-        <p className="text-xl font-bold capitalize">{r.overallRiskLevel.replace("_", " ")}</p>
-      </div>
-    </div>
-  );
-}
-
-// ── Readiness Checklist ─────────────────────────────────
-
-function ReadinessChecklist({ report }: { report: FinalReport }) {
-  const a = report.affordability;
-  const r = report.riskAssessment;
-  const pr = report.preApprovalReadiness;
-
-  const score = pr?.overallScore ?? null;
-  const level = pr?.level ?? null;
-
-  // Build checklist items from report data
-  const items = [
-    {
-      label: "DTI ratio under 36%",
-      passed: a.dtiAnalysis.backEndStatus === "safe",
-      detail: `Currently ${a.dtiAnalysis.backEndRatio}%`,
-    },
-    {
-      label: "Credit score above 740",
-      passed: pr ? pr.components.creditScore >= 20 : null, // 20/25 = ~740+
-      detail: pr ? `Score: ${pr.components.creditScore}/25` : "No data",
-    },
-    {
-      label: "Down payment at 20%+",
-      passed: a.downPaymentPercent >= 20,
-      detail: `Currently ${a.downPaymentPercent}%`,
-    },
-    {
-      label: "Emergency fund covers 3+ months",
-      passed: r.emergencyFundAnalysis?.monthsCovered >= 3,
-      detail: r.emergencyFundAnalysis ? `${r.emergencyFundAnalysis.monthsCovered.toFixed(1)} months covered` : "No data",
-    },
-    {
-      label: "Closing costs accounted for",
-      passed: report.recommendations?.closingCostEstimate ? true : null,
-      detail: report.recommendations?.closingCostEstimate
-        ? `$${Math.round(report.recommendations.closingCostEstimate.lowEstimate).toLocaleString("en-US")}–$${Math.round(report.recommendations.closingCostEstimate.highEstimate).toLocaleString("en-US")}`
-        : "Not estimated",
-    },
-  ];
-
-  const passedCount = items.filter((i) => i.passed === true).length;
-  const totalCount = items.filter((i) => i.passed !== null).length;
-  const pct = totalCount > 0 ? Math.round((passedCount / totalCount) * 100) : 0;
-
-  const actionItems = pr?.actionItems ?? [];
-
-  const levelColors: Record<string, string> = {
-    not_ready: "bg-red-100 text-red-700",
-    needs_work: "bg-orange-100 text-orange-700",
-    ready: "bg-yellow-100 text-yellow-700",
-    highly_prepared: "bg-green-100 text-green-700",
-  };
-
-  const priorityColors: Record<string, string> = {
-    high: "bg-red-500",
-    medium: "bg-amber-500",
-    low: "bg-blue-500",
-  };
-
-  return (
-    <div className="border border-gray-200 rounded-xl bg-white shadow-sm overflow-hidden">
-      <div className="px-6 py-4">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-base font-semibold text-gray-900">Home Buying Readiness</h3>
-          <div className="flex items-center gap-2">
-            {score !== null && (
-              <span className="text-sm font-bold text-gray-900">{score}/100</span>
-            )}
-            {level && (
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${levelColors[level] ?? "bg-gray-100 text-gray-600"}`}>
-                {level.replace("_", " ").toUpperCase()}
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* Progress bar */}
-        <div className="h-2 bg-gray-100 rounded-full overflow-hidden mb-5">
-          <div
-            className={`h-full rounded-full transition-all duration-500 ${
-              pct >= 80 ? "bg-green-500" : pct >= 60 ? "bg-yellow-500" : pct >= 40 ? "bg-orange-500" : "bg-red-500"
-            }`}
-            style={{ width: `${score ?? pct}%` }}
-          />
-        </div>
-
-        {/* Checklist */}
-        <div className="space-y-2.5 mb-4">
-          {items.map((item, i) => (
-            <div key={i} className="flex items-start gap-3">
-              {item.passed === true ? (
-                <svg className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              ) : item.passed === false ? (
-                <div className="w-5 h-5 rounded-full border-2 border-gray-300 flex-shrink-0 mt-0.5" />
-              ) : (
-                <div className="w-5 h-5 rounded-full border-2 border-dashed border-gray-200 flex-shrink-0 mt-0.5" />
-              )}
-              <div className="flex-1 min-w-0">
-                <p className={`text-sm ${item.passed ? "text-gray-900" : "text-gray-500"}`}>{item.label}</p>
-                <p className="text-xs text-gray-400">{item.detail}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Action Items */}
-        {actionItems.length > 0 && (
-          <div className="pt-3 border-t border-gray-100">
-            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Action Items</p>
-            <div className="space-y-2">
-              {actionItems.slice(0, 4).map((item, i) => (
-                <div key={i} className="flex items-start gap-2.5">
-                  <div className={`w-2 h-2 rounded-full flex-shrink-0 mt-1.5 ${priorityColors[item.priority] ?? "bg-gray-400"}`} />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-gray-700">{item.action}</p>
-                    <p className="text-xs text-gray-400">{item.impact}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
 // ── Full Analysis View ──────────────────────────────────
 
 function FullAnalysisView({ report, location }: { report: FinalReport; location?: string }) {
@@ -673,8 +500,6 @@ function FullAnalysisView({ report, location }: { report: FinalReport; location?
     <div className="space-y-4">
       <HeroBanner report={report} location={location} />
 
-      <QuickStatsBanner report={report} />
-
       {report.propertyAnalysis && (
         <PropertyAffordabilityCard data={report.propertyAnalysis} affordability={report.affordability} />
       )}
@@ -685,15 +510,13 @@ function FullAnalysisView({ report, location }: { report: FinalReport; location?
         mortgageRate={report.marketSnapshot.mortgageRates.thirtyYearFixed}
       />
 
-      <ReadinessChecklist report={report} />
-
       {report.investmentAnalysis && (
         <ExpandableSection title="Investment Property Analysis" defaultOpen>
           <InvestmentAnalysisCard data={report.investmentAnalysis} />
         </ExpandableSection>
       )}
 
-      <ExpandableSection title="Financial Readiness & Simulator" defaultOpen>
+      <ExpandableSection title="Readiness & Budget Simulator" defaultOpen>
         <BudgetSimulatorCard
           affordability={report.affordability}
           marketSnapshot={report.marketSnapshot}

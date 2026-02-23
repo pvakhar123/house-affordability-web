@@ -201,6 +201,20 @@ export default function BudgetSimulatorCard({ affordability: a, marketSnapshot: 
 
   const lvl = levelStyle[readiness.level] ?? levelStyle.needs_work;
 
+  // Readiness checklist items (reactive to simulator values)
+  const dpPct = sim.maxHomePrice > 0 ? (downPayment / sim.maxHomePrice) * 100 : 0;
+  const monthlyOb = sim.payment.totalMonthly + debt;
+  const eMo = monthlyOb > 0 ? emergencyFund / monthlyOb : 0;
+  const ccLow = Math.round(sim.maxHomePrice * 0.02);
+
+  const checklistItems = [
+    { label: "DTI under 36%", passed: sim.dti.backEndRatio < 36, detail: `${sim.dti.backEndRatio}%` },
+    { label: "Credit score 740+", passed: creditScore >= 20, detail: `${creditScore}/25` },
+    { label: "Down payment 20%+", passed: dpPct >= 20, detail: `${dpPct.toFixed(0)}%` },
+    { label: "Emergency fund 3+ mo", passed: eMo >= 3, detail: `${eMo.toFixed(1)} mo` },
+    { label: "Closing costs covered", passed: closingCostBudget >= ccLow, detail: fmt(closingCostBudget) },
+  ];
+
   const errCount = tips.filter((t) => t.severity === "error").length;
   const warnCount = tips.filter((t) => t.severity === "warn").length;
   const allClear = errCount === 0 && warnCount === 0;
@@ -261,6 +275,23 @@ export default function BudgetSimulatorCard({ affordability: a, marketSnapshot: 
             </div>
           )}
         </div>
+      </div>
+
+      {/* ── Readiness Checklist ── */}
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-5">
+        {checklistItems.map((item) => (
+          <div key={item.label} className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs ${item.passed ? "bg-green-50 text-green-700" : "bg-gray-50 text-gray-500"}`}>
+            {item.passed ? (
+              <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+              </svg>
+            ) : (
+              <div className="w-3.5 h-3.5 rounded-full border-[1.5px] border-gray-300 flex-shrink-0" />
+            )}
+            <span className="truncate">{item.label}</span>
+            <span className="ml-auto font-medium flex-shrink-0">{item.detail}</span>
+          </div>
+        ))}
       </div>
 
       {/* ── Sliders ── */}
