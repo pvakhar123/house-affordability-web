@@ -29,9 +29,7 @@ function Logo() {
           </svg>
         </div>
       </div>
-      <div className="hidden sm:block">
-        <span className="text-base font-bold text-gray-900">AI Home Research</span>
-      </div>
+      <span className="text-base font-bold text-gray-900">AI Home Research</span>
     </a>
   );
 }
