@@ -19,6 +19,8 @@ const sections: Section[] = [
   { id: "chat", title: "AI Chat", icon: "M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" },
   { id: "saved-reports", title: "Reports & Sharing", icon: "M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" },
   { id: "knowledge-base", title: "Knowledge Base", icon: "M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" },
+  { id: "data-quality", title: "Data Quality & Trust", icon: "M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" },
+  { id: "analytics", title: "Analytics & A/B Testing", icon: "M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5M9 11.25v-5.5m3 5.5v-3.5m3 3.5v-1.5" },
   { id: "api", title: "API Reference", icon: "M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" },
 ];
 
@@ -40,7 +42,7 @@ export default function DocsPage() {
             </svg>
             App
           </a>
-          <span className="text-xs text-gray-400">v2.0</span>
+          <span className="text-xs text-gray-400">v2.1</span>
         </div>
         <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-0.5">
           {sections.map((s) => (
@@ -87,6 +89,8 @@ export default function DocsPage() {
           {active === "chat" && <ChatSection />}
           {active === "saved-reports" && <SavedReportsSection />}
           {active === "knowledge-base" && <KnowledgeBaseSection />}
+          {active === "data-quality" && <DataQualitySection />}
+          {active === "analytics" && <AnalyticsSection />}
           {active === "api" && <ApiSection />}
 
           {/* Prev / Next navigation */}
@@ -124,14 +128,14 @@ function OverviewSection() {
       <h2 className="text-2xl font-bold text-gray-900 mb-4">Overview</h2>
       <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
         <p className="text-sm text-gray-600 leading-relaxed">
-          HomeIQ is an AI-powered home affordability platform that provides personalized, data-driven analysis for homebuyers. The app combines <strong>4 specialized AI agents</strong>, <strong>real-time market data</strong> from federal sources (FRED, BLS), and <strong>financial modeling</strong> to deliver comprehensive reports.
+          HomeIQ is an AI-powered home affordability platform that provides personalized, data-driven analysis for homebuyers. The app combines <strong>4 specialized AI agents</strong>, <strong>real-time market data</strong> from federal sources (FRED, BLS), <strong>anti-hallucination guardrails</strong>, and <strong>financial modeling</strong> to deliver comprehensive, trustworthy reports.
         </p>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
             { label: "AI Agents", value: "4" },
             { label: "Analysis Cards", value: "12+" },
             { label: "Loan Programs", value: "4" },
-            { label: "Market Sources", value: "Live" },
+            { label: "Data Guardrails", value: "3-tier" },
           ].map((stat) => (
             <div key={stat.label} className="bg-gray-50 rounded-lg p-3 text-center">
               <p className="text-xl font-bold text-blue-600">{stat.value}</p>
@@ -158,6 +162,11 @@ function OverviewSection() {
             <li>Settings page with account, usage, and billing management</li>
             <li>Free and Pro subscription tiers via Stripe</li>
             <li>Dark mode support</li>
+            <li>Anti-hallucination: synthesis validation, auto-correction, and template fallback</li>
+            <li>Data confidence indicators (Live / Cached / Estimated badges)</li>
+            <li>Data provenance tracking with source citations in AI narratives</li>
+            <li>KNOWN FACTS grounding for accurate AI chat responses</li>
+            <li>Product analytics and A/B testing via PostHog</li>
           </ul>
         </div>
       </div>
@@ -314,14 +323,14 @@ function ResultsSection() {
     { title: "Core Affordability", desc: "Your maximum affordable home price, maximum loan amount, full monthly payment breakdown (principal & interest, property tax, homeowner's insurance, PMI if applicable), down payment percentage, and debt-to-income analysis." },
     { title: "Investment Analysis", desc: "When investment property mode is enabled: monthly operating expenses, cash flow, cash-on-cash return, cap rate, ROI, and 5-10 year equity projection chart with a Strong/Moderate/Marginal/Negative verdict." },
     { title: "Readiness & Budget Simulator", desc: "A 0-100 pre-approval readiness score broken into components (DTI, Credit, Down Payment, Debt Health) with action items, combined with an interactive budget simulator. Adjust income, down payment, debt, emergency fund, and closing costs with live sliders to see how changes affect your readiness and buying power." },
-    { title: "Market Snapshot", desc: "Live mortgage rates (30-year and 15-year fixed), federal funds rate, national median home prices, shelter and general inflation rates, and a 10-year historical price/rate trends chart." },
+    { title: "Market Snapshot", desc: "Live mortgage rates (30-year and 15-year fixed), federal funds rate, national median home prices, shelter and general inflation rates, and a 10-year historical price/rate trends chart. Includes a data confidence badge (Live data / Cached data / Estimated) and a fallback warning banner when live API data is unavailable." },
     { title: "Neighborhood Info", desc: "School ratings, public transit access, safety metrics, parks and recreation, walkability score, cost of living index, and community vibe description for your target area." },
     { title: "Risk Assessment", desc: "Overall risk score (Low/Moderate/High/Very High) with specific risk flags categorized by severity (Info/Warning/Critical). Includes emergency fund adequacy and stress test scenarios for rate increases and income drops." },
     { title: "Rent vs. Buy", desc: "5-year and 10-year cost comparison, break-even analysis, equity buildup, and a clear verdict: Buy Clearly, Slight Buy, Toss-Up, or Renting Wins." },
     { title: "Loan Programs", desc: "Eligibility analysis for Conventional, FHA, VA, and USDA loans. Each shows minimum down payment, PMI requirements, and estimated monthly payment." },
     { title: "5-Year Equity Buildup", desc: "Year-by-year amortization table showing principal paid, interest paid, remaining balance, and equity percentage." },
     { title: "Matching Properties", desc: "Real listings in your area within your budget, with prices, photos, bedroom/bathroom counts, and links to full property details." },
-    { title: "AI Summary", desc: "A detailed natural-language analysis covering your financial strengths, areas of concern, strategic recommendations, and personalized next steps." },
+    { title: "AI Summary", desc: "A detailed natural-language analysis covering your financial strengths, areas of concern, strategic recommendations, and personalized next steps. All figures are validated against computed data, and source citations (e.g., \"FRED, as of 2025-01-15\") are included when citing rates and prices." },
   ];
 
   return (
@@ -368,8 +377,21 @@ function AiAgentsSection() {
           </div>
         ))}
       </div>
-      <div className="bg-gray-50 rounded-lg p-4 mt-4">
+      <div className="bg-gray-50 rounded-lg p-4 mt-4 space-y-3">
         <p className="text-xs text-gray-500">After all agents complete, a fifth synthesis step generates a personalized natural-language summary using a more capable model (Sonnet) for high-quality prose.</p>
+        <div>
+          <p className="text-xs font-semibold text-gray-700 mb-1">Synthesis Validation (Anti-Hallucination)</p>
+          <p className="text-xs text-gray-500">Every AI-generated summary passes through a <strong>3-tier validation</strong> pipeline before reaching the user:</p>
+          <ul className="list-disc list-inside text-xs text-gray-500 space-y-0.5 mt-1">
+            <li><strong>&gt;50% deviation</strong> on any cited figure &rarr; narrative is rejected entirely and replaced with a deterministic template summary</li>
+            <li><strong>10&ndash;50% deviation</strong> &rarr; drifted numbers are auto-corrected in place while preserving the narrative</li>
+            <li><strong>&lt;10% deviation</strong> &rarr; numbers are still auto-corrected for precision</li>
+          </ul>
+        </div>
+        <div>
+          <p className="text-xs font-semibold text-gray-700 mb-1">Data Provenance</p>
+          <p className="text-xs text-gray-500">The synthesis prompt includes source metadata (e.g., &quot;FRED&quot;, &quot;BLS&quot;) and data dates, so the AI cites where figures come from. When live data is unavailable, the AI explicitly notes that rates are estimates.</p>
+        </div>
       </div>
     </>
   );
@@ -400,6 +422,14 @@ function ChatSection() {
               <li>Follow-up prompt suggestions after each answer</li>
               <li>Thumbs up/down feedback on individual responses</li>
               <li>Streaming responses for fast interaction</li>
+            </ul>
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-gray-900 mb-2">Accuracy Guardrails</p>
+            <ul className="list-disc list-inside text-sm text-gray-500 space-y-1">
+              <li><strong>KNOWN FACTS pinning</strong> &mdash; every chat message includes a structured block of exact computed values (max price, monthly payment, DTI ratios, rates, risk score) that the AI must use verbatim</li>
+              <li><strong>Output fact-checking</strong> &mdash; after the AI responds, a guardrail compares any cited financial figures against the report data and flags deviations &gt;20%</li>
+              <li><strong>Dual anchoring</strong> &mdash; the full report JSON plus the KNOWN FACTS block provide redundant grounding to minimize hallucination</li>
             </ul>
           </div>
         </div>
@@ -472,6 +502,109 @@ function KnowledgeBaseSection() {
           </div>
         </div>
       </Card>
+    </>
+  );
+}
+
+function DataQualitySection() {
+  return (
+    <>
+      <h2 className="text-2xl font-bold text-gray-900 mb-2">Data Quality & Trust</h2>
+      <p className="text-sm text-gray-600 mb-6">HomeIQ uses multiple layers of validation, provenance tracking, and confidence scoring to ensure that every number you see is accurate and trustworthy.</p>
+      <div className="space-y-4">
+        <Card title="Data Confidence Indicators">
+          <p className="text-sm text-gray-600 mb-3">Each data section in your report shows a confidence badge indicating data freshness:</p>
+          <div className="space-y-2">
+            {[
+              { dot: "bg-green-500", bg: "bg-green-50", text: "text-green-700", label: "Live data", desc: "Fetched from the source API (FRED, BLS) within the last 24 hours" },
+              { dot: "bg-yellow-500", bg: "bg-yellow-50", text: "text-yellow-700", label: "Cached data", desc: "Data is more than 24 hours old but came from an authoritative source" },
+              { dot: "bg-orange-500", bg: "bg-orange-50", text: "text-orange-700", label: "Estimated", desc: "Live data unavailable; using conservative fallback estimates" },
+            ].map((item) => (
+              <div key={item.label} className="flex items-start gap-3">
+                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium shrink-0 ${item.bg} ${item.text}`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${item.dot}`} />
+                  {item.label}
+                </span>
+                <span className="text-sm text-gray-500">{item.desc}</span>
+              </div>
+            ))}
+          </div>
+          <p className="text-xs text-gray-400 mt-3">Confidence is computed separately for rates, prices, and inflation. The overall badge shows the lowest confidence among the three.</p>
+        </Card>
+
+        <Card title="Synthesis Validation (Anti-Hallucination)">
+          <p className="text-sm text-gray-600 mb-3">~70% of HomeIQ&apos;s analysis is deterministic math (affordability, risk, amortization). The AI only generates narrative summaries and chat responses. Both surfaces are protected:</p>
+          <div className="space-y-3">
+            <div>
+              <p className="text-sm font-semibold text-gray-900 mb-1">AI Summary validation</p>
+              <ul className="list-disc list-inside text-sm text-gray-500 space-y-1">
+                <li>6 key financial figures (max price, recommended price, monthly payment, front-end DTI, back-end DTI, 30-year rate) are regex-extracted from the AI narrative</li>
+                <li>Each is compared against the computed value with a <strong>10% threshold</strong> (stricter than chat)</li>
+                <li>Numbers that drift 10&ndash;50% are <strong>auto-corrected</strong> in the text</li>
+                <li>Any number off by &gt;50% triggers a <strong>full template fallback</strong> &mdash; the AI prose is discarded and replaced with a deterministic summary</li>
+              </ul>
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-gray-900 mb-1">Chat fact-checking</p>
+              <ul className="list-disc list-inside text-sm text-gray-500 space-y-1">
+                <li>A <strong>KNOWN FACTS block</strong> is prepended to the system prompt with exact computed values</li>
+                <li>After the AI responds, an <strong>output guardrail</strong> checks cited figures against the report (20% threshold)</li>
+                <li>Deviations are flagged with a correction note appended to the response</li>
+              </ul>
+            </div>
+          </div>
+        </Card>
+
+        <Card title="Data Provenance">
+          <p className="text-sm text-gray-600 mb-3">Every data point carries metadata about where it came from and when:</p>
+          <ul className="list-disc list-inside text-sm text-gray-500 space-y-1">
+            <li><strong>Source attribution</strong> &mdash; the AI summary cites data sources (e.g., &quot;Current 30-year rate: 6.75% (FRED, as of 2025-01-15)&quot;)</li>
+            <li><strong>Date tracking</strong> &mdash; rate dates, price dates, and fetch timestamps are displayed in the Market Snapshot card</li>
+            <li><strong>Fallback warning</strong> &mdash; when live API data is unavailable, an amber banner appears: &quot;Live rate data unavailable. Using estimated rates.&quot;</li>
+          </ul>
+        </Card>
+      </div>
+    </>
+  );
+}
+
+function AnalyticsSection() {
+  return (
+    <>
+      <h2 className="text-2xl font-bold text-gray-900 mb-2">Analytics & A/B Testing</h2>
+      <p className="text-sm text-gray-600 mb-6">HomeIQ uses PostHog for privacy-respecting product analytics and A/B testing to continuously improve the user experience.</p>
+      <div className="space-y-4">
+        <Card title="Product Analytics">
+          <ul className="list-disc list-inside text-sm text-gray-500 space-y-1">
+            <li>Automatic page view tracking on route changes</li>
+            <li>Autocapture for clicks, form submissions, and other interactions</li>
+            <li>Authenticated user identification (email and tier) for cohort analysis</li>
+            <li>Page leave tracking to understand engagement</li>
+            <li>Respects Do Not Track (DNT) browser setting</li>
+          </ul>
+        </Card>
+
+        <Card title="A/B Testing & Feature Flags">
+          <p className="text-sm text-gray-600 mb-3">PostHog feature flags enable controlled rollouts and multivariate experiments:</p>
+          <ul className="list-disc list-inside text-sm text-gray-500 space-y-1">
+            <li>Landing page hero CTA variants (e.g., different button text or styles)</li>
+            <li>Feature flags for gradual rollout of new features</li>
+            <li>Server-side and client-side flag evaluation</li>
+            <li>Experiment results tracked automatically via PostHog dashboards</li>
+          </ul>
+        </Card>
+
+        <Card title="Privacy">
+          <div className="bg-green-50 rounded-lg p-3">
+            <ul className="list-disc list-inside text-sm text-green-700 space-y-1">
+              <li>Only identified users (signed in) have person profiles &mdash; anonymous visitors are not tracked individually</li>
+              <li>DNT (Do Not Track) is respected</li>
+              <li>Data is stored in PostHog&apos;s US cloud infrastructure</li>
+              <li>No financial data is sent to analytics &mdash; only page views, clicks, and feature flag assignments</li>
+            </ul>
+          </div>
+        </Card>
+      </div>
     </>
   );
 }
