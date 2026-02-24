@@ -1,6 +1,6 @@
 import type { AffordabilityResult, RentVsBuyReport } from "./affordability";
 import type { InvestmentAnalysis } from "./investment";
-import type { MarketDataResult } from "./market-data";
+import type { MarketDataResult, DataConfidence } from "./market-data";
 import type { PropertyAnalysis } from "./property";
 import type { RecommendationsResult } from "./recommendations";
 import type { RiskReport } from "./risk-assessment";
@@ -61,6 +61,7 @@ export interface FinalReport {
   investmentAnalysis?: InvestmentAnalysis;
   preApprovalReadiness?: PreApprovalReadinessScore;
   neighborhoodInfo?: NeighborhoodInfo;
+  dataConfidence?: DataConfidence;
   disclaimers: string[];
   generatedAt: string;
   traceId?: string;

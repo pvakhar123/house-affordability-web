@@ -77,6 +77,24 @@ interface ChatRequest {
   sessionMemory?: SessionMemory;
 }
 
+function buildKnownFactsBlock(report: FinalReport): string {
+  const a = report.affordability;
+  const m = report.marketSnapshot;
+  const r = report.riskAssessment;
+  return `=== KNOWN FACTS (use these exact numbers, never approximate) ===
+MAX_HOME_PRICE: $${Math.round(a.maxHomePrice).toLocaleString()}
+RECOMMENDED_PRICE: $${Math.round(a.recommendedHomePrice).toLocaleString()}
+DOWN_PAYMENT: $${Math.round(a.downPaymentAmount).toLocaleString()} (${a.downPaymentPercent}%)
+LOAN_AMOUNT: $${Math.round(a.loanAmount).toLocaleString()}
+MONTHLY_PAYMENT: $${Math.round(a.monthlyPayment.totalMonthly).toLocaleString()}
+FRONT_END_DTI: ${a.dtiAnalysis.frontEndRatio}% (${a.dtiAnalysis.frontEndStatus})
+BACK_END_DTI: ${a.dtiAnalysis.backEndRatio}% (${a.dtiAnalysis.backEndStatus})
+RATE_30YR: ${m.mortgageRates.thirtyYearFixed}%
+RATE_15YR: ${m.mortgageRates.fifteenYearFixed}%
+RISK_LEVEL: ${r.overallRiskLevel} (score: ${r.overallScore}/100)
+=== END KNOWN FACTS ===`;
+}
+
 const tools: Anthropic.Messages.Tool[] = [
   {
     name: "recalculate_affordability",
@@ -724,7 +742,11 @@ export async function POST(request: Request) {
     // Second message: cache HIT  → ~90% cheaper input tokens, ~80% faster
     // Cache TTL: 5 minutes (refreshed on each use)
 
-    const systemPromptText = `You are a helpful home research advisor following up on a home buying analysis.
+    const knownFacts = buildKnownFactsBlock(report);
+
+    const systemPromptText = `${knownFacts}
+
+You are a helpful home research advisor following up on a home buying analysis.
 
 Here is the buyer's complete analysis report:
 

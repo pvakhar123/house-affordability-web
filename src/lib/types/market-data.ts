@@ -58,3 +58,12 @@ export interface InflationData {
   shelterInflationRate: number;
   generalInflationRate: number;
 }
+
+export type DataConfidenceLevel = "high" | "medium" | "low";
+
+export interface DataConfidence {
+  rates: DataConfidenceLevel;
+  prices: DataConfidenceLevel;
+  inflation: DataConfidenceLevel;
+  overall: DataConfidenceLevel;
+}

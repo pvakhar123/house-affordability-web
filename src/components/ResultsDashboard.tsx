@@ -16,6 +16,7 @@ import MatchingPropertiesCard from "./MatchingPropertiesCard";
 import NeighborhoodInfoCard from "./NeighborhoodInfoCard";
 import BudgetSimulatorCard from "./BudgetSimulatorCard";
 import InvestmentAnalysisCard from "./InvestmentAnalysisCard";
+import ConfidenceBadge from "./ConfidenceBadge";
 
 interface Props {
   report: FinalReport;
@@ -30,7 +31,7 @@ function ExpandableSection({
   defaultOpen = false,
   children,
 }: {
-  title: string;
+  title: React.ReactNode;
   defaultOpen?: boolean;
   children: React.ReactNode;
 }) {
@@ -278,7 +279,12 @@ export default function ResultsDashboard({ report, onReset, summaryLoading, user
             </StreamFadeIn>
 
             <StreamFadeIn delay={report.investmentAnalysis ? 450 : 400}>
-              <ExpandableSection title="Market Snapshot">
+              <ExpandableSection title={
+                <span className="flex items-center gap-2">
+                  Market Snapshot
+                  {report.dataConfidence && <ConfidenceBadge level={report.dataConfidence.rates} />}
+                </span>
+              }>
                 <MarketSnapshotCard data={report.marketSnapshot} satelliteUrl={satelliteUrl} />
               </ExpandableSection>
             </StreamFadeIn>

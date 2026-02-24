@@ -31,6 +31,12 @@ and projected total returns over 5 and 10 years. Be direct about whether the num
 
 Use bullet points within sections. Highlight specific dollar amounts and percentages.
 Keep each section concise but specific with real numbers from the data.
+
+IMPORTANT: Only use the exact numbers provided in the data. Do not round, estimate, or invent figures.
+When citing rates or prices, include the data source and date from the dataProvenance field.
+For example: "Current 30-year rate: X.XX% (FRED, as of YYYY-MM-DD)".
+If dataProvenance.isFallback is true, note that rates are estimates and may not reflect current market conditions.
+
 Always end with a disclaimer that this is informational only, not financial advice.`,
 
   affordability: `You are a mortgage and buying power analysis agent. Use the provided tools to compute:

@@ -125,6 +125,7 @@ export default function AnalyzeClient() {
             setReport((prev) => ({
               ...prev,
               marketSnapshot: event.marketSnapshot,
+              dataConfidence: event.dataConfidence,
             }));
           }
 

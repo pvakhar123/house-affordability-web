@@ -36,13 +36,16 @@ import type {
   PreApprovalReadinessScore,
   ReadinessActionItem,
   HistoricalData,
+  DataConfidence,
+  DataConfidenceLevel,
 } from "../types/index";
 import { getNeighborhoodInfo, lookupAreaInfo, getMedianRent, type NeighborhoodInfo } from "../data/area-info";
+import { validateSynthesisNumbers, correctSynthesisNumbers } from "../guardrails";
 
 const cache = new CacheService();
 
 export type StreamPhase =
-  | { phase: "market_data"; marketSnapshot: MarketDataResult }
+  | { phase: "market_data"; marketSnapshot: MarketDataResult; dataConfidence?: DataConfidence }
   | { phase: "analysis"; affordability: AffordabilityResult; riskAssessment: RiskReport; recommendations: RecommendationsResult; propertyAnalysis?: PropertyAnalysis; rentVsBuy?: RentVsBuyReport; investmentAnalysis?: InvestmentAnalysis; preApprovalReadiness?: PreApprovalReadinessScore; neighborhoodInfo?: NeighborhoodInfo }
   | { phase: "summary"; summary: string }
   | { phase: "complete"; disclaimers: string[]; generatedAt: string; traceId?: string };
@@ -115,7 +118,8 @@ export class OrchestratorAgent {
       execute: async (results) => {
         const market = results.get("marketData") as MarketDataResult;
         // Stream market data as soon as we have it
-        onProgress?.({ phase: "market_data", marketSnapshot: market });
+        const confidence = this.computeDataConfidence(market);
+        onProgress?.({ phase: "market_data", marketSnapshot: market, dataConfidence: confidence });
         console.log("[pipeline] Computing affordability...");
         return this.computeAffordability(userProfile, market);
       },
@@ -271,6 +275,7 @@ export class OrchestratorAgent {
       investmentAnalysis,
       preApprovalReadiness,
       neighborhoodInfo,
+      dataConfidence: this.computeDataConfidence(marketData),
       disclaimers,
       generatedAt,
       traceId: this.traceId,
@@ -1350,6 +1355,13 @@ export class OrchestratorAgent {
       emergencyAdequate: risk.emergencyFundAnalysis.adequate,
       eligibleLoans: recs.loanOptions.filter((l) => l.eligible).map((l) => l.type),
       closingCosts: recs.closingCostEstimate,
+      dataProvenance: {
+        rateSource: market.mortgageRates.source,
+        rateDate: market.mortgageRates.dataDate,
+        priceDate: market.medianHomePrices.dataDate,
+        fetchedAt: market.fetchedAt,
+        isFallback: market.mortgageRates.source.includes("fallback"),
+      },
     };
 
     if (propAnalysis) {
@@ -1412,7 +1424,34 @@ ${JSON.stringify(data)}`,
       const textBlock = response.content.find(
         (b): b is Anthropic.TextBlock => b.type === "text"
       );
-      if (textBlock?.text) return textBlock.text;
+      if (textBlock?.text) {
+        // Anti-hallucination: validate numbers before accepting AI synthesis
+        const validation = validateSynthesisNumbers(
+          textBlock.text,
+          afford,
+          market.mortgageRates
+        );
+
+        if (validation.flagged) {
+          const severeError = validation.discrepancies.some((d) => d.deviationPercent > 50);
+          if (severeError) {
+            console.warn("[synthesis] Severe discrepancy, using template:", validation.discrepancies);
+            return this.buildTemplateSummary(afford, market, risk, recs);
+          }
+          console.warn("[synthesis] Correcting drifted numbers:", validation.discrepancies);
+        }
+
+        // Auto-correct any drifted numbers in the narrative
+        const { correctedText, corrections } = correctSynthesisNumbers(
+          textBlock.text,
+          afford,
+          market.mortgageRates
+        );
+        if (corrections.length > 0) {
+          console.log("[synthesis] Auto-corrected:", corrections);
+        }
+        return correctedText;
+      }
     } catch (err) {
       console.log("      Warning: AI synthesis failed, using template summary:", err);
     }
@@ -1455,6 +1494,25 @@ ${r.riskFlags.map((f) => `- **${f.severity.toUpperCase()}**: ${f.message} — ${
 - Get pre-approved before shopping to strengthen your offers
 - Budget for closing costs on top of your down payment
 - Consider a home inspection contingency to protect your investment`;
+  }
+
+  computeDataConfidence(market: MarketDataResult): DataConfidence {
+    const isRateFallback = market.mortgageRates.source.includes("fallback");
+    const fetchAge = Date.now() - new Date(market.fetchedAt).getTime();
+    const isStale = fetchAge > 24 * 60 * 60 * 1000; // older than 24 hours
+
+    const rates: DataConfidenceLevel = isRateFallback ? "low" : isStale ? "medium" : "high";
+
+    const isPriceRecent = market.medianHomePrices.dataDate && !market.medianHomePrices.dataDate.includes("fallback");
+    const prices: DataConfidenceLevel = isPriceRecent ? (isStale ? "medium" : "high") : "low";
+
+    const hasInflation = market.inflationData.shelterInflationRate > 0;
+    const inflation: DataConfidenceLevel = hasInflation ? "high" : "low";
+
+    const levels: DataConfidenceLevel[] = [rates, prices, inflation];
+    const overall: DataConfidenceLevel = levels.includes("low") ? "low" : levels.includes("medium") ? "medium" : "high";
+
+    return { rates, prices, inflation, overall };
   }
 
   private getFallbackMarketData(): MarketDataResult {

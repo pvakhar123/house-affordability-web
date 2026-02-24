@@ -7,9 +7,18 @@ function fmt(n: number): string {
 
 export default function MarketSnapshotCard({ data, satelliteUrl }: { data: MarketDataResult; satelliteUrl?: string | null }) {
   const { mortgageRates: r, medianHomePrices: p, inflationData: inf } = data;
+  const isFallback = r.source.includes("fallback");
 
   return (
     <div>
+      {isFallback && (
+        <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-2 text-sm text-amber-800">
+          <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126z" />
+          </svg>
+          <span>Live rate data unavailable. Using estimated rates — actual rates may differ.</span>
+        </div>
+      )}
       {satelliteUrl && (
         <div className="mb-4 rounded-xl overflow-hidden">
           {/* eslint-disable-next-line @next/next/no-img-element */}

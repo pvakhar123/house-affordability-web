@@ -6,6 +6,8 @@
  * 2. System prompt hardening (guardrail rules appended to prompt)
  * 3. Tool parameter validation (range checks on numeric inputs)
  * 4. Output fact-checking (compare response numbers to report)
+ * 5. Synthesis validation (stricter check for AI-generated report summaries)
+ * 6. Synthesis number correction (auto-replace drifted numbers in AI prose)
  */
 
 import Anthropic from "@anthropic-ai/sdk";
@@ -314,4 +316,206 @@ export function checkOutputNumbers(
     discrepancies,
     correctionNote: `\n\n---\n*Note: Please verify these figures against your report: ${corrections.join("; ")}.*`,
   };
+}
+
+// ── Guardrail 5: Synthesis Validation ─────────────────────────
+// Stricter version of checkOutputNumbers that works with raw data
+// instead of FinalReport, used to validate AI-generated summaries.
+
+const SYNTHESIS_PATTERNS: { field: string; valueKey: string; matchPatterns: RegExp[] }[] = [
+  {
+    field: "max home price",
+    valueKey: "maxHomePrice",
+    matchPatterns: [
+      /max(?:imum)?\s+(?:home\s+)?price[^$]*\$([0-9,]+)/i,
+      /afford\s+(?:up\s+to\s+)?(?:a\s+)?(?:home\s+)?(?:up\s+to\s+)?\$([0-9,]+)/i,
+      /max(?:imum)?\s+(?:you\s+can\s+)?afford[^$]*\$([0-9,]+)/i,
+    ],
+  },
+  {
+    field: "recommended price",
+    valueKey: "recommendedHomePrice",
+    matchPatterns: [
+      /recommend(?:ed)?\s+(?:home\s+)?price[^$]*\$([0-9,]+)/i,
+      /comfortable\s+(?:price\s+)?range[^$]*\$([0-9,]+)/i,
+      /target(?:ing)?\s+(?:around\s+)?\$([0-9,]+)/i,
+    ],
+  },
+  {
+    field: "monthly payment",
+    valueKey: "totalMonthly",
+    matchPatterns: [
+      /monthly\s+payment[^$]*\$([0-9,]+)/i,
+      /\$([0-9,]+)\s*(?:per|\/)\s*month/i,
+    ],
+  },
+  {
+    field: "front-end DTI",
+    valueKey: "frontEndRatio",
+    matchPatterns: [/front[- ]end\s+(?:DTI|ratio)[^0-9]*([0-9.]+)\s*%/i],
+  },
+  {
+    field: "back-end DTI",
+    valueKey: "backEndRatio",
+    matchPatterns: [/back[- ]end\s+(?:DTI|ratio)[^0-9]*([0-9.]+)\s*%/i],
+  },
+  {
+    field: "30-year rate",
+    valueKey: "thirtyYearFixed",
+    matchPatterns: [
+      /30[- ]year\s+(?:fixed\s+)?(?:rate\s+)?(?:is\s+|at\s+)?([0-9.]+)\s*%/i,
+    ],
+  },
+];
+
+interface SynthesisData {
+  maxHomePrice: number;
+  recommendedHomePrice: number;
+  totalMonthly: number;
+  frontEndRatio: number;
+  backEndRatio: number;
+  thirtyYearFixed: number;
+}
+
+function buildSynthesisValues(
+  afford: { maxHomePrice: number; recommendedHomePrice: number; monthlyPayment: { totalMonthly: number }; dtiAnalysis: { frontEndRatio: number; backEndRatio: number } },
+  rates: { thirtyYearFixed: number }
+): SynthesisData {
+  return {
+    maxHomePrice: afford.maxHomePrice,
+    recommendedHomePrice: afford.recommendedHomePrice,
+    totalMonthly: afford.monthlyPayment.totalMonthly,
+    frontEndRatio: afford.dtiAnalysis.frontEndRatio,
+    backEndRatio: afford.dtiAnalysis.backEndRatio,
+    thirtyYearFixed: rates.thirtyYearFixed,
+  };
+}
+
+export function validateSynthesisNumbers(
+  synthesisText: string,
+  afford: { maxHomePrice: number; recommendedHomePrice: number; monthlyPayment: { totalMonthly: number }; dtiAnalysis: { frontEndRatio: number; backEndRatio: number } },
+  rates: { thirtyYearFixed: number },
+  threshold: number = 0.10
+): OutputGuardrailResult {
+  const values = buildSynthesisValues(afford, rates);
+  const discrepancies: NumericalDiscrepancy[] = [];
+
+  for (const { field, valueKey, matchPatterns } of SYNTHESIS_PATTERNS) {
+    const expected = values[valueKey as keyof SynthesisData];
+    if (!expected || expected === 0) continue;
+
+    for (const pattern of matchPatterns) {
+      const match = synthesisText.match(pattern);
+      if (match) {
+        const citedStr = match[1].replace(/,/g, "");
+        const citedValue = parseFloat(citedStr);
+        if (isNaN(citedValue)) continue;
+
+        const deviation = Math.abs(citedValue - expected) / Math.abs(expected);
+        if (deviation > threshold) {
+          discrepancies.push({
+            citedValue,
+            expectedValue: expected,
+            field,
+            deviationPercent: Math.round(deviation * 100),
+          });
+        }
+        break;
+      }
+    }
+  }
+
+  return { flagged: discrepancies.length > 0, discrepancies };
+}
+
+// ── Guardrail 6: Synthesis Number Correction ──────────────────
+// Auto-replaces drifted financial figures in AI prose with correct values.
+
+export function correctSynthesisNumbers(
+  synthesisText: string,
+  afford: { maxHomePrice: number; recommendedHomePrice: number; monthlyPayment: { totalMonthly: number }; dtiAnalysis: { frontEndRatio: number; backEndRatio: number } },
+  rates: { thirtyYearFixed: number }
+): { correctedText: string; corrections: string[] } {
+  const values = buildSynthesisValues(afford, rates);
+  let correctedText = synthesisText;
+  const corrections: string[] = [];
+  const fmt = (n: number) => "$" + Math.round(n).toLocaleString("en-US");
+
+  const replacements: { patterns: RegExp[]; valueKey: keyof SynthesisData; format: (v: number) => string }[] = [
+    {
+      patterns: [
+        /max(?:imum)?\s+(?:home\s+)?price[^$]*(\$[0-9,]+)/i,
+        /afford\s+(?:up\s+to\s+)?(?:a\s+)?(?:home\s+)?(?:up\s+to\s+)?(\$[0-9,]+)/i,
+      ],
+      valueKey: "maxHomePrice",
+      format: fmt,
+    },
+    {
+      patterns: [
+        /recommend(?:ed)?\s+(?:home\s+)?price[^$]*(\$[0-9,]+)/i,
+        /comfortable\s+(?:price\s+)?range[^$]*(\$[0-9,]+)/i,
+      ],
+      valueKey: "recommendedHomePrice",
+      format: fmt,
+    },
+    {
+      patterns: [
+        /monthly\s+payment[^$]*(\$[0-9,]+)/i,
+        /(\$[0-9,]+)\s*(?:per|\/)\s*month/i,
+      ],
+      valueKey: "totalMonthly",
+      format: fmt,
+    },
+    {
+      patterns: [/front[- ]end\s+(?:DTI|ratio)[^0-9]*([0-9.]+)(\s*%)/i],
+      valueKey: "frontEndRatio",
+      format: (v) => `${v}`,
+    },
+    {
+      patterns: [/back[- ]end\s+(?:DTI|ratio)[^0-9]*([0-9.]+)(\s*%)/i],
+      valueKey: "backEndRatio",
+      format: (v) => `${v}`,
+    },
+    {
+      patterns: [/30[- ]year\s+(?:fixed\s+)?(?:rate\s+)?(?:is\s+|at\s+)?([0-9.]+)(\s*%)/i],
+      valueKey: "thirtyYearFixed",
+      format: (v) => `${v}`,
+    },
+  ];
+
+  for (const { patterns, valueKey, format } of replacements) {
+    const expected = values[valueKey];
+    if (!expected || expected === 0) continue;
+
+    for (const pattern of patterns) {
+      const match = correctedText.match(pattern);
+      if (match && match[1]) {
+        const citedStr = match[1].replace(/[$,%]/g, "");
+        const citedValue = parseFloat(citedStr);
+        if (isNaN(citedValue)) continue;
+
+        const deviation = Math.abs(citedValue - expected) / Math.abs(expected);
+        if (deviation > 0.005) {
+          const correct = format(expected);
+          correctedText = correctedText.replace(match[1], correct);
+          corrections.push(`${field(valueKey)}: ${match[1]} → ${correct}`);
+        }
+        break;
+      }
+    }
+  }
+
+  return { correctedText, corrections };
+}
+
+function field(key: string): string {
+  const map: Record<string, string> = {
+    maxHomePrice: "max home price",
+    recommendedHomePrice: "recommended price",
+    totalMonthly: "monthly payment",
+    frontEndRatio: "front-end DTI",
+    backEndRatio: "back-end DTI",
+    thirtyYearFixed: "30-year rate",
+  };
+  return map[key] ?? key;
 }
