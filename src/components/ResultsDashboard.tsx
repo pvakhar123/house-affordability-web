@@ -153,6 +153,41 @@ function ReportFeedback({ traceId }: { traceId?: string }) {
   );
 }
 
+function AISummarySnippet({ summary }: { summary: string }) {
+  const lines = summary.split("\n").map((l) => l.trim()).filter(Boolean);
+  // Grab the first non-heading paragraph as the TL;DR
+  const firstParagraph = lines.find(
+    (l) => !l.startsWith("#") && !l.startsWith("**") && !/^[-*•]\s/.test(l) && l.length > 40
+  ) || lines[0] || "";
+
+  // Highlight dollar amounts and percentages
+  const parts = firstParagraph.split(/(\$[\d,]+(?:\.\d+)?(?:\s*(?:\/mo|per month))?|\d+(?:\.\d+)?%)/g);
+
+  return (
+    <div className="rounded-2xl bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 border border-indigo-100 px-6 py-5" style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.04)" }}>
+      <div className="flex items-start gap-3">
+        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center flex-shrink-0 mt-0.5">
+          <svg className="w-4.5 h-4.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z" />
+          </svg>
+        </div>
+        <div className="min-w-0">
+          <p className="text-xs font-semibold text-indigo-600 uppercase tracking-wide mb-1">AI Summary</p>
+          <p className="text-sm leading-relaxed text-gray-700">
+            {parts.map((part, i) =>
+              /^\$[\d,]/.test(part) || /^\d+(?:\.\d+)?%$/.test(part) ? (
+                <span key={i} className="font-semibold text-indigo-700">{part}</span>
+              ) : (
+                <span key={i}>{part}</span>
+              )
+            )}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ResultsDashboard({ report, onReset, summaryLoading, userLocation, traceId }: Props) {
   const hasCore = report.affordability && report.riskAssessment && report.recommendations;
   const hasSummary = !!report.summary && !summaryLoading;
@@ -241,6 +276,29 @@ export default function ResultsDashboard({ report, onReset, summaryLoading, user
               data={report.propertyAnalysis}
               affordability={report.affordability}
             />
+          </StreamFadeIn>
+        )}
+
+        {/* AI Quick Summary — compact snippet above payment breakdown */}
+        {hasSummary && (
+          <StreamFadeIn delay={report.propertyAnalysis ? 150 : 50}>
+            <AISummarySnippet summary={report.summary} />
+          </StreamFadeIn>
+        )}
+        {summaryLoading && (
+          <StreamFadeIn delay={50}>
+            <div className="rounded-2xl bg-white px-6 py-5 flex items-center gap-3" style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center flex-shrink-0">
+                <svg className="w-4 h-4 text-white animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+              </div>
+              <div className="space-y-2 flex-1">
+                <div className="h-3.5 bg-gray-100 rounded-full animate-pulse w-3/4" />
+                <div className="h-3.5 bg-gray-100 rounded-full animate-pulse w-1/2" />
+              </div>
+            </div>
           </StreamFadeIn>
         )}
 
