@@ -37,7 +37,8 @@ export async function searchProperties(params: {
 }): Promise<PropertyListing[]> {
   const apiKey = process.env.RAPIDAPI_KEY;
   if (!apiKey) {
-    throw new Error("RAPIDAPI_KEY environment variable is not set. Sign up at https://rapidapi.com/s.mahmoud97/api/zillow-com1");
+    console.warn("[property-search] RAPIDAPI_KEY not configured, skipping search");
+    return [];
   }
 
   const url = new URL("https://zillow-com1.p.rapidapi.com/propertyExtendedSearch");
@@ -64,9 +65,15 @@ export async function searchProperties(params: {
     signal: AbortSignal.timeout(10000),
   });
 
+  if (response.status === 429 || response.status === 403) {
+    console.warn(`[property-search] RapidAPI rate limit or quota exceeded (${response.status})`);
+    return [];
+  }
+
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(`Zillow API error (${response.status}): ${text}`);
+    console.error(`[property-search] Zillow API error (${response.status}): ${text}`);
+    return [];
   }
 
   const data = (await response.json()) as ZillowResponse;
