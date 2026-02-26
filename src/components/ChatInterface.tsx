@@ -641,7 +641,7 @@ export default function ChatInterface({ report, userLocation, initialPrompt, rep
               Quick Calculators
             </p>
             <div className="grid grid-cols-2 gap-2">
-              {calculatorActions.slice(0, 6).map((action) => (
+              {calculatorActions.map((action) => (
                 <button
                   key={action.label}
                   onClick={() => sendMessage(action.prompt)}
@@ -658,20 +658,6 @@ export default function ChatInterface({ report, userLocation, initialPrompt, rep
                 </button>
               ))}
             </div>
-            {calculatorActions.length > 6 && (
-              <div className="flex flex-wrap gap-1.5 mt-3">
-                {calculatorActions.slice(6).map((action) => (
-                  <button
-                    key={action.label}
-                    onClick={() => sendMessage(action.prompt)}
-                    disabled={isLoading}
-                    className="text-xs px-3 py-1.5 bg-gray-100 text-gray-700 rounded-full hover:bg-blue-100 hover:text-blue-700 transition-colors disabled:opacity-50"
-                  >
-                    {action.label}
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
         )}
 
