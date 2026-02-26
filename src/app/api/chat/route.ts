@@ -840,6 +840,7 @@ Be specific with numbers. Keep responses concise. Do not provide legal or bindin
           const send = (data: string) => {
             controller.enqueue(encoder.encode(`data: ${data}\n\n`));
           };
+          let ragSources: {title: string; source: string; relevance: number}[] = [];
 
           try {
             let iterations = 0;
@@ -906,13 +907,14 @@ Be specific with numbers. Keep responses concise. Do not provide legal or bindin
                   send(JSON.stringify({ text: outputCheck.correctionNote }));
                 }
 
-                // Send context meta (summary + memory + tools + traceId) for client to persist
+                // Send context meta (summary + memory + tools + traceId + RAG sources) for client to persist
                 send(JSON.stringify({
                   meta: {
                     ...(updatedSummary ? { conversationSummary: updatedSummary } : {}),
                     sessionMemory: memory,
                     toolsCalled: memory.toolsUsed,
                     traceId: chatTrace.traceId,
+                    ...(ragSources.length > 0 ? { sources: ragSources } : {}),
                   },
                 }));
                 send("[DONE]");
@@ -994,6 +996,22 @@ Be specific with numbers. Keep responses concise. Do not provide legal or bindin
                     content: result,
                   };
                 }));
+
+              // Extract RAG sources from lookup_mortgage_info results
+              for (let ti = 0; ti < toolUseBlocks.length; ti++) {
+                if (toolUseBlocks[ti].name === "lookup_mortgage_info") {
+                  try {
+                    const parsed = JSON.parse(toolResults[ti].content as string);
+                    if (parsed.documents) {
+                      ragSources = parsed.documents.map((d: { title: string; source: string; relevance: number }) => ({
+                        title: d.title,
+                        source: d.source,
+                        relevance: d.relevance,
+                      }));
+                    }
+                  } catch { /* ignore */ }
+                }
+              }
 
               messages.push({ role: "user", content: toolResults });
               // Loop again — next iteration streams the text response

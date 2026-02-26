@@ -333,6 +333,11 @@ export default function ResultsDashboard({ report, onReset, summaryLoading, user
 
   const displayLocation = report.propertyAnalysis?.property.address || userLocation || "";
 
+  // Scroll to top when results appear
+  useEffect(() => {
+    window.scrollTo({ top: 0 });
+  }, []);
+
   useEffect(() => {
     if (!displayLocation) return;
     fetch(`/api/location-image?location=${encodeURIComponent(displayLocation)}`)
@@ -408,7 +413,7 @@ export default function ResultsDashboard({ report, onReset, summaryLoading, user
           </nav>
 
           {/* Section content */}
-          <div className="flex-1 min-w-0 space-y-6">
+          <div className="flex-1 min-w-0 space-y-6 pb-14">
 
             {/* === OVERVIEW (HOME) === */}
             {activeSection === "home" && (
@@ -621,26 +626,21 @@ export default function ResultsDashboard({ report, onReset, summaryLoading, user
               </StreamFadeIn>
             )}
 
-            {/* Disclaimers (visible on every section) */}
-            {report.disclaimers && (
-              <div className="p-4 bg-gray-50 rounded-xl">
-                <p className="text-xs font-medium text-gray-500 mb-2">Disclaimers</p>
-                <ul className="space-y-1">
-                  {report.disclaimers.map((d, i) => (
-                    <li key={i} className="text-xs text-gray-400">
-                      {d}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
             {/* Chat - below content on smaller screens */}
             <div className="block xl:hidden" style={{ height: "500px" }}>
               <ChatInterface report={report} userLocation={userLocation} />
             </div>
           </div>
         </div>
+
+        {/* Disclaimers - docked to bottom */}
+        {report.disclaimers && (
+          <div className="sticky bottom-0 bg-white/95 backdrop-blur-sm border-t border-gray-100 px-4 py-2 z-10 -mx-6">
+            <p className="text-[10px] text-gray-400 text-center">
+              {report.disclaimers.join(" · ")}
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Chat - fixed right column on xl+ */}

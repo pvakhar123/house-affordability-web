@@ -3,10 +3,17 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import type { FinalReport } from "@/lib/types";
 import type { SessionMemory } from "@/lib/chat-context";
+interface Source {
+  title: string;
+  source: string;
+  relevance: number;
+}
+
 interface Message {
   role: "user" | "assistant";
   content: string;
   traceId?: string;
+  sources?: Source[];
 }
 
 type Rating = "up" | "down" | null;
@@ -487,7 +494,7 @@ export default function ChatInterface({ report, userLocation, initialPrompt, rep
               throw new Error(parsed.error);
             }
 
-            // Handle context meta events (summary + memory + traceId from server)
+            // Handle context meta events (summary + memory + traceId + sources from server)
             if (parsed.meta) {
               if (parsed.meta.conversationSummary) {
                 setConversationSummary(parsed.meta.conversationSummary);
@@ -495,12 +502,19 @@ export default function ChatInterface({ report, userLocation, initialPrompt, rep
               if (parsed.meta.sessionMemory) {
                 setSessionMemory(parsed.meta.sessionMemory);
               }
-              if (parsed.meta.traceId) {
+              if (parsed.meta.traceId || parsed.meta.sources) {
                 setMessages((prev) => {
                   const updated = [...prev];
                   const last = updated[updated.length - 1];
                   if (last?.role === "assistant") {
-                    return [...updated.slice(0, -1), { ...last, traceId: parsed.meta.traceId }];
+                    return [
+                      ...updated.slice(0, -1),
+                      {
+                        ...last,
+                        ...(parsed.meta.traceId ? { traceId: parsed.meta.traceId } : {}),
+                        ...(parsed.meta.sources ? { sources: parsed.meta.sources } : {}),
+                      },
+                    ];
                   }
                   return updated;
                 });
@@ -669,6 +683,19 @@ export default function ChatInterface({ report, userLocation, initialPrompt, rep
                     <div className="rounded-2xl px-4 py-3 bg-gray-50 border border-gray-200 text-gray-700">
                       {renderFormattedText(msg.content)}
                     </div>
+                    {/* RAG source citations */}
+                    {msg.sources && msg.sources.length > 0 && !(isLoading && i === messages.length - 1) && (
+                      <div className="mt-1.5 ml-1 flex items-center gap-1.5 flex-wrap">
+                        <svg className="w-3 h-3 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+                        </svg>
+                        {msg.sources.map((s, j) => (
+                          <span key={j} className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600 font-medium" title={s.title}>
+                            {s.source}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                     {/* Thumbs up/down — only for completed responses (not while streaming) */}
                     {!(isLoading && i === messages.length - 1) && (
                       <div className="flex gap-1 mt-1 ml-2">
