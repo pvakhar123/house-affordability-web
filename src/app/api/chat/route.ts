@@ -935,7 +935,10 @@ Be specific with numbers. Keep responses concise. Do not provide legal or bindin
                 return;
               }
 
-              // Tool use detected — process tools locally, then loop
+              // Tool use detected — notify client, process tools, then loop
+              const toolNames = toolUseBlocks.map((t) => t.name);
+              send(JSON.stringify({ thinking: true, tools: toolNames }));
+
               messages.push({
                 role: "assistant",
                 content: finalMessage.content,

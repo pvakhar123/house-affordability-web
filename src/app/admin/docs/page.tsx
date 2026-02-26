@@ -202,7 +202,7 @@ function ProductDocSection() {
       </Card>
 
       <Card title="Results Dashboard">
-        <p className="text-sm text-gray-600 mb-3">After analysis, results stream in progressively. The dashboard renders these cards in order:</p>
+        <p className="text-sm text-gray-600 mb-3">After analysis, the page scrolls to top and results stream in progressively. A <strong>report switcher dropdown</strong> (signed-in users) loads any saved report inline. Disclaimers are pinned to the bottom of the viewport. The dashboard renders these cards in order:</p>
         <Table
           headers={["#", "Card", "Condition"]}
           rows={[
@@ -261,7 +261,7 @@ function ProductDocSection() {
             ["get_area_info", "Static data", "Tax rates, schools, cost of living"],
           ]}
         />
-        <p className="text-sm text-gray-600 mt-3">Max 5 tool-use iterations per request. Quick-start suggestion chips and follow-up prompts generated dynamically. Thumbs up/down on each response.</p>
+        <p className="text-sm text-gray-600 mt-3">Max 5 tool-use iterations per request. Quick-start suggestion chips and follow-up prompts generated dynamically. Thumbs up/down on each response. <strong>RAG source citations</strong>: when <Code>lookup_mortgage_info</Code> is invoked, source documents are extracted from the tool result and sent to the client via the <Code>meta</Code> SSE event. Citation badges (source name pills) render below the assistant message.</p>
       </Card>
 
       <Card title="Report Actions">
@@ -574,7 +574,7 @@ function RagSection() {
 
       <Card title="Usage Points">
         <ul className="list-disc list-inside text-sm text-gray-600 space-y-1">
-          <li>Chat tool: <Code>lookup_mortgage_info</Code> — invoked when users ask general mortgage questions</li>
+          <li>Chat tool: <Code>lookup_mortgage_info</Code> — invoked when users ask general mortgage questions. Source documents are surfaced as citation badges in the chat UI.</li>
           <li>RAG demo page: <Code>/rag-demo</Code> with <Code>/api/rag-demo</Code></li>
           <li>MCP server: <Code>lookup_mortgage_info</Code> tool</li>
         </ul>
@@ -613,6 +613,15 @@ function ChatSystemSection() {
             ["search_properties", "Zillow/RapidAPI"],
           ]}
         />
+      </Card>
+
+      <Card title="RAG Source Citations">
+        <p className="text-sm text-gray-600 mb-2">When <Code>lookup_mortgage_info</Code> is called during the tool-use loop, the server extracts <Code>documents</Code> from the tool result (title, source, relevance score). These are sent to the client in the <Code>meta</Code> SSE event alongside the traceId.</p>
+        <ul className="list-disc list-inside text-sm text-gray-600 space-y-1">
+          <li>Server: <Code>ragSources</Code> collected in <FilePath>src/app/api/chat/route.ts</FilePath>, included in <Code>meta</Code> event as <Code>sources</Code></li>
+          <li>Client: <Code>ChatInterface.tsx</Code> attaches sources to the assistant message and renders citation badges (book icon + source pills)</li>
+          <li>Citations only appear after streaming completes (not during)</li>
+        </ul>
       </Card>
 
       <Card title="5 Context Engineering Layers">

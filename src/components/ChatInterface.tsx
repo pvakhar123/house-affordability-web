@@ -332,6 +332,7 @@ export default function ChatInterface({ report, userLocation, initialPrompt, rep
   const [conversationSummary, setConversationSummary] = useState<string | null>(null);
   const [sessionMemory, setSessionMemory] = useState<SessionMemory | null>(null);
   const [ratings, setRatings] = useState<Record<number, Rating>>({});
+  const [thinkingTools, setThinkingTools] = useState<string[] | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -494,6 +495,12 @@ export default function ChatInterface({ report, userLocation, initialPrompt, rep
               throw new Error(parsed.error);
             }
 
+            // Handle thinking indicator (tool use in progress)
+            if (parsed.thinking) {
+              setThinkingTools(parsed.tools || null);
+              continue;
+            }
+
             // Handle context meta events (summary + memory + traceId + sources from server)
             if (parsed.meta) {
               if (parsed.meta.conversationSummary) {
@@ -523,6 +530,7 @@ export default function ChatInterface({ report, userLocation, initialPrompt, rep
             }
 
             if (parsed.text) {
+              setThinkingTools(null);
               if (!assistantAdded) {
                 // First chunk — add the assistant message
                 setMessages((prev) => [
@@ -573,6 +581,7 @@ export default function ChatInterface({ report, userLocation, initialPrompt, rep
       ]);
     } finally {
       setIsLoading(false);
+      setThinkingTools(null);
       inputRef.current?.focus();
       // Persist chat after each exchange
       setMessages((latest) => {
@@ -709,7 +718,7 @@ export default function ChatInterface({ report, userLocation, initialPrompt, rep
             ))}
 
             {/* Loading dots — only shown before first text chunk arrives */}
-            {showLoadingDots && (
+            {showLoadingDots && !thinkingTools && (
               <div className="flex justify-start">
                 <div className="bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3">
                   <div className="flex gap-1.5">
@@ -726,6 +735,22 @@ export default function ChatInterface({ report, userLocation, initialPrompt, rep
                       style={{ animationDelay: "300ms" }}
                     />
                   </div>
+                </div>
+              </div>
+            )}
+
+            {/* Tool execution indicator — shown while Claude processes tool results */}
+            {thinkingTools && (
+              <div className="flex justify-start">
+                <div className="bg-indigo-50 border border-indigo-100 rounded-2xl px-4 py-2.5 flex items-center gap-2">
+                  <div className="w-3.5 h-3.5 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
+                  <span className="text-xs text-indigo-600 font-medium">
+                    {thinkingTools.includes("lookup_mortgage_info") ? "Searching knowledge base" :
+                     thinkingTools.includes("get_current_rates") ? "Fetching live rates" :
+                     thinkingTools.includes("search_properties") ? "Searching properties" :
+                     thinkingTools.includes("get_area_info") ? "Looking up area info" :
+                     "Running calculations"}...
+                  </span>
                 </div>
               </div>
             )}

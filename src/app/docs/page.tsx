@@ -42,7 +42,7 @@ export default function DocsPage() {
             </svg>
             App
           </a>
-          <span className="text-xs text-gray-400">v2.1</span>
+          <span className="text-xs text-gray-400">v2.2</span>
         </div>
         <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-0.5">
           {sections.map((s) => (
@@ -154,7 +154,8 @@ function OverviewSection() {
             <li>Neighborhood quality scores and cost of living</li>
             <li>Matching property listings from Realtor.com</li>
             <li>Combined readiness score and budget simulator</li>
-            <li>AI chat for follow-up questions with rich data cards</li>
+            <li>AI chat for follow-up questions with rich data cards and RAG source citations</li>
+            <li>Report switcher to quickly load any saved analysis from the results page</li>
             <li>Document upload for auto-filling financial data</li>
             <li>Property import from listing URLs</li>
             <li>Section-based dashboard with labeled left navigation</li>
@@ -336,7 +337,7 @@ function ResultsSection() {
   return (
     <>
       <h2 className="text-2xl font-bold text-gray-900 mb-2">Results Dashboard</h2>
-      <p className="text-sm text-gray-600 mb-3">After running an analysis, results stream in progressively. The dashboard uses a <strong>labeled left sidebar navigation</strong> (icons + text labels) so each analysis area is its own view. The <strong>Analysis</strong> view shows affordability, readiness, and the budget simulator together. Other sections (Market, Risk, Rent vs Buy, Investment, Properties, AI Summary, etc.) are accessed via the sidebar. On mobile, the nav becomes a horizontal scrollable tab bar.</p>
+      <p className="text-sm text-gray-600 mb-3">After running an analysis, results stream in progressively and the page scrolls to the top automatically. A <strong>report switcher dropdown</strong> at the top lets you quickly load any previously saved report without leaving the page. The dashboard uses a <strong>labeled left sidebar navigation</strong> (icons + text labels) so each analysis area is its own view. The <strong>Analysis</strong> view shows affordability, readiness, and the budget simulator together. Other sections (Market, Risk, Rent vs Buy, Investment, Properties, AI Summary, etc.) are accessed via the sidebar. On mobile, the nav becomes a horizontal scrollable tab bar. Disclaimers are always visible in a pinned bar at the bottom of the page.</p>
       <p className="text-sm text-gray-600 mb-6">The dashboard contains <strong>{cards.length} sections</strong>:</p>
       <div className="space-y-3">
         {cards.map((card, i) => (
@@ -422,6 +423,7 @@ function ChatSection() {
               <li>Follow-up prompt suggestions after each answer</li>
               <li>Thumbs up/down feedback on individual responses</li>
               <li>Streaming responses for fast interaction</li>
+              <li><strong>RAG source citations</strong> — when the AI uses the mortgage knowledge base, source badges appear below the response showing which documents were referenced</li>
             </ul>
           </div>
           <div>
@@ -459,8 +461,11 @@ function SavedReportsSection() {
           </div>
         </Card>
         <Card title="Saved Reports Page">
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-gray-600 mb-2">
             Sign in with Google to access your <a href="/" className="text-blue-600 hover:underline">Dashboard</a> where you can view, rename, add notes to, or delete any previously saved report. Click any report to reload it in the full dashboard view.
+          </p>
+          <p className="text-sm text-gray-600">
+            You can also access your saved reports from the <strong>avatar menu</strong> in the top navigation bar — click your profile picture and select <strong>My Reports</strong>. Additionally, when viewing any analysis result, the <strong>report switcher dropdown</strong> at the top of the page lets you quickly load a different saved report without navigating away.
           </p>
         </Card>
         <Card title="Settings Page">

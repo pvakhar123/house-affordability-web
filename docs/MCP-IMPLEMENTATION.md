@@ -317,6 +317,7 @@ Key implementation details:
 - **Async tool handling:** `handleToolCall` is async, tool results processed via `Promise.all`
 - **System prompt:** Includes the full report data (affordability, market data, risk, loan options)
 - **Observability:** Langfuse tracing on every chat request
+- **RAG source citations:** When `lookup_mortgage_info` is called, source documents (title, source, relevance) are extracted from the tool result and included in the `meta` SSE event. The client renders these as citation badges below the assistant message.
 
 ### Dynamic Chat Suggestions
 
