@@ -351,7 +351,7 @@ export default function ResultsDashboard({ report, onReset, summaryLoading, user
 
   // Build nav items dynamically based on available data
   const navItems: { key: string; label: string }[] = [
-    { key: "home", label: "Overview" },
+    { key: "home", label: "Analysis" },
     ...(report.investmentAnalysis ? [{ key: "investment", label: "Investment" }] : []),
     { key: "market", label: "Market" },
     ...(report.neighborhoodInfo ? [{ key: "neighborhood", label: "Area" }] : []),

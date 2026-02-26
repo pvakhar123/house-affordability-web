@@ -551,7 +551,7 @@ function FullAnalysisView({ report, location }: { report: FinalReport; location?
   return (
     <div>
       {/* Mobile horizontal tabs (<lg) */}
-      <div className="dash-nav-mobile gap-1.5 pb-3 -mx-4 px-4 overflow-x-auto scrollbar-hide">
+      <div className="dash-nav-mobile gap-1.5 pb-3 -mx-4 px-4 overflow-x-auto scrollbar-hide mb-4">
         {navItems.map((item) => (
           <button
             key={item.key}
@@ -569,7 +569,7 @@ function FullAnalysisView({ report, location }: { report: FinalReport; location?
       </div>
 
       {/* Desktop: sidebar + content row */}
-      <div className="flex gap-4">
+      <div className="flex gap-6">
         {/* Desktop sidebar nav (lg+) */}
         <nav className="dash-nav-desktop flex-col gap-0.5 sticky top-4 self-start w-40 flex-shrink-0 pt-1">
           {navItems.map((item) => (
@@ -589,7 +589,7 @@ function FullAnalysisView({ report, location }: { report: FinalReport; location?
         </nav>
 
         {/* Section content */}
-        <div className="flex-1 min-w-0 space-y-4">
+        <div className="flex-1 min-w-0 space-y-6 pb-14">
         {activeSection === "home" && (
           <>
             <HeroBanner report={report} location={location} />
@@ -677,18 +677,17 @@ function FullAnalysisView({ report, location }: { report: FinalReport; location?
           </div>
         )}
 
-        {report.disclaimers && (
-          <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-            <p className="text-xs font-medium text-gray-500 mb-2">Disclaimers</p>
-            <ul className="space-y-1">
-              {report.disclaimers.map((d, i) => (
-                <li key={i} className="text-xs text-gray-400">{d}</li>
-              ))}
-            </ul>
-          </div>
-        )}
       </div>
     </div>
+
+      {/* Disclaimers - docked to bottom */}
+      {report.disclaimers && (
+        <div className="sticky bottom-0 bg-white/95 backdrop-blur-sm border-t border-gray-100 px-4 py-2 z-10 -mx-4">
+          <p className="text-[10px] text-gray-400 text-center">
+            {report.disclaimers.join(" · ")}
+          </p>
+        </div>
+      )}
     </div>
   );
 }
@@ -889,7 +888,7 @@ export default function DashboardClient() {
 
       {/* Chat - fixed right column on xl+ */}
       {hasHomes && (
-        <div style={{ zIndex: 30 }} className="fixed right-0 top-14 bottom-0 w-[390px] p-4 pl-0 max-xl:hidden flex flex-col">
+        <div style={{ zIndex: 30 }} className="fixed right-0 top-16 bottom-4 w-[390px] p-4 pl-0 max-xl:hidden flex flex-col">
           {reportLoading ? (
             <ChatLoading />
           ) : activeReport && activeHomeId ? (
