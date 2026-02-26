@@ -187,22 +187,7 @@ export default function AnalyzeClient() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <main id="main-content" className={`${state === "results" ? "px-6" : "max-w-5xl px-4"} mx-auto py-8`}>
-        {/* Start Over button when in results */}
-        {state !== "form" && (
-          <div className="max-w-5xl mx-auto mb-4">
-            <button
-              onClick={handleReset}
-              className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 font-medium"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
-              </svg>
-              Start New Analysis
-            </button>
-          </div>
-        )}
-
+      <main id="main-content" className={`${state === "results" ? "px-6 pt-4" : "max-w-5xl px-4 py-8"} mx-auto`}>
         {/* Form - stays mounted during form & loading states to preserve data */}
         <div className={state === "form" ? "" : "hidden"}>
           {error && (
