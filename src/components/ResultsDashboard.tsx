@@ -529,7 +529,7 @@ export default function ResultsDashboard({ report, onReset, summaryLoading, user
       {/* Chat - fixed right column on xl+ */}
       <div
         style={{ zIndex: 30 }}
-        className="fixed right-0 top-64 bottom-4 w-[390px] p-4 pl-0 max-xl:hidden"
+        className="fixed right-0 top-16 bottom-4 w-[390px] p-4 pl-0 max-xl:hidden"
       >
         <ChatInterface report={report} userLocation={userLocation} />
       </div>
