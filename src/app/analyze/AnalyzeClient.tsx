@@ -185,6 +185,13 @@ export default function AnalyzeClient() {
     setReportTraceId(undefined);
   };
 
+  const handleLoadReport = useCallback((newReport: FinalReport, location: string) => {
+    setReport(newReport);
+    setUserLocation(location);
+    setState("results");
+    setReportTraceId(undefined);
+  }, []);
+
   return (
     <div className="min-h-screen bg-gray-50">
       <main id="main-content" className={`${state === "results" ? "px-6 pt-4" : "max-w-5xl px-4 py-8"} mx-auto`}>
@@ -232,6 +239,7 @@ export default function AnalyzeClient() {
             summaryLoading={report._summaryLoading}
             userLocation={userLocation}
             traceId={reportTraceId}
+            onLoadReport={handleLoadReport}
           />
         )}
       </main>

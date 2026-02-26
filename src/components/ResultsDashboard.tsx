@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
+import { useSession } from "next-auth/react";
 import type { FinalReport } from "@/lib/types";
 import AffordabilityCard from "./AffordabilityCard";
 import MarketSnapshotCard from "./MarketSnapshotCard";
@@ -24,6 +25,7 @@ interface Props {
   summaryLoading?: boolean;
   userLocation?: string;
   traceId?: string;
+  onLoadReport?: (report: FinalReport, location: string) => void;
 }
 
 function StreamFadeIn({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
@@ -202,6 +204,116 @@ const navIcons: Record<string, React.ReactNode> = {
   ),
 };
 
+// ── Report Switcher ──────────────────────────────────
+function ReportSwitcher({ currentLocation, onLoadReport, onNewAnalysis }: {
+  currentLocation: string;
+  onLoadReport: (report: FinalReport, location: string) => void;
+  onNewAnalysis: () => void;
+}) {
+  const { status } = useSession();
+  const [open, setOpen] = useState(false);
+  const [reports, setReports] = useState<{ id: string; name: string; savedAt: string; location: string | null }[]>([]);
+  const [loadingId, setLoadingId] = useState<string | null>(null);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  useEffect(() => {
+    if (status !== "authenticated") return;
+    fetch("/api/dashboard")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data?.reports) setReports(data.reports);
+      })
+      .catch(() => {});
+  }, [status]);
+
+  if (status !== "authenticated" || reports.length === 0) return null;
+
+  async function handleSwitch(id: string) {
+    setLoadingId(id);
+    try {
+      const res = await fetch(`/api/saved-reports/${id}`);
+      if (res.ok) {
+        const data = await res.json();
+        onLoadReport(data.report, data.userLocation ?? "");
+        setOpen(false);
+      }
+    } catch { /* ignore */ }
+    setLoadingId(null);
+  }
+
+  return (
+    <div ref={ref} className="relative mb-3">
+      <button
+        onClick={() => setOpen(!open)}
+        className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm max-w-[280px]"
+      >
+        <svg className="w-4 h-4 text-blue-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
+        </svg>
+        <span className="truncate">{currentLocation || "Current Analysis"}</span>
+        <svg className={`w-4 h-4 text-gray-400 flex-shrink-0 transition-transform ${open ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {open && (
+        <div className="absolute left-0 mt-1 w-72 bg-white rounded-xl shadow-lg border border-gray-200 py-1 z-50">
+          <p className="px-3 py-1.5 text-xs font-medium text-gray-400 uppercase tracking-wide">Saved Reports</p>
+          {reports.map((r) => {
+            const days = Math.floor((Date.now() - new Date(r.savedAt).getTime()) / 86_400_000);
+            const timeLabel = days === 0 ? "Today" : days === 1 ? "Yesterday" : days < 7 ? `${days}d ago` : days < 30 ? `${Math.floor(days / 7)}w ago` : new Date(r.savedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+            const isLoading = loadingId === r.id;
+            return (
+              <button
+                key={r.id}
+                onClick={() => handleSwitch(r.id)}
+                disabled={isLoading}
+                className="w-full text-left px-3 py-2.5 flex items-center gap-3 hover:bg-gray-50 transition-colors disabled:opacity-50"
+              >
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-900 truncate">{r.location || r.name}</p>
+                  <p className="text-xs text-gray-400">{timeLabel}</p>
+                </div>
+                {isLoading && (
+                  <svg className="w-4 h-4 text-blue-500 animate-spin flex-shrink-0" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                )}
+              </button>
+            );
+          })}
+          <div className="border-t border-gray-100 mt-1 pt-1">
+            <button
+              onClick={() => { onNewAnalysis(); setOpen(false); }}
+              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-blue-600 font-medium hover:bg-blue-50 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+              </svg>
+              New Analysis
+            </button>
+            <a href="/" className="flex items-center gap-2 px-3 py-2 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-50 transition-colors">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
+              </svg>
+              All Reports
+            </a>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Section card wrapper ──────────────────────────────
 function SectionCard({ title, children }: { title: React.ReactNode; children: React.ReactNode }) {
   return (
@@ -212,7 +324,7 @@ function SectionCard({ title, children }: { title: React.ReactNode; children: Re
   );
 }
 
-export default function ResultsDashboard({ report, onReset, summaryLoading, userLocation, traceId }: Props) {
+export default function ResultsDashboard({ report, onReset, summaryLoading, userLocation, traceId, onLoadReport }: Props) {
   const hasCore = report.affordability && report.riskAssessment && report.recommendations;
   const hasSummary = !!report.summary && !summaryLoading;
   const [heroImage, setHeroImage] = useState<string | null>(null);
@@ -250,6 +362,11 @@ export default function ResultsDashboard({ report, onReset, summaryLoading, user
     <>
       {/* Main content */}
       <div style={{ marginRight: "clamp(0px, calc(100vw - 1280px + 400px), 400px)" }}>
+
+        {/* Report Switcher */}
+        {onLoadReport && (
+          <ReportSwitcher currentLocation={displayLocation} onLoadReport={onLoadReport} onNewAnalysis={onReset} />
+        )}
 
         {/* Mobile horizontal pill tabs (below lg) */}
         <div className="dash-nav-mobile gap-1.5 pb-3 -mx-4 px-4 overflow-x-auto scrollbar-hide mb-4">
