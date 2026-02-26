@@ -45,6 +45,7 @@ export default function PricingClient() {
   const { data: session } = useSession();
   const [interval, setInterval] = useState<"monthly" | "annual">("monthly");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const searchParams = useSearchParams();
   const cancelled = searchParams.get("upgrade") === "cancelled";
 
@@ -57,6 +58,7 @@ export default function PricingClient() {
       return;
     }
     setLoading(true);
+    setError(null);
     try {
       const res = await fetch("/api/stripe/checkout", {
         method: "POST",
@@ -66,8 +68,11 @@ export default function PricingClient() {
       const data = await res.json();
       if (data.url) {
         window.location.href = data.url;
+      } else {
+        setError(data.error || "Failed to start checkout. Please try again.");
       }
     } catch (err) {
+      setError("Something went wrong. Please try again.");
       console.error("Checkout error:", err);
     } finally {
       setLoading(false);
@@ -76,13 +81,17 @@ export default function PricingClient() {
 
   const handleManage = async () => {
     setLoading(true);
+    setError(null);
     try {
       const res = await fetch("/api/stripe/portal", { method: "POST" });
       const data = await res.json();
       if (data.url) {
         window.location.href = data.url;
+      } else {
+        setError(data.error || "Failed to open billing portal.");
       }
     } catch (err) {
+      setError("Something went wrong. Please try again.");
       console.error("Portal error:", err);
     } finally {
       setLoading(false);
@@ -214,6 +223,12 @@ export default function PricingClient() {
             )}
           </div>
         </div>
+
+        {error && (
+          <div className="max-w-3xl mx-auto mt-4 rounded-xl px-4 py-3 text-sm text-red-700 bg-red-50 border border-red-200">
+            {error}
+          </div>
+        )}
 
         <div className="text-center mt-10">
           <p className="text-sm text-gray-500">

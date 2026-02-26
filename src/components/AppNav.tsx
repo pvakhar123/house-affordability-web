@@ -60,9 +60,10 @@ export default function AppNav() {
           <div className="flex items-center gap-6">
             <Logo />
 
-            {isAuthenticated && (
-              <div className="hidden md:flex items-center gap-0.5">
-                {navLinks.map((link) => {
+            <div className="hidden md:flex items-center gap-0.5">
+              {navLinks
+                .filter((link) => isAuthenticated || link.href === "/pricing")
+                .map((link) => {
                   const isActive = link.href === "/"
                     ? pathname === "/"
                     : pathname.startsWith(link.href);
@@ -80,31 +81,26 @@ export default function AppNav() {
                     </a>
                   );
                 })}
-              </div>
-            )}
+            </div>
           </div>
 
           <div className="flex items-center gap-2">
             <ThemeToggle />
 
-            {isAuthenticated && (
-              <>
-                <button
-                  onClick={() => setMobileOpen(!mobileOpen)}
-                  className="md:hidden p-1.5 text-gray-400 hover:text-gray-600 rounded-lg"
-                  aria-label="Toggle menu"
-                >
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    {mobileOpen ? (
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                    ) : (
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-                    )}
-                  </svg>
-                </button>
-                <UserMenu />
-              </>
-            )}
+            <button
+              onClick={() => setMobileOpen(!mobileOpen)}
+              className="md:hidden p-1.5 text-gray-400 hover:text-gray-600 rounded-lg"
+              aria-label="Toggle menu"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                {mobileOpen ? (
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                ) : (
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                )}
+              </svg>
+            </button>
+            {isAuthenticated && <UserMenu />}
 
             {status === "unauthenticated" && (
               <button
@@ -127,9 +123,9 @@ export default function AppNav() {
           </div>
         </div>
 
-        {isAuthenticated && mobileOpen && (
+        {mobileOpen && (
           <div ref={mobileRef} className="md:hidden border-t border-gray-100 py-2 pb-3">
-            {navLinks.map((link) => {
+            {navLinks.filter((link) => isAuthenticated || link.href === "/pricing").map((link) => {
               const isActive = link.href === "/"
                 ? pathname === "/"
                 : pathname.startsWith(link.href);
