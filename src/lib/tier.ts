@@ -23,7 +23,7 @@ export interface UsageCheckResult {
 
 const LIMITS = {
   free: { analyze: 1, chat: 20, savedReports: 3 },
-  pro: { analyze: 20, chat: Infinity, savedReports: Infinity },
+  pro: { analyze: 1000, chat: Infinity, savedReports: Infinity },
 } as const;
 
 // ── Period helpers ────────────────────────────────────────────

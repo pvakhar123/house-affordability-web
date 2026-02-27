@@ -51,11 +51,11 @@ export default function AmortizationChart({ data }: { data: AmortizationYear[] }
       {/* Summary stats */}
       <div className="grid grid-cols-3 gap-3">
         <div className="bg-gray-50 rounded-xl p-3 text-center">
-          <p className="text-[11px] text-gray-500">Total Interest</p>
+          <p className="text-[11px] text-gray-500">{data.length <= 5 ? `${data.length}-Year` : "Total"} Interest</p>
           <p className="text-lg font-semibold text-red-500 tabular-nums">{fmt(totals.totalInterest)}</p>
         </div>
         <div className="bg-gray-50 rounded-xl p-3 text-center">
-          <p className="text-[11px] text-gray-500">Total Principal</p>
+          <p className="text-[11px] text-gray-500">{data.length <= 5 ? `${data.length}-Year` : "Total"} Principal</p>
           <p className="text-lg font-semibold text-green-600 tabular-nums">{fmt(totals.totalPrincipal)}</p>
         </div>
         <div className="bg-gray-50 rounded-xl p-3 text-center">
