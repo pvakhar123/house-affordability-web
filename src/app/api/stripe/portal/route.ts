@@ -17,16 +17,26 @@ export async function POST(req: Request) {
     .from(users)
     .where(eq(users.id, session.user.id));
 
-  if (!user?.stripeCustomerId) {
-    return NextResponse.json({ error: "No Stripe customer found" }, { status: 400 });
+  const stripe = getStripe();
+  let customerId = user?.stripeCustomerId;
+
+  if (!customerId) {
+    const customer = await stripe.customers.create({
+      email: session.user.email!,
+      metadata: { userId: session.user.id },
+    });
+    customerId = customer.id;
+    await db
+      .update(users)
+      .set({ stripeCustomerId: customerId })
+      .where(eq(users.id, session.user.id));
   }
 
   try {
-    const stripe = getStripe();
     const origin = req.headers.get("origin") || process.env.NEXTAUTH_URL || "";
 
     const portalSession = await stripe.billingPortal.sessions.create({
-      customer: user.stripeCustomerId,
+      customer: customerId,
       return_url: `${origin}/settings`,
     });
 

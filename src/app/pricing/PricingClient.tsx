@@ -65,11 +65,16 @@ export default function PricingClient() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ interval }),
       });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        setError(data?.error || `Checkout failed (${res.status}). Please try again.`);
+        return;
+      }
       const data = await res.json();
       if (data.url) {
         window.location.href = data.url;
       } else {
-        setError(data.error || "Failed to start checkout. Please try again.");
+        setError("Failed to start checkout. Please try again.");
       }
     } catch (err) {
       setError("Something went wrong. Please try again.");
@@ -112,7 +117,7 @@ export default function PricingClient() {
 
         <div className="text-center mb-8">
           <h2 className="text-3xl font-semibold text-gray-900 tracking-tight">Simple, transparent pricing</h2>
-          <p className="text-gray-500 mt-2">Start free. Upgrade when you need more.</p>
+          <p className="text-gray-500 mt-2">{isPro ? "You're on the Pro plan. Manage your subscription below." : "Start free. Upgrade when you need more."}</p>
         </div>
 
         {/* Billing toggle */}
@@ -140,6 +145,12 @@ export default function PricingClient() {
             </span>
           )}
         </div>
+
+        {error && (
+          <div className="max-w-3xl mx-auto mb-6 rounded-xl px-4 py-3 text-sm text-red-700 bg-red-50 border border-red-200">
+            {error}
+          </div>
+        )}
 
         <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
           {/* Free Plan */}
@@ -175,9 +186,9 @@ export default function PricingClient() {
           <div className="bg-white rounded-2xl relative p-6 space-y-6" style={{ boxShadow: "0 2px 20px rgba(0,113,227,0.12), 0 2px 12px rgba(0,0,0,0.06)" }}>
             <div
               className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 text-white text-xs font-medium rounded-full"
-              style={{ background: "#0071e3" }}
+              style={{ background: isPro ? "#34c759" : "#0071e3" }}
             >
-              Recommended
+              {isPro ? "Current Plan" : "Recommended"}
             </div>
 
             <div>
@@ -213,9 +224,10 @@ export default function PricingClient() {
               </button>
             ) : (
               <button
+                type="button"
                 onClick={handleUpgrade}
                 disabled={loading}
-                className="w-full py-2.5 px-4 rounded-full text-sm font-medium text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full py-2.5 px-4 rounded-full text-sm font-medium text-white cursor-pointer transition-all hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{ background: "#0071e3", boxShadow: "0 4px 14px rgba(0,113,227,0.25)" }}
               >
                 {loading ? "Loading..." : isAuthenticated ? "Upgrade to Pro" : "Sign in to upgrade"}
@@ -223,12 +235,6 @@ export default function PricingClient() {
             )}
           </div>
         </div>
-
-        {error && (
-          <div className="max-w-3xl mx-auto mt-4 rounded-xl px-4 py-3 text-sm text-red-700 bg-red-50 border border-red-200">
-            {error}
-          </div>
-        )}
 
         <div className="text-center mt-10">
           <p className="text-sm text-gray-500">

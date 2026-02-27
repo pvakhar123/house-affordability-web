@@ -626,6 +626,7 @@ function LandingPage() {
           <div className="flex items-center justify-between text-xs text-gray-400">
             <span>&copy; {new Date().getFullYear()} HomeIQ</span>
             <div className="flex items-center gap-4">
+              <a href="/pricing" className="text-gray-500 hover:text-blue-600 transition-colors">Pricing</a>
               <a href="/privacy" className="text-gray-500 hover:text-blue-600 transition-colors">Privacy</a>
               <a href="/terms" className="text-gray-500 hover:text-blue-600 transition-colors">Terms</a>
               <a href="/docs" className="text-gray-500 hover:text-blue-600 transition-colors">Docs</a>
