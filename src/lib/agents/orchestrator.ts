@@ -754,10 +754,13 @@ export class OrchestratorAgent {
       };
     });
 
-    // Closing costs
+    // Closing costs — resolve state for state-specific rates
+    const closingAreaLookup = profile.targetLocation ? lookupAreaInfo(profile.targetLocation) : null;
     const closingJson = await handleRecommendationToolCall("estimate_closing_costs", {
       homePrice: afford.recommendedHomePrice,
       loanAmount: afford.loanAmount,
+      state: closingAreaLookup?.data.state ?? undefined,
+      propertyTaxRate: closingAreaLookup?.data.propertyTaxRate ?? undefined,
     });
     const closingCostEstimate = JSON.parse(closingJson);
 

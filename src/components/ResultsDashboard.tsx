@@ -7,7 +7,8 @@ import AffordabilityCard from "./AffordabilityCard";
 import MarketSnapshotCard from "./MarketSnapshotCard";
 import RiskAssessmentCard from "./RiskAssessmentCard";
 import LoanProgramsCard from "./LoanProgramsCard";
-import AmortizationTable from "./AmortizationTable";
+import AmortizationChart from "./AmortizationChart";
+import ClosingCostCard from "./ClosingCostCard";
 import ChatInterface from "./ChatInterface";
 import ReportActions from "./ReportActions";
 import AISummaryCard from "./AISummaryCard";
@@ -187,6 +188,11 @@ const navIcons: Record<string, React.ReactNode> = {
       <path strokeLinecap="round" strokeLinejoin="round" d="M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6m-1.5 12V10.332A48.36 48.36 0 0012 9.75c-2.551 0-5.056.2-7.5.582V21M3 21h18M12 6.75h.008v.008H12V6.75z" />
     </svg>
   ),
+  "closing-costs": (
+    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 14.25l6-6m4.5-3.493V21.75l-3.75-1.5-3.75 1.5-3.75-1.5-3.75 1.5V4.757c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0c1.1.128 1.907 1.077 1.907 2.185zM9.75 9h.008v.008H9.75V9zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm4.125 4.5h.008v.008h-.008V13.5zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+    </svg>
+  ),
   equity: (
     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 14.25v2.25m3-4.5v4.5m3-6.75v6.75m3-9v9M6 20.25h12A2.25 2.25 0 0020.25 18V6A2.25 2.25 0 0018 3.75H6A2.25 2.25 0 003.75 6v12A2.25 2.25 0 006 20.25z" />
@@ -358,6 +364,7 @@ export default function ResultsDashboard({ report, onReset, summaryLoading, user
     { key: "risk", label: "Risk" },
     ...(report.rentVsBuy ? [{ key: "rent-vs-buy", label: "Rent vs Buy" }] : []),
     ...(report.recommendations?.loanOptions?.length > 0 ? [{ key: "loans", label: "Loans" }] : []),
+    ...(report.recommendations?.closingCostEstimate ? [{ key: "closing-costs", label: "Closing" }] : []),
     { key: "equity", label: "Equity" },
     ...(userLocation ? [{ key: "properties", label: "Properties" }] : []),
     ...(hasSummary ? [{ key: "ai", label: "AI" }] : []),
@@ -592,11 +599,24 @@ export default function ResultsDashboard({ report, onReset, summaryLoading, user
               </StreamFadeIn>
             )}
 
+            {/* === CLOSING COSTS === */}
+            {activeSection === "closing-costs" && report.recommendations?.closingCostEstimate && (
+              <StreamFadeIn>
+                <SectionCard title="Closing Cost Estimate">
+                  <ClosingCostCard data={report.recommendations.closingCostEstimate} />
+                </SectionCard>
+              </StreamFadeIn>
+            )}
+
             {/* === EQUITY === */}
             {activeSection === "equity" && (
               <StreamFadeIn>
-                <SectionCard title="5-Year Equity Buildup">
-                  <AmortizationTable data={report.affordability.amortizationSummary} />
+                <SectionCard title={
+                  report.affordability.amortizationSummary.length > 5
+                    ? "Loan Amortization & Equity Buildup"
+                    : "5-Year Equity Buildup"
+                }>
+                  <AmortizationChart data={report.affordability.amortizationSummary} />
                 </SectionCard>
               </StreamFadeIn>
             )}

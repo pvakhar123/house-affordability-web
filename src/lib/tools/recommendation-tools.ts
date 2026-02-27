@@ -1,5 +1,7 @@
 import type Anthropic from "@anthropic-ai/sdk";
 import { calculateMonthlyPayment } from "../utils/financial-math";
+import { getStateClosingCosts, STATE_NAMES } from "../data/state-closing-costs";
+import type { ClosingCostItem } from "../types/recommendations";
 
 export function createRecommendationTools(): Anthropic.Messages.Tool[] {
   return [
@@ -96,6 +98,10 @@ export function createRecommendationTools(): Anthropic.Messages.Tool[] {
           state: {
             type: "string",
             description: "US state abbreviation (e.g., CA, TX)",
+          },
+          propertyTaxRate: {
+            type: "number",
+            description: "Local property tax rate as decimal (e.g., 0.0167 for 1.67%)",
           },
         },
         required: ["homePrice", "loanAmount"],
@@ -305,26 +311,52 @@ export async function handleRecommendationToolCall(
     case "estimate_closing_costs": {
       const homePrice = input.homePrice as number;
       const loanAmount = input.loanAmount as number;
+      const stateAbbr = input.state as string | undefined;
+      const propertyTaxRateOverride = input.propertyTaxRate as number | undefined;
 
-      const breakdown = [
-        { item: "Loan origination fee (1%)", amount: Math.round(loanAmount * 0.01) },
-        { item: "Appraisal", amount: 500 },
-        { item: "Home inspection", amount: 400 },
-        { item: "Title insurance", amount: Math.round(homePrice * 0.005) },
-        { item: "Title search", amount: 300 },
-        { item: "Attorney/settlement fees", amount: 1000 },
-        { item: "Recording fees", amount: 200 },
-        { item: "Prepaid property taxes (3 months)", amount: Math.round((homePrice * 0.011) / 4) },
-        { item: "Prepaid homeowners insurance (1 year)", amount: 1500 },
-        { item: "Prepaid interest (15 days)", amount: Math.round((loanAmount * 0.065 * 15) / 365) },
+      const stateData = stateAbbr ? getStateClosingCosts(stateAbbr) : null;
+      const isStateSpecific = !!stateData;
+
+      const transferTaxRate = stateData?.transferTaxRate ?? 0;
+      const recordingFees = stateData?.recordingFees ?? 200;
+      const attorneyFee = stateData?.attorneyRequired ? (stateData.attorneyFeeEstimate || 1000) : 0;
+      const titleInsuranceRate = stateData?.titleInsuranceRate ?? 0.005;
+      const insuranceAnnual = stateData?.avgHomeInsuranceAnnual ?? 1500;
+      const propertyTaxRate = propertyTaxRateOverride ?? stateData?.avgPropertyTaxRate ?? 0.011;
+
+      const breakdown: ClosingCostItem[] = [
+        { item: "Loan origination fee (1%)", amount: Math.round(loanAmount * 0.01), category: "lender" },
+        { item: "Appraisal", amount: 500, category: "lender" },
+        { item: "Credit report", amount: 50, category: "lender" },
+        { item: "Underwriting fee", amount: 750, category: "lender" },
+        { item: "Title insurance", amount: Math.round(homePrice * titleInsuranceRate), category: "title_escrow" },
+        { item: "Title search", amount: 300, category: "title_escrow" },
+        { item: "Escrow/settlement fee", amount: 500, category: "title_escrow" },
+        ...(attorneyFee > 0 ? [{ item: "Attorney fee (required)", amount: attorneyFee, category: "title_escrow" as const }] : []),
+        { item: "Recording fees", amount: recordingFees, category: "government" },
+        ...(transferTaxRate > 0 ? [{ item: `Transfer tax (${(transferTaxRate * 100).toFixed(2)}%)`, amount: Math.round(homePrice * transferTaxRate), category: "government" as const }] : []),
+        { item: "Prepaid property taxes (3 months)", amount: Math.round((homePrice * propertyTaxRate) / 4), category: "prepaid" },
+        { item: `Prepaid homeowners insurance (1 year)`, amount: insuranceAnnual, category: "prepaid" },
+        { item: "Prepaid interest (15 days est.)", amount: Math.round((loanAmount * 0.065 * 15) / 365), category: "prepaid" },
+        { item: "Home inspection", amount: 400, category: "prepaid" },
       ];
 
       const total = breakdown.reduce((sum, item) => sum + item.amount, 0);
+      const categoryTotals = {
+        lender: breakdown.filter(i => i.category === "lender").reduce((s, i) => s + i.amount, 0),
+        title_escrow: breakdown.filter(i => i.category === "title_escrow").reduce((s, i) => s + i.amount, 0),
+        government: breakdown.filter(i => i.category === "government").reduce((s, i) => s + i.amount, 0),
+        prepaid: breakdown.filter(i => i.category === "prepaid").reduce((s, i) => s + i.amount, 0),
+      };
 
       return JSON.stringify({
         lowEstimate: Math.round(total * 0.85),
         highEstimate: Math.round(total * 1.15),
         breakdown,
+        state: stateAbbr ?? null,
+        stateName: stateAbbr ? STATE_NAMES[stateAbbr.toUpperCase()] ?? null : null,
+        isStateSpecific,
+        categoryTotals,
       });
     }
 

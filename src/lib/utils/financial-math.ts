@@ -130,12 +130,13 @@ export function generateAmortizationSummary(params: {
   let balance = params.loanAmount;
   const summary: AmortizationYear[] = [];
 
-  for (let year = 1; year <= 5; year++) {
+  for (let year = 1; year <= params.loanTermYears; year++) {
     let yearPrincipal = 0;
     let yearInterest = 0;
     for (let month = 0; month < 12; month++) {
+      if (balance <= 0) break;
       const interest = balance * monthlyRate;
-      const principal = monthlyPayment - interest;
+      const principal = Math.min(monthlyPayment - interest, balance);
       yearPrincipal += principal;
       yearInterest += interest;
       balance -= principal;
@@ -144,9 +145,9 @@ export function generateAmortizationSummary(params: {
       year,
       principalPaid: Math.round(yearPrincipal),
       interestPaid: Math.round(yearInterest),
-      remainingBalance: Math.round(balance),
+      remainingBalance: Math.round(Math.max(0, balance)),
       equityPercent: round(
-        ((params.loanAmount - balance) / params.loanAmount) * 100
+        ((params.loanAmount - Math.max(0, balance)) / params.loanAmount) * 100
       ),
     });
   }

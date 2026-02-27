@@ -27,8 +27,23 @@ export interface SavingsStrategy {
   difficulty: "easy" | "moderate" | "hard";
 }
 
+export interface ClosingCostItem {
+  item: string;
+  amount: number;
+  category: "lender" | "title_escrow" | "government" | "prepaid";
+}
+
 export interface ClosingCostEstimate {
   lowEstimate: number;
   highEstimate: number;
-  breakdown: { item: string; amount: number }[];
+  breakdown: ClosingCostItem[];
+  state?: string;
+  stateName?: string;
+  isStateSpecific: boolean;
+  categoryTotals?: {
+    lender: number;
+    title_escrow: number;
+    government: number;
+    prepaid: number;
+  };
 }
