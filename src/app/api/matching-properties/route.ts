@@ -32,6 +32,7 @@ interface V3Result {
       city?: string;
       state_code?: string;
       postal_code?: string;
+      coordinate?: { lat?: number; lon?: number };
     };
   };
   flags?: {
@@ -157,6 +158,8 @@ async function _POST(request: Request) {
         listingUrl: p.href || undefined,
         listingStatus: p.status || undefined,
         estimatedMonthlyPayment: estimatedMonthly,
+        lat: p.location?.address?.coordinate?.lat,
+        lng: p.location?.address?.coordinate?.lon,
       };
     });
 

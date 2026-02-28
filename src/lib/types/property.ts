@@ -53,4 +53,6 @@ export interface MatchingProperty {
   imageUrl?: string;
   listingUrl?: string;
   listingStatus?: string;
+  lat?: number;
+  lng?: number;
 }

@@ -9,6 +9,8 @@ export const config = {
   summaryModel: process.env.CLAUDE_SUMMARY_MODEL ?? "claude-sonnet-4-5-20250929",
   // Fallback if primary models are overloaded
   fallbackModel: "claude-haiku-4-5-20251001",
+  // Google Maps Platform (server-side key for Distance Matrix & Places)
+  googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY ?? "",
   // LLM-as-judge model (Haiku for cost efficiency)
   judgeModel: process.env.CLAUDE_JUDGE_MODEL ?? "claude-haiku-4-5-20251001",
 
@@ -30,6 +32,8 @@ if (typeof process !== "undefined" && process.env) {
   if (!process.env.AUTH_GOOGLE_ID) warnings.push("AUTH_GOOGLE_ID (Google OAuth disabled)");
   if (!process.env.MAPBOX_ACCESS_TOKEN) warnings.push("MAPBOX_ACCESS_TOKEN (address autocomplete disabled)");
   if (!process.env.LANGFUSE_SECRET_KEY) warnings.push("LANGFUSE_SECRET_KEY (observability disabled)");
+  if (!process.env.GOOGLE_MAPS_API_KEY) warnings.push("GOOGLE_MAPS_API_KEY (commute & places disabled)");
+  if (!process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY) warnings.push("NEXT_PUBLIC_GOOGLE_MAPS_API_KEY (interactive map disabled)");
 
   if (warnings.length > 0) {
     console.warn(`[config] Missing optional env vars: ${warnings.join(", ")}`);

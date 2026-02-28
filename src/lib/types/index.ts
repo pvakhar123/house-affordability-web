@@ -7,3 +7,4 @@ export * from "./recommendations";
 export * from "./risk-assessment";
 export * from "./investment";
 export * from "./agent";
+export * from "./maps";

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { config } from "@/lib/config";
+import { geocodeLocation } from "@/lib/services/geocode";
 
 const MAPBOX_TOKEN = process.env.MAPBOX_ACCESS_TOKEN;
 const REALTOR_HOST = "realty-in-us.p.rapidapi.com";
@@ -8,32 +9,24 @@ export async function GET(req: NextRequest) {
   const location = req.nextUrl.searchParams.get("location");
 
   if (!location || !MAPBOX_TOKEN) {
-    return NextResponse.json({ propertyImage: null, satelliteUrl: null });
+    return NextResponse.json({ propertyImage: null, satelliteUrl: null, lat: null, lng: null });
   }
 
   try {
-    // Run geocoding and property photo search in parallel
+    // Geocode first — we need coords for both satellite URL and response
+    const coords = await geocodeLocation(location);
+
+    // Run satellite URL build and property photo search in parallel
     const [satelliteUrl, propertyImage] = await Promise.all([
-      // 1. Geocode → satellite map URL
+      // 1. Build satellite map URL from coords
       (async (): Promise<string | null> => {
-        try {
-          const encoded = encodeURIComponent(location);
-          const geoRes = await fetch(
-            `https://api.mapbox.com/geocoding/v5/mapbox.places/${encoded}.json?access_token=${MAPBOX_TOKEN}&country=us&limit=1`,
-            { signal: AbortSignal.timeout(8000) },
-          );
-          const geoData = await geoRes.json();
-          const feature = geoData.features?.[0];
-          if (!feature) return null;
-          const [lng, lat] = feature.center;
-          return (
-            `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/static/` +
-            `pin-s+3b82f6(${lng},${lat})/${lng},${lat},14,0/800x300@2x` +
-            `?access_token=${MAPBOX_TOKEN}`
-          );
-        } catch {
-          return null;
-        }
+        if (!coords) return null;
+        const { lat, lng } = coords;
+        return (
+          `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/static/` +
+          `pin-s+3b82f6(${lng},${lat})/${lng},${lat},14,0/800x300@2x` +
+          `?access_token=${MAPBOX_TOKEN}`
+        );
       })(),
 
       // 2. Property photo from RealtyInUS
@@ -109,9 +102,14 @@ export async function GET(req: NextRequest) {
       })(),
     ]);
 
-    return NextResponse.json({ propertyImage, satelliteUrl });
+    return NextResponse.json({
+      propertyImage,
+      satelliteUrl,
+      lat: coords?.lat ?? null,
+      lng: coords?.lng ?? null,
+    });
   } catch {
-    return NextResponse.json({ propertyImage: null, satelliteUrl: null });
+    return NextResponse.json({ propertyImage: null, satelliteUrl: null, lat: null, lng: null });
   }
 }
 
