@@ -50,7 +50,7 @@ export default function GoogleMapView({ center, properties, locationLabel, ameni
           defaultCenter={center}
           defaultZoom={13}
           gestureHandling="cooperative"
-          mapId="main-map"
+          mapId="DEMO_MAP_ID"
           onClick={handleMapClick}
           style={{ width: "100%", height: "100%" }}
         >

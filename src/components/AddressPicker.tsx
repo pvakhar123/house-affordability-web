@@ -6,6 +6,8 @@ import { getRecentSearches } from "@/lib/recent-searches";
 interface Props {
   value: string;
   onChange: (address: string) => void;
+  placeholder?: string;
+  compact?: boolean;
 }
 
 interface Prediction {
@@ -15,7 +17,7 @@ interface Prediction {
   secondaryText: string;
 }
 
-export default function AddressPicker({ value, onChange }: Props) {
+export default function AddressPicker({ value, onChange, placeholder = "Start typing an address...", compact }: Props) {
   const [input, setInput] = useState(value);
   const [suggestions, setSuggestions] = useState<Prediction[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -164,7 +166,7 @@ export default function AddressPicker({ value, onChange }: Props) {
           aria-controls="address-listbox"
           aria-activedescendant={highlightIndex >= 0 ? `address-option-${highlightIndex}` : undefined}
           className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-          placeholder="Start typing an address..."
+          placeholder={placeholder}
         />
         {isLoading && (
           <div className="absolute right-3 top-2.5" role="status" aria-label="Loading suggestions">
@@ -250,12 +252,14 @@ export default function AddressPicker({ value, onChange }: Props) {
         </div>
       )}
 
-      <p className="mt-1.5 text-xs text-gray-400">
-        Type an address, street, or neighborhood
-      </p>
+      {!compact && (
+        <p className="mt-1.5 text-xs text-gray-400">
+          Type an address, street, or neighborhood
+        </p>
+      )}
 
       {/* Recent searches */}
-      {recentSearches.length > 0 && !input && (
+      {!compact && recentSearches.length > 0 && !input && (
         <div className="mt-2 flex flex-wrap gap-1.5">
           <span className="text-xs text-gray-400 mr-0.5 self-center">Recent:</span>
           {recentSearches.map((addr) => (

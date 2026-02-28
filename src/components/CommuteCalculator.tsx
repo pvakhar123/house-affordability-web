@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import AddressPicker from "./AddressPicker";
 import type { CommuteResult } from "@/lib/types";
 
 interface Props {
@@ -21,7 +22,7 @@ export default function CommuteCalculator({ originAddress }: Props) {
     if (saved) setDestination(saved);
   }, []);
 
-  async function handleCalculate() {
+  const handleCalculate = useCallback(async () => {
     if (!destination.trim()) return;
     setLoading(true);
     setError(null);
@@ -50,34 +51,33 @@ export default function CommuteCalculator({ originAddress }: Props) {
     } finally {
       setLoading(false);
     }
-  }
+  }, [destination, originAddress]);
 
   return (
-    <div className="space-y-4">
-      <div className="flex gap-2">
-        <input
-          type="text"
-          value={destination}
-          onChange={(e) => setDestination(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && handleCalculate()}
-          placeholder="Enter work address..."
-          className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-        />
-        <button
-          onClick={handleCalculate}
-          disabled={loading || !destination.trim()}
-          className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
-        >
-          {loading ? (
+    <div className="space-y-3">
+      <AddressPicker
+        value={destination}
+        onChange={setDestination}
+        placeholder="Enter work address..."
+        compact
+      />
+      <button
+        onClick={handleCalculate}
+        disabled={loading || !destination.trim()}
+        className="w-full px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {loading ? (
+          <span className="flex items-center justify-center gap-2">
             <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
             </svg>
-          ) : (
-            "Calculate"
-          )}
-        </button>
-      </div>
+            Calculating...
+          </span>
+        ) : (
+          "Calculate Commute"
+        )}
+      </button>
 
       {error && (
         <p className="text-sm text-red-500">{error}</p>
